@@ -1,0 +1,11 @@
+
+
+#ifndef MYEXTENSION_REPLAYPARSER_H
+#define MYEXTENSION_REPLAYPARSER_H
+
+class ReplayParser
+{
+
+};
+
+#endif //MYEXTENSION_REPLAYPARSER_H

@@ -1,0 +1,128 @@
+#include "mpi/ObjectDispatcher.h"
+#include "mpi/MPlayer.h"
+#include "mpi/TeamData.h"
+#include "ecs/EntityManager.h"
+#include "zstd.h"
+#include "state/ParserState.h"
+#include "mpi/Messages.h"
+
+namespace mpi {
+  void zstd_decompress(BitStream &in, BitStream &out) {
+    uint32_t comp_size;
+    uint32_t decomp_size;
+    in.ReadCompressed(comp_size);
+    in.ReadCompressed(decomp_size);
+    out.Reset();
+    out.reserveBits(BYTES_TO_BITS(decomp_size));
+    out.SetWriteOffset(BYTES_TO_BITS(decomp_size));
+    std::vector<char> inData{};
+    inData.resize(comp_size);
+    in.ReadArray(inData.data(), comp_size);
+    ZSTD_decompress(out.GetData(), decomp_size, inData.data(), inData.size());
+  }
+
+    Message *MainDispatch::dispatchMpiMessage(MessageID mid) {
+      //LOG("incoming mid: 0x%x\n", mid);
+      switch(mid) {
+        case Reflection1:
+        case Reflection2:
+        case ReflectionNoDecompress: {
+          return new Message(this, mid);
+          break;
+        }
+        case Kill: {
+          //LOG("KILL\n");
+          break;
+        }
+        case Awards: {
+          //LOG("Awards\n");
+          break;
+
+        }
+        case SevereDamage: {
+          //LOG("SevereDamage\n");
+          break;
+
+        }
+        case CriticalDamage: {
+          LOG("CriticalDamage\n");
+          break;
+
+        }
+
+      }
+      //LOG("no mid found\n");
+      return nullptr;
+    }
+    void MainDispatch::applyMpiMessage(const Message *m) {
+      auto mid = m->id;
+      auto bs = (BitStream *)&m->payload;
+      //LOG("Deserialzing for Reflection type: %0x\n", mid);
+      switch(mid) {
+        case ReflectionNoDecompress: {
+          danet::deserializeReflectables(*bs, obj_dispatcher, this->state);
+          break;
+        }
+        case Reflection1:
+        case Reflection2: {
+          uint8_t tmp;
+          bs->Read(tmp);
+          bool isCompressed = tmp == 1;
+          BitStream * outBs;
+          BitStream t{};
+          if(isCompressed) {
+            zstd_decompress(*bs, t);
+            outBs = &t;
+          }
+          else
+          {
+            outBs = bs;
+          }
+          danet::deserializeReflectables(*outBs, obj_dispatcher, this->state);
+        }
+      }
+    }
+
+
+  IObject * UnitRef_Dispatch(ObjectID oid, ObjectExtUID extUid, ecs::EntityManager *mgr) {
+    if(!extUid)
+    {
+      EXCEPTION("dispatch: extended mpi uid is not set for object of type %i", oid>>0xb);
+    }
+    ecs::EntityId eid = ecs::EntityId(extUid << 0x16 | extUid >> 8);
+    auto ref = mgr->getNullable<unit::UnitRef>(eid, ECS_HASH("unit__ref"));
+    // TODO
+    return nullptr;
+  }
+  IObject *ObjectDispatcher(ObjectID oid, ObjectExtUID extUid, ParserState *state) {
+    uint16_t count = oid & 0x7ff;
+    uint8_t obj = oid >> 0xb;
+    switch(obj) {
+      case 1:
+      case 2:
+        return UnitRef_Dispatch(oid, extUid, &state->g_entity_mgr);
+      case 3:
+        break;
+      case 0xb: {
+        switch(count) {
+          case 0x2: {
+            return &state->main_dispatch;
+          }
+        }
+        break;
+      }
+      case 0xe: {
+        //LOG("Getting Player id %i\n", count);
+        if(count < players.size())
+          return &state->players[count];
+        break;
+      }
+      case 0xf: {
+        if(count < 3) { // max team count is 3
+          return &state->teams[count];
+        }
+      }
+    }
+    return nullptr;
+  }
+}

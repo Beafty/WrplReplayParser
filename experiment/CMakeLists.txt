@@ -1,0 +1,3 @@
+add_subdirectory(dagor_replay_test)
+add_subdirectory(test_net_unpack)
+add_subdirectory(create_entitiy)
