@@ -1,2 +1,2 @@
-# ReplayParser
+# WrplReplayParser
 Warthunder .wrpl Replayer Parser written in cpp with planned ABI and python bindings
