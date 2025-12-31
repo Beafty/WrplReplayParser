@@ -31,7 +31,6 @@ namespace mpi
     ~MainDispatch() override = default;
   };
   IObject * ObjectDispatcher(ObjectID oid, ObjectExtUID extUid,  ParserState*state);
-  extern std::array<MPlayer, 32> players;
 
 }
 

@@ -2,9 +2,12 @@
 
 #ifndef WTFILEUTILS_ARRAYTYPE_H
 #define WTFILEUTILS_ARRAYTYPE_H
+#include "eastl/vector.h"
+
 
 namespace ecs {
-  typedef std::vector<Component> BaseArray;
+  // changed BaseArray from std::vector to eastl::vector as mvsc got angry during toString() for whatever reason
+  typedef eastl::vector<Component> BaseArray;
   class Array : protected BaseArray
   {
   public:

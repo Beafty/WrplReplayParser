@@ -16,7 +16,8 @@
 
 #include <csignal>
 #include <cstdlib>
-#include <unistd.h>   // For write function
+
+//#include <unistd.h>
 
 
 std::string convert_os_path_to_wsl2(std::string &str) { // this function assumes a windows os with a wsl2 linux

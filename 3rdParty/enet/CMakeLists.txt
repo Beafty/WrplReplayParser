@@ -23,8 +23,8 @@ endif ()
 add_library(ENET STATIC ${sources})
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(ENET PRIVATE
-            -lws2_32
-            -lwinmm
+            ws2_32
+            winmm
     )
 endif ()
 

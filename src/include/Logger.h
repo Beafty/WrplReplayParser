@@ -178,6 +178,7 @@ class log_handler {
 
   std::unordered_map<std::string, std::weak_ptr<file_sink>> file_sinks{};
   std::thread logger_thread;
+  bool destructing = false;
   //pthread_t handle; // handle for consumer thread
 
   logger_sink *get_sink(sink_handle_t s_handle) {
@@ -274,6 +275,7 @@ public:
   }
 
   ~log_handler() {
+    this->destructing = true;
     this->running = false;
     logger_thread.join();
 

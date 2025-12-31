@@ -1,11 +1,13 @@
 #include "fmt/base.h"
 #include "logger.h"
 #include "thread"
+#include <chrono>
 log_handler g_log_handler;
 
 file_sink::~file_sink() {
   out.close();
-  g_log_handler.remove_file_sink(this->file_sink_path);
+  if(!g_log_handler.destructing)
+    g_log_handler.remove_file_sink(this->file_sink_path);
 }
 
 uint64_t get_current_time_ms() {

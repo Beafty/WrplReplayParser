@@ -13,4 +13,7 @@ target_include_directories(LOGGER
 
 target_link_libraries(LOGGER fmt::fmt)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(LOGGER PUBLIC /Zc:preprocessor) # some of the logging preprossor logic under MSVC needs this
+endif ()
 add_library(LOGGER::LOGGER ALIAS LOGGER)

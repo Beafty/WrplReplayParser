@@ -386,7 +386,7 @@ public:
     TYPE_UINT64,    ///< uint64_t
     TYPE_COUNT
   };
-  static constexpr std::array<std::string, TYPE_COUNT+1> ParamTypeNames = {
+  static constexpr std::array<const char *, TYPE_COUNT+1> ParamTypeNames = {
       "NONE",
       "STRING",
       "INT",

@@ -8,7 +8,7 @@ example for the replay parser is found in experiment/dagor_replay_test/TestLoadi
 Due to any changes Gaijin may change to the replay format, the Replay Parser will only attempt to be compatable with the most recent non-dev release of warthunder
 
 This attempts to be buildable for
-Windows: using minGW, and MSVC (not recently tested),
+Windows: using minGW, MSVC
 Linux (WSL2): using gcc
 # TODO
 setup abi

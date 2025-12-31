@@ -113,7 +113,7 @@ namespace mpi {
       }
       case 0xe: {
         //LOG("Getting Player id %i\n", count);
-        if(count < players.size())
+        if(count < state->players.size())
           return &state->players[count];
         break;
       }
