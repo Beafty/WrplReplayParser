@@ -2,7 +2,6 @@
 #include "ecs/EntityManager.h"
 #include "zstd.h"
 #include "state/ParserState.h"
-#include "mpi/Messages.h"
 
 namespace mpi {
   void zstd_decompress(BitStream &in, BitStream &out) {
@@ -29,21 +28,21 @@ namespace mpi {
           break;
         }
         case Kill: {
-          //LOG("KILL\n");
+          //LOG("KILL");
           break;
         }
         case Awards: {
-          //LOG("Awards\n");
+          //LOG("Awards");
           break;
 
         }
         case SevereDamage: {
-          //LOG("SevereDamage\n");
+          //LOG("SevereDamage");
           break;
 
         }
         case CriticalDamage: {
-          LOG("CriticalDamage\n");
+          LOG("CriticalDamage");
           break;
 
         }
@@ -105,6 +104,12 @@ namespace mpi {
         switch(count) {
           case 0x2: {
             return &state->main_dispatch;
+          }
+          case 0x4: {
+            return &state->gen_state;
+          }
+          case 0x8: {
+            return &state->glob_elo;
           }
         }
         break;

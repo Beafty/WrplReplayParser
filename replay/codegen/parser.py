@@ -4,14 +4,13 @@ from io import StringIO
 
 import builtin_types
 import cpp_types
-import objects.MPlayer as MPlayer
-import objects.TeamData as TeamData
+import objects.ReflectableObjects as objects
 from objects.obj_base import ReflectableObject, ReflectionVarMeta
 from DataTypes import DataTypeManager
 from write_header import write_header
 
 def generate(header_codegen_path: str, cpp_codegen_path: str):
-    obj_imports = [MPlayer, TeamData]
+    obj_imports = [objects]
     type_imports = [builtin_types, cpp_types]
     mgr = DataTypeManager(type_imports)
     refl_include_paths: list[str] = []
@@ -36,9 +35,17 @@ def generate(header_codegen_path: str, cpp_codegen_path: str):
                             if prev is None:
                                 first = attr_name
                             else:
-                                payload.write(f"  danet::ReflectionVar<{prev[1].data_type}> {prev[0]}" "{" f"\"{prev[0]}\", &{attr_name}, {prev[1].var_id}" "};\n")
+                                if prev[1].has_custom_coder:
+                                    payload.write(f"  danet::ReflectionVar<{mgr.refractor_raw_name(prev[1].data_type)}> {prev[0]}" "{" f"\"{prev[0]}\", &{attr_name}, {prev[1].var_id}, danet::{prev[1].EncoderName}" "};\n")
+                                else:
+                                    payload.write(f"  danet::ReflectionVar<{mgr.refractor_raw_name(prev[1].data_type)}> {prev[0]}" "{" f"\"{prev[0]}\", &{attr_name}, {prev[1].var_id}" "};\n")
                             prev = (attr_name, attr_val)
-                    payload.write(f"  danet::ReflectionVar<{prev[1].data_type}> {prev[0]}" "{" f"\"{prev[0]}\", nullptr, {prev[1].var_id}" "};\n")
+
+
+                    if prev[1].has_custom_coder:
+                        payload.write(f"  danet::ReflectionVar<{mgr.refractor_raw_name(prev[1].data_type)}> {prev[0]}" "{" f"\"{prev[0]}\", nullptr, {prev[1].var_id}, danet::{prev[1].EncoderName}" "};\n")
+                    else:
+                        payload.write(f"  danet::ReflectionVar<{mgr.refractor_raw_name(prev[1].data_type)}> {prev[0]}" "{" f"\"{prev[0]}\", nullptr, {prev[1].var_id}" "};\n")
                     payload.write(f"  {name}()" " {\n")
                     payload.write(f"    varList.head = &{first};\n")
                     payload.write(f"    varList.tail = &{prev[0]};\n")

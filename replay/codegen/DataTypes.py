@@ -32,6 +32,12 @@ class DataTypeRegister:
     # read DataTypeType comments for more info
     # leaving this to default params would be the same as no template args
     template_type_args = []
+    @staticmethod
+    def serialize_name(datatype: 'DataTypeCompiled'):
+        base = datatype.datatype.reg.name
+        if len(datatype.template_args):
+            return f"{base}<{','.join([str(x) for x in datatype.template_args])}>"
+        return base
 
 
 def parse_raw_datatype_name(name: str) -> tuple[list[str], str]:
@@ -138,10 +144,13 @@ class DataType(NameSpace):
         for x in self.contains.values():
             x.print(index + 2)
 
-    def to_serialize(self) -> list[str]:
+    def to_serialize(self, mgr: 'DataTypeManager') -> list[str]:
+        insts = [mgr.parse_var_decl(x) for x in self.reg.members]
+        vars = [x.serialize_to_declaration() for x in insts] # we have to do this to remove some var template specifiers (std::vector ex)
+
         return [
             f"struct {self.name} {'{'}",
-            *["  " + x.rstrip(";") + "{};" for x in self.reg.members],
+            *["  " + x.rstrip(";") + "{};" for x in vars],
             "};"
         ]
 
@@ -154,7 +163,7 @@ class DataTypeCompiled:
         self.serializer_build = False  # have we build a serializer for this type?
 
     def __str__(self):
-        return self.datatype.name
+        return self.datatype.reg.name
 
 
 
@@ -189,6 +198,13 @@ class DataTypeInst:
             return f"{ctx}{self.var_name}->"
         else:
             return f"{ctx}{self.var_name}."
+
+    def serialize_to_declaration(self):
+        reg = self.compiled.datatype.reg
+        var_name = reg.serialize_name(self.compiled)
+        if self.obj_count > 1:
+            return f"{var_name} {self.var_name}[{self.obj_count}];"
+        return f"{var_name} {self.var_name};"
 
 
 def default_bs_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
@@ -277,7 +293,7 @@ class DataTypeManager:
             name = '_'.join([str(x) for x in data_type.template_args]) + data_type.datatype.name + "Coder"
         else:
             name = data_type.datatype.name + "Coder"
-        return name
+        return name.replace("::", "")
 
     def request_reflectionVar_serializer(self, data_type_str: str) -> str:
         '''
@@ -295,7 +311,7 @@ class DataTypeManager:
         self.serializer_strs.append(serializer)
         payload = f"""
   template <>
-  struct DefaultEncoderChooser<{data_type.full_type_name}> {'{'}
+  struct DefaultEncoderChooser<{data_type.datatype.reg.serialize_name(data_type)}> {'{'}
     static constexpr reflection_var_encoder coder = {name};
   {'}'};"""
         self.EncoderChoosers.append(payload)
@@ -305,7 +321,7 @@ class DataTypeManager:
 
     def get_ReflectionVar_serializer(self, data_type: DataTypeCompiled) -> str:
         name = self.get_serializer_name(data_type)
-        datatype = data_type.full_type_name
+        datatype = data_type.datatype.reg.serialize_name(data_type)
         inst = DataTypeInst("data", data_type, True, 1)
         return f"""
   int {name}(DANET_ENCODER_SIGNATURE) {'{'}
@@ -343,7 +359,7 @@ class DataTypeManager:
             is_ptr = False
 
         if '[' in var_name:
-            var_count = re.findall(r"\[(.*?)]", var_name)
+            var_count = int(re.findall(r"\[(.*?)]", var_name)[0])
             parsed_name = var_name[:var_name.find("[")]
         else:
             var_count = 1
@@ -399,7 +415,7 @@ class DataTypeManager:
             for nm in nm_.contains.values():
                 if does_nm_contain_serialized_types(nm):
                     if isinstance(nm, DataType):
-                        for line in nm.to_serialize():
+                        for line in nm.to_serialize(self):
                             write_indent()
                             io.write(f"{line}\n")
                     else:
@@ -438,3 +454,7 @@ class DataTypeManager:
                 for serializer in self.serializer_strs:
                     f.write(serializer)
                 f.write("}")
+
+    def refractor_raw_name(self, raw_type: str) -> str:
+        compiled = self.get_compiled_type(raw_type)
+        return compiled.datatype.reg.serialize_name(compiled)

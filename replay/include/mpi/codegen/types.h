@@ -53,4 +53,23 @@ namespace danet {
   struct dummyForKillStreaksProgress {
     std::vector<danet::streak> vals{};
   };
+  struct teamAvgEloRatings {
+    float team1{};
+    float team2{};
+    float team3{};
+  };
+  struct zigZagPair {
+    danet::zigZagInt v1{};
+    danet::zigZagInt v2{};
+  };
+  struct dummyForExitZonesSettings {
+    danet::zigZagVector<danet::zigZagPair> vals{};
+  };
+  struct WeatherEffect {
+    std::string name{};
+    char effect_data[48]{};
+  };
+  struct WeatherEffects {
+    std::vector<danet::WeatherEffect> effects{};
+  };
 }

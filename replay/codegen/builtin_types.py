@@ -62,9 +62,27 @@ class entity_id_t_reg(DataTypeRegister):
 
 class vector_reg(DataTypeRegister):
     name = "std::vector"
-    template_type_args = [DataTypeType]
+    # second DataTypeType is the type of the value holding our size, most often u8, but can be u32
+    template_type_args = [DataTypeType, DataTypeType]
     custom_loader = vector_loader
     custom_writer = vector_writer
+
+    @staticmethod
+    def serialize_name(datatype: 'DataTypeCompiled'):
+        base = datatype.datatype.reg.name
+        return f"{base}<{str(datatype.template_args[0])}>" # the second arg is only for code generation
+
+class zigZagInt_reg(DataTypeRegister):
+    name = "danet::zigZagInt"
+    custom_loader = zigZagInt_loader
+    custom_writer = zigZagInt_writer
+
+
+class zigZagVector_reg(DataTypeRegister):
+    name = "danet::zigZagVector"
+    template_type_args = [DataTypeType]
+    custom_loader = zigZagVector_loader
+    custom_writer = zigZagVector_writer
 
 
 class array_reg(DataTypeRegister):

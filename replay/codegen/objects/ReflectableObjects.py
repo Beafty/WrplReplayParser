@@ -28,9 +28,9 @@ class MPlayer(ReflectableObject):
     timeToKick = Var("float", 25)
     guiState = Var("uint8_t", 26)
     spectatedModelIndex = Var("ecs::EntityId", 27)
-    dummyForCountUsedSlots = Var("std::vector<uint8_t>", 28)
-    dummyForSpawnCosts = Var("std::vector<uint32_t>", 29)
-    dummyForSpawnDelayTimes = Var("std::vector<uint16_t>", 30)
+    dummyForCountUsedSlots = Var("std::vector<uint8_t, uint8_t>", 28)
+    dummyForSpawnCosts = Var("std::vector<uint32_t, uint8_t>", 29)
+    dummyForSpawnDelayTimes = Var("std::vector<uint16_t, uint8_t>", 30)
     dummyForKillStreaksProgress = Var("danet::dummyForKillStreaksProgress", 31)
     state = Var("uint16_t", 32)
     squadScore = Var("uint32_t", 33)
@@ -49,3 +49,29 @@ class MPlayer(ReflectableObject):
     missionSupportUnitRef = Var("ecs::EntityId", 46)
     missionSupportUnitEnabled = Var("bool", 47)
     rageTokens = Var("uint16_t", 48)
+
+class TeamData(ReflectableObject):
+    score = Var("uint16_t", 2)
+    tickets = Var("uint16_t", 3)
+    orderCooldownTotal = Var("uint32_t", 4)
+    orderCooldownLeft = Var("uint32_t", 5)
+    spawnScore = Var("uint32_t", 6)
+    roundScore = Var("uint32_t", 7)
+
+class GlobalElo(ReflectableObject):
+    teamAvgEloRatings = Var("danet::teamAvgEloRatings", 2)
+
+class GeneralState(ReflectableObject):
+    lastSuperArtilleryTime = Var("float", 2)
+    dummyForExitZonesSettings = Var("danet::dummyForExitZonesSettings", 0xe)
+    battleAreaChangeTime = Var("float", 3)
+    battleAreaChangeToId = Var("int", 4)
+    forcedMapCellsAir = Var("uint8_t", 9)
+    forcedMapCellsGround = Var("uint8_t", 10)
+    useCustomSuperArtillery = Var("bool", 5)
+    waterWindStrengthClamp = Var("Point2", 0xc, "WeirdFloatSerializer")
+    weatherEffectsDummyVar = Var("danet::WeatherEffects", 0xd)
+    timeLeft = Var("uint16_t", 6)
+    dummyForBombingEvent = Var("bool", 7, "InvalidSerializer") # TODO dummy value
+    dummyForUnlimitedControlEvent = Var("bool", 0xb, "InvalidSerializer") # TODO dummy value
+    customState = Var("DataBlock", 8)

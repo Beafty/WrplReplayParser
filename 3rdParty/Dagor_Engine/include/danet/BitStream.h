@@ -268,7 +268,6 @@ public:
     return true;
   }
 
-
   void WriteCompressed(int v) { writeCompressedUnsignedGeneric(v); }
 
   bool ReadCompressed(int &v) const { return readCompressedUnsignedGeneric(v); }
@@ -288,6 +287,19 @@ public:
   void Write(const char *t) { writeString(t, (t && *t) ? strlen(t) : size_t(0)); }
 
   void Write(char *t) { writeString(t, (t && *t) ? strlen(t) : size_t(0)); }
+
+  bool ReadZigZag(int &v) {
+    uint32_t val;
+    if(!this->ReadCompressed(val))
+      return false;
+    v = -(val & 1) ^ val >> 1;
+    return true;
+  }
+
+  void WriteZigZag(int v) {
+    this->WriteCompressed(v >> 0x1f ^ v * 2);
+  }
+
 
   void reserveBits(uint32_t bits) {
     if (bits == 0)

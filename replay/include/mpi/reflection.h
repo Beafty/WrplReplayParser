@@ -302,6 +302,8 @@ namespace danet {
     }
   };
 
+  struct Invalid {}; // if you say a ReflectionVar is 'invalid', any warnings during parsing are ignored
+  // in practice, the InvalidCoder returns 2, which says error silently
 
   struct ReplicatedObjectCreator {
     int *class_id_ptr;

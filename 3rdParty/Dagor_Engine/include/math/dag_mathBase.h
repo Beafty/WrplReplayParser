@@ -5,7 +5,7 @@
 #pragma once
 
 #define _USE_MATH_DEFINES
-#include "float.h"
+#include <cfloat>
 #include "bit"
 #include <cmath>
 #include <cstring>
@@ -96,7 +96,6 @@ class TMatrix;
 class TMatrix4;
 
 struct Frustum;
-
 
 template <typename T>
 inline constexpr T min(const T val1, const T val2)

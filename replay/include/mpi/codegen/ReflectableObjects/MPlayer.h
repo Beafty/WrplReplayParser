@@ -5,7 +5,7 @@ class MPlayer : public danet::ReflectableObject {
 public:
   danet::ReflectionVar<danet::Uid> uid{"uid", &invitedNickName, 2};
   danet::ReflectionVar<std::string> invitedNickName{"invitedNickName", &nickLocKey, 3};
-  danet::ReflectionVar<std::string> nickLocKey{"nickLocKey", &ClanTag, 4};
+  danet::ReflectionVar<std::string> nickLocKey{"nickLocKey", &ClanTag, 4, danet::TranslatedCoder};
   danet::ReflectionVar<std::string> ClanTag{"ClanTag", &Title, 5};
   danet::ReflectionVar<std::string> Title{"Title", &publicFlags, 6};
   danet::ReflectionVar<uint32_t> publicFlags{"publicFlags", &decals, 7};
@@ -15,7 +15,7 @@ public:
   danet::ReflectionVar<uint16_t> memberId{"memberId", &customState, 11};
   danet::ReflectionVar<DataBlock> customState{"customState", &score, 12};
   danet::ReflectionVar<uint16_t> score{"score", &dummyForSupportPlanes, 13};
-  danet::ReflectionVar<std::array<ecs::EntityId, 20>> dummyForSupportPlanes{"dummyForSupportPlanes", &dummyForCrewUnitsList, 14};
+  danet::ReflectionVar<std::array<ecs::EntityId,20>> dummyForSupportPlanes{"dummyForSupportPlanes", &dummyForCrewUnitsList, 14};
   danet::ReflectionVar<danet::CrewUnitsList> dummyForCrewUnitsList{"dummyForCrewUnitsList", &disabledByMatchingSlots, 15};
   danet::ReflectionVar<uint32_t> disabledByMatchingSlots{"disabledByMatchingSlots", &brokenSlots, 16};
   danet::ReflectionVar<uint32_t> brokenSlots{"brokenSlots", &wasReadySlots, 17};

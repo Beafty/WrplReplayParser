@@ -1,5 +1,5 @@
 from DataTypes import DataTypeRegister
-
+from custom_rw import *
 
 class Uid_reg(DataTypeRegister):
     name = "danet::Uid"
@@ -10,7 +10,7 @@ class RoundScore_reg(DataTypeRegister):
     name = "danet::RoundScore"
     members = [
         "uint32_t combined;",
-        "std::vector<uint32_t> scores;"
+        "std::vector<uint32_t, uint8_t> scores;"
     ]
 
 class dummyForFootballStat_reg(DataTypeRegister):
@@ -33,7 +33,7 @@ class Crew_reg(DataTypeRegister):
 class CrewUnitsList_reg(DataTypeRegister):
     name = "danet::CrewUnitsList"
     members = [
-        "std::vector<danet::Crew> crew;"
+        "std::vector<danet::Crew, uint8_t> crew;"
     ]
 
 class dummyForPlayerStat_reg(DataTypeRegister):
@@ -76,5 +76,42 @@ class streak_reg(DataTypeRegister):
 class dummyForKillStreaksProgress_reg(DataTypeRegister):
     name = "danet::dummyForKillStreaksProgress"
     members = [
-        "std::vector<danet::streak> vals;"
+        "std::vector<danet::streak, uint8_t> vals;",
     ]
+
+class teamAvgEloRatings_reg(DataTypeRegister):
+    name = "danet::teamAvgEloRatings"
+    members = [
+        "float team1;",
+        "float team2;",
+        "float team3;",
+    ]
+
+class intPair_reg(DataTypeRegister):
+    name = "danet::zigZagPair"
+    members = [
+        "danet::zigZagInt v1;",
+        "danet::zigZagInt v2;",
+    ]
+class dummyForExitZonesSettings_reg(DataTypeRegister):
+    name = "danet::dummyForExitZonesSettings"
+    members = [
+        "danet::zigZagVector<danet::zigZagPair> vals;",
+    ]
+class Point2_reg(DataTypeRegister):
+    name = "Point2"
+    is_pod = True
+
+class WeatherEffect_reg(DataTypeRegister):
+    name = "danet::WeatherEffect"
+    members = [
+        "std::string name;",
+        "char effect_data[48];",
+    ]
+
+class WeatherEffects_reg(DataTypeRegister):
+    name = "danet::WeatherEffects"
+    members = [
+        "std::vector<danet::WeatherEffect, uint32_t> effects;",
+    ]
+
