@@ -82,7 +82,7 @@ namespace ecs
     else
       info = ArchetypeInfo{INVALID_COMPONENT_INDEX, 0, nullptr};
     G_ASSERT(components_cnt < 65535 && entitySize <= 65535);
-    archetypes.emplace_back(Archetype{entitySize}, componentsAt, std::move(info), components_cnt);
+    archetypes.emplace_back(entitySize, componentsAt, std::move(info), components_cnt); // Archetype{entitySize}
     return (archetype_t)archetypes.size() - 1;
   }
 

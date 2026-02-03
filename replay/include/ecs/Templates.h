@@ -145,7 +145,7 @@ namespace ecs
   /// a compiled form of a template
   /// has a ref to all initialized components
   /// this will be used when an entity is created, as it has all the data efficently stored to init an entity
-  /// TODO: add thread protection, inst templates are created on demand, so sequential replay reads can cause issues
+  /// TODO: add thread protection, inst templates are created on demand, so multithreaded replay reads (esp at very start) can cause issues
   ///
   struct InstantiatedTemplate {
   protected:
@@ -160,6 +160,8 @@ namespace ecs
     //BitVector has_initializer{false};
     template_t parent = INVALID_TEMPLATE_INDEX;
     BitVector activated{false};
+    archetype_t archetype_index = INVALID_ARCHETYPE;
+    friend GState;
 
     // recurse the template and template parents of template p
     // populates
@@ -173,12 +175,11 @@ namespace ecs
     InstantiatedTemplate(InstantiatedTemplate &ref) = default;
     InstantiatedTemplate &operator=(InstantiatedTemplate const &ref) = default;
 
-    InstantiatedTemplate(InstantiatedTemplate &&ref) = default;
-    InstantiatedTemplate &operator=(InstantiatedTemplate &&ref) = default;
+    InstantiatedTemplate(InstantiatedTemplate &&ref) noexcept = default;
+    InstantiatedTemplate &operator=(InstantiatedTemplate &&ref) noexcept = default;
 
     InstantiatedTemplate(template_t p);
 
-    archetype_t InitArcheType(EntityManager *mgr);
   };
 
 /// Represents a collection of templates

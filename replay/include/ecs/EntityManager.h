@@ -26,10 +26,13 @@
 namespace ecs {
   static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
 
+
   class GState {
     ComponentTypes componentTypes{};
     DataComponents dataComponents{};
     TemplateDB templates{};
+    Archetypes archetypes{};
+
 
   public:
     GState() {Init();}
@@ -60,6 +63,17 @@ namespace ecs {
       return &templates;
     }
 
+    // given a template, it will attempt to ensure the archetype exists for it
+    // assumes InstTemplate has already been created
+    // will create archetype in GState and in storage if not exists
+    archetype_t EnsureArchetype(template_t tid, MgrArchetypeStorage *storage) {
+      auto inst = this->templates.getInstTemplate(tid);
+      if(inst->archetype_index == INVALID_ARCHETYPE) { // we havent created archetype yet, lets do that
+        inst->archetype_index = this->archetypes.createArchetype(inst->component_indexes.data(), (uint32_t)inst->component_indexes.size(), this->dataComponents, this->componentTypes);
+      }
+      this->archetypes.createArchetype(inst->archetype_index, storage);
+      return inst->archetype_index;
+    };
 
     inline component_index_t
     createComponent(const HashedConstString name, type_index_t component_type, ComponentSerializer *io) {
@@ -133,18 +147,6 @@ namespace ecs {
 
     void collectEntitiesOfTemplate(std::vector<EntityId> &out, std::string_view templ_name) {return collectEntitiesOfTemplate(out, this->data_state->templates.getTemplateIdByName(templ_name));}
 
-    archetype_t createArchetype(InstantiatedTemplate *inst)
-    {
-      auto it = this->initialized_archetypes.find(inst);
-      if(it == this->initialized_archetypes.end())
-      {
-        archetype_t arch = this->archetypes.createArchetype(inst->component_indexes.data(), (uint32_t)inst->component_indexes.size(), data_state->dataComponents, data_state->componentTypes);;
-        this->initialized_archetypes.emplace(inst, arch);
-        return arch;
-      }
-      return it->second;
-    }
-
     EntityId getNext() {return this->entDescs.GetNextEid();}
 
     typedef uint64_t query_components_hash;
@@ -178,9 +180,8 @@ namespace ecs {
 
     GState *data_state = g_ecs_data.get();
     EntityDescs entDescs;
-    Archetypes archetypes;
     BitVector wasInit{false}; // used during entity creation
-    std::unordered_map<InstantiatedTemplate*, archetype_t> initialized_archetypes; // because mgr no longer owns templates, we need do this
+    MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
     std::unordered_map<event_type_t, std::vector<QueryId>> event_to_query; // maps an event to what queries use it
     EventsDB db; // TODO: move to g_ecs_data
     // don't fucking ask me to fully explain why this is like this I don't fucking know

@@ -106,7 +106,7 @@ namespace ecs {
 
   void TemplateDB::instantiateTemplate(template_t t) {
     G_ASSERT(t<this->templates.size());
-    this->inst_templates[t] = std::move(InstantiatedTemplate(t));
+    this->inst_templates[t] = InstantiatedTemplate(t);
   }
 
   template_t TemplateDB::getTemplateIdByName(std::string_view name) {
@@ -183,15 +183,15 @@ namespace ecs {
 
 
   InstantiatedTemplate::InstantiatedTemplate(template_t p) {
-    static ComponentRef eidCompoennt;
-    if(eidCompoennt.getUserType() == 0)
+    static ComponentRef eidComponent;
+    if(eidComponent.getUserType() == 0)
     {
       auto idx = g_ecs_data->getComponentTypes()->findType(ECS_HASH("ecs::EntityId").hash);
       auto comp_data = g_ecs_data->getComponentTypes()->getComponentData(idx);
-      eidCompoennt = ComponentRef(nullptr, comp_data->hash, idx, comp_data->size);
+      eidComponent = ComponentRef(nullptr, comp_data->hash, idx, comp_data->size);
     }
     activated.resize(g_ecs_data->getDataComponents()->size(), false);
-    components.emplace_back(0, eidCompoennt);
+    components.emplace_back(0, eidComponent);
     this->RecurseTemplates(p, *g_ecs_data->getTemplateDB());
     // now that we have all our components, lets sort them. archetype construction needs these to be sorted
     std::sort(components.begin(), components.end(), ComponentRefTemplInfo::sort);
@@ -221,9 +221,6 @@ namespace ecs {
     //this->components.insert(components.end(), tmpl->components.begin(), tmpl->components.end());
   }
 
-  archetype_t InstantiatedTemplate::InitArcheType(EntityManager *mgr) {
-    return mgr->createArchetype(this);
-  }
 }
 
 
