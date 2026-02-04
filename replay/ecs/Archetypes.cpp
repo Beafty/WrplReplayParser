@@ -13,7 +13,7 @@ namespace ecs
   }
 
   archetype_t Archetypes::createArchetype(const component_index_t *__restrict components, uint32_t components_cnt,
-                                   DataComponents &dataComponents, ComponentTypes &componentTypes) {
+                                   DataComponents &dataComponents, ComponentTypes &componentTypes, template_t parent_template) {
     //TODO: add support for findArchetype, only plan to do it if we 1: plan to use east::tuple_vector or make our own, what it does makes that much easier
     uint32_t entitySize = 0;
     const uint32_t componentsAt = (uint32_t)archetypeComponents.size();
@@ -82,7 +82,7 @@ namespace ecs
     else
       info = ArchetypeInfo{INVALID_COMPONENT_INDEX, 0, nullptr};
     G_ASSERT(components_cnt < 65535 && entitySize <= 65535);
-    archetypes.emplace_back(entitySize, componentsAt, std::move(info), components_cnt); // Archetype{entitySize}
+    archetypes.emplace_back(entitySize, componentsAt, std::move(info), components_cnt, parent_template); // Archetype{entitySize}
     return (archetype_t)archetypes.size() - 1;
   }
 

@@ -162,9 +162,11 @@ namespace ecs
   class Archetypes
   {
   public:
+    archetype_t size() const { return (archetype_t)archetypes.size(); }
     inline void createArchetype(archetype_t archetype, MgrArchetypeStorage *storage) {
       storage->constructArch(archetype, this->archetypes[archetype].ENTITY_SIZE);
     }
+
 
     inline void * getComponentDataUnsafe(const MgrArchetypeStorage &inst_storage, archetype_t archetype, component_index_t cidx, chunk_index_t chunkId) const
     {
@@ -184,7 +186,7 @@ namespace ecs
 
     [[nodiscard]] inline uint32_t getComponentSizeFromOfs(archetype_component_id component_id, uint32_t ofs) const;
     archetype_t createArchetype(const component_index_t *__restrict components, uint32_t components_cnt,
-                         DataComponents &dataComponents, ComponentTypes &componentTypes);
+                         DataComponents &dataComponents, ComponentTypes &componentTypes, template_t parent_template);
     [[nodiscard]] archetype_component_id getComponentsCount(uint32_t archetype) const;
 
     [[nodiscard]] component_index_t getComponentUnsafe(uint32_t archetype, archetype_component_id id) const;
@@ -192,8 +194,14 @@ namespace ecs
     {
       return archetypes[archetype].COMPONENT_OFS;
     }
+
+    inline uint32_t getArchetypeComponentCount(archetype_t arch) {
+      G_ASSERT(arch < this->archetypes.size());
+      return this->archetypes[arch].COMPONENT_COUNT;
+    }
   protected:
     friend EntityManager;
+    friend GState;
     struct ArchetypeInfo
     {
       component_index_t firstNonEidIndex, count;
@@ -207,14 +215,19 @@ namespace ecs
       uint32_t COMPONENT_OFS; // offset into archetypeComponents where this particular archetype exists
       ArchetypeInfo INFO; // used to convert component_index_t (datacomponent) to archetype_component_id
       archetype_component_id COMPONENT_COUNT;
+      template_t TEMPLATE;
 
     };
 
+    ArchetypeStorage &getArchetypeStorageUnsafe(archetype_t arch) {return this->archetypes[arch];}
+
+    inline uint16_t getComponentOfsFromOfs(archetype_component_id component_id, uint32_t ofs) const;
+    inline template_t getParentTemplate(archetype_t arch) const;
     /// represents component data in relation to an archetype. it is indexed by archetype_component_id;
     struct ArchetypeComponentStorage
     {
       component_index_t INDEX;
-      uint32_t DATA_OFFSET; // offset into entity where you can find the component data
+      uint16_t DATA_OFFSET; // offset into entity where you can find the component data
       uint32_t DATA_SIZE; // size of a particular data, assumes a components cant be larger than 65535 bytes
     };
 
@@ -240,6 +253,16 @@ namespace ecs
     uint32_t at = id + getArchetypeComponentOfsUnsafe(archetype);
     G_ASSERT(at < archetypeComponents.size());
     return archetypeComponents[at].INDEX;
+  }
+
+  inline uint16_t Archetypes::getComponentOfsFromOfs(archetype_component_id component_id, uint32_t ofs) const
+  {
+    return archetypeComponents[component_id+ofs].DATA_OFFSET;
+    //return archetypeComponents.get<DATA_OFFSET>()[component_id + ofs];
+  }
+
+  template_t Archetypes::getParentTemplate(archetype_t arch) const {
+    return archetypes[arch].TEMPLATE;
   }
 }
 

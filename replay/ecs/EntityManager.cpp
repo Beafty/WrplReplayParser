@@ -1,32 +1,42 @@
 #include "ecs/EntityManager.h"
 #include "ecs/ComponentTypesDefs.h"
+#include "network/CNetwork.h"
+#include "network/message.h"
+
 namespace ecs {
   OnDemandInit<GState> g_ecs_data{};
 
-  EntityManager::EntityManager() {
-    // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
-    wasInit.resize(10000, false); // just in case, current max datacomponents was like 950; edit: its now like 7000 cause of infantry and shit
+  CompileTimeQueryDesc *CompileTimeQueryDesc::tail = nullptr;
+
+  void GState::initCompileTimeQueries() {
+    for (CompileTimeQueryDesc *sd = CompileTimeQueryDesc::tail; sd; sd = sd->next)
+      sd->query = createUnresolvedQuery(*sd);
   }
 
-  inline const EntityDesc * EntityDescs::getEntityDesc(EntityId eid) const{
+  EntityManager::EntityManager() {
+    // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
+    wasInit.resize(10000,
+                   false); // just in case, current max datacomponents was like 950; edit: its now like 7000 cause of infantry and shit
+  }
+
+  inline const EntityDesc *EntityDescs::getEntityDesc(EntityId eid) const {
     auto idx = eid.index();
-    if (idx < entDescs.size())
-    {
+    if (idx < entDescs.size()) {
       return &entDescs[idx];
     }
     return nullptr;
   }
-  inline EntityDesc * EntityDescs::getEntityDesc(EntityId eid) {
-    if(!this->doesEntityExist(eid))
+
+  inline EntityDesc *EntityDescs::getEntityDesc(EntityId eid) {
+    if (!this->doesEntityExist(eid))
       return nullptr;
 
     return &entDescs[eid.index()];
   }
 
-  bool EntityDescs::getEntityTemplateId(EntityId eid, template_t &tmpl) const{
+  bool EntityDescs::getEntityTemplateId(EntityId eid, template_t &tmpl) const {
     auto desc = this->getEntityDesc(eid);
-    if(desc)
-    {
+    if (desc) {
       tmpl = desc->templ_id;
       return true;
     }
@@ -36,8 +46,7 @@ namespace ecs {
 
   bool EntityDescs::getEntityArchetypeId(EntityId eid, archetype_t &archetype) const {
     auto desc = this->getEntityDesc(eid);
-    if(desc)
-    {
+    if (desc) {
       archetype = desc->archetype_id;
       return true;
     }
@@ -47,8 +56,7 @@ namespace ecs {
 
   bool EntityDescs::getEntityChunkId(EntityId eid, chunk_index_t &chunk) const {
     auto desc = this->getEntityDesc(eid);
-    if(desc)
-    {
+    if (desc) {
       chunk = desc->chunk_id;
       return true;
     }
@@ -61,7 +69,8 @@ namespace ecs {
     validateInitializer(templId, initializer); // ensures the initializer has cIndex populated
     InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
     G_ASSERTF(instTempl, "Template {} not initialized", data_state->templates.getTemplate(templId)->name);
-    LOGD1("Creating new entity {:#x} of template '{}'", eid.handle, data_state->templates.getTemplate(templId)->name.c_str());
+    LOGD1("Creating new entity {:#x} of template '{}'", eid.handle,
+          data_state->templates.getTemplate(templId)->name.c_str());
     archetype_t archetype_id = data_state->EnsureArchetype(templId, &this->arch_data);
     auto arches = &this->data_state->archetypes;
 
@@ -74,15 +83,14 @@ namespace ecs {
     auto ComponentInfo = &arches->archetypeComponents[info->COMPONENT_OFS];
     // setup entity with initialized data
 
-    for(auto &comp : initializer)
-    {
+    for (auto &comp: initializer) {
       //LOG("ComponentInit id %i\n", comp.cIndex);
       archetype_component_id id = archInfo->getComponentId(comp.cIndex);
       //LOG("%s(%s) data:", dataComponents.getName(comp.cIndex).data(), componentTypes.getName(comp.second.getTypeId()).data());
       //comp.second.getComponentRef().print(&componentTypes);
       G_ASSERT(id != INVALID_ARCHETYPE_COMPONENT_ID); // component exists for us
       auto curr_info = ComponentInfo[id];
-      auto data =arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
+      auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
       //LOG("Initializing component %s(%s) at address %p of size %i in chunk %i\n",
       //    dataComponents.getName(comp.cIndex).data(),
       //    componentTypes.getName(comp.second.componentTypeIndex).data(),
@@ -115,19 +123,17 @@ namespace ecs {
     //LOG("\n");
 
     // now setup any remaining components with default data
-    for(auto & comp : instTempl->components)
-    {
+    for (auto &comp: instTempl->components) {
 
       //LOG("instTempl trying id %i\n", comp.comp_type_index);
-      if(!this->wasInit.test(comp.comp_type_index, false))
-      {
+      if (!this->wasInit.test(comp.comp_type_index, false)) {
         //LOG("succeeded\n");
         archetype_component_id id = archInfo->getComponentId(comp.comp_type_index);
 
         // we dont have to test here as the archtype was derived from these components
         auto curr_info = ComponentInfo[id];
         G_ASSERT(curr_info.INDEX == comp.comp_type_index);
-        auto data =arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
+        auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
         //LOG("creating component %s(%s) at address %p in chunk %i\n",
         //    dataComponents.getName(comp.comp_type_index).data(),
         //    componentTypes.getName(comp.default_component.getTypeId()).data(),
@@ -162,13 +168,14 @@ namespace ecs {
 
   bool EntityManager::validateInitializer(template_t templId, ComponentsInitializer &comp_init) {
     // more stuff will be done here eventually
-    for (auto &initIt : comp_init) {
+    for (auto &initIt: comp_init) {
       if (initIt.cIndex == INVALID_COMPONENT_INDEX) {
         component_index_t initializerIndex = data_state->dataComponents.getIndex(initIt.name);
         G_ASSERTF(initializerIndex != INVALID_COMPONENT_INDEX, "Invalid initializer index hash:{:#x}\n", initIt.name);
-        G_ASSERT(data_state->dataComponents.getDataComponent(initializerIndex)->componentHash == initIt.second.getUserType());
-        if(DAGOR_UNLIKELY(initializerIndex == INVALID_COMPONENT_INDEX))
-          EXCEPTION("Invalid component of name {:#x}", initIt.name);
+        G_ASSERT(data_state->dataComponents.getDataComponent(initializerIndex)->componentHash ==
+                 initIt.second.getUserType());
+        if (DAGOR_UNLIKELY(initializerIndex == INVALID_COMPONENT_INDEX))
+        EXCEPTION("Invalid component of name {:#x}", initIt.name);
         initIt.cIndex = initializerIndex;
       }
     }
@@ -185,9 +192,10 @@ namespace ecs {
 
   bool EntityManager::destroyEntity(EntityId eid) {
     if (!this->doesEntityExist(eid))
-		return false;
+      return false;
     auto desc = this->entDescs.getEntityDesc(eid);
-    LOGD2("Destroying entity {:#x} of template {}", eid.handle, data_state->templates.getTemplate(desc->templ_id)->name.c_str());
+    LOGD2("Destroying entity {:#x} of template {}", eid.handle,
+          data_state->templates.getTemplate(desc->templ_id)->name.c_str());
     //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
     archetype_t archetype_id = desc->archetype_id;
     auto ARCHETYPE = this->arch_data.getArch(archetype_id);
@@ -207,9 +215,8 @@ namespace ecs {
     //  LOG("%i ", comp_info->INDEX);
     //}
     //LOG("\n");
-    for(auto comp_info = ComponentInfo; comp_info != ComponentInfo+info->COMPONENT_COUNT; comp_info++)
-    {
-      auto data =ARCHETYPE->getCompDataUnsafe(comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE);
+    for (auto comp_info = ComponentInfo; comp_info != ComponentInfo + info->COMPONENT_COUNT; comp_info++) {
+      auto data = ARCHETYPE->getCompDataUnsafe(comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE);
       auto dataComp = data_state->dataComponents.getDataComponent(comp_info->INDEX);
       auto comp = data_state->componentTypes.getComponentData(dataComp->componentIndex);
       //LOG("Destroying component {}({})(compid: {}) of entity {:#x} of template '{}' at address {} in chunk {}",
@@ -236,7 +243,7 @@ namespace ecs {
 
       ref.destructCopy(data, &data_state->componentTypes);
       if (dataComp->hash == ECS_HASH("eid").hash)
-        *(ecs::EntityId*)data = INVALID_ENTITY_ID; // needed for query system
+        *(ecs::EntityId *) data = INVALID_ENTITY_ID; // needed for query system
     }
     /*for(const auto &comp : instTempl->components)
     {
@@ -261,9 +268,8 @@ namespace ecs {
 
   ecs::EntityManager::~EntityManager() {
     LOGD("starting EntityManager Destruction");
-    for(int i = 1; i < this->entDescs.entDescs.size(); i++)
-    {
-      if(!this->entDescs.doesEntityExist(i))
+    for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
+      if (!this->entDescs.doesEntityExist(i))
         continue;
       destroyEntity(EntityId(i)); //
     }
@@ -273,20 +279,17 @@ namespace ecs {
   }
 
   void EntityManager::debugPrintEntities() {
-    for(entity_id_t i = 0; i < this->entDescs.entDescs.size(); i++)
-    {
+    for (entity_id_t i = 0; i < this->entDescs.entDescs.size(); i++) {
       EntityId eid{i};
-      if(this->doesEntityExist(eid))
-      {
+      if (this->doesEntityExist(eid)) {
         this->debugPrintEntity(eid);
       }
     }
   }
 
   void EntityManager::debugPrintEntity(EntityId eid) {
-    if(this->doesEntityExist(eid))
-    {
-      auto desc= this->entDescs.getEntityDesc(eid);
+    if (this->doesEntityExist(eid)) {
+      auto desc = this->entDescs.getEntityDesc(eid);
       eid = desc->eid;
       //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
 
@@ -295,25 +298,26 @@ namespace ecs {
       auto info = &data_state->archetypes.archetypes[archetype_id];
       auto ComponentInfo = &data_state->archetypes.archetypeComponents[info->COMPONENT_OFS];
       //auto archInfo = &info->INFO;
-      LOG("DebugPrint of Entity {:#x} of template '{}' of archetype_id {}", eid.handle, this->data_state->templates.getTemplate(desc->templ_id)->name.c_str(), archetype_id);
-      for(auto comp_info = ComponentInfo; comp_info != ComponentInfo+info->COMPONENT_COUNT; comp_info++)
-      {
+      LOG("DebugPrint of Entity {:#x} of template '{}' of archetype_id {}", eid.handle,
+          this->data_state->templates.getTemplate(desc->templ_id)->name.c_str(), archetype_id);
+      for (auto comp_info = ComponentInfo; comp_info != ComponentInfo + info->COMPONENT_COUNT; comp_info++) {
         //     ComponentRef(void *data, component_type_t type, type_index_t compIndex, uint16_t size);
-        auto data =ARCHETYPE->getCompDataUnsafe(comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE);
+        auto data = ARCHETYPE->getCompDataUnsafe(comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE);
         auto dataComp = data_state->dataComponents.getDataComponent(comp_info->INDEX);
         //if(strcmp(dataComp->getName().data(), "skeleton_attach__remapParentSlots") == 0 && eid.handle == 0x4008a3)
         //  LOG("WOMP");
         auto comp = data_state->componentTypes.getComponentData(dataComp->componentIndex);
         ComponentRef ref{data, comp->hash, dataComp->componentIndex, comp->size};
-        LOG("  ArchData: idx: {}; data_off: {}; chunk_id: {}; data_size: {}; ptr: {}", comp_info->INDEX, comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE, fmt::ptr(data));
+        LOG("  ArchData: idx: {}; data_off: {}; chunk_id: {}; data_size: {}; ptr: {}", comp_info->INDEX,
+            comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE, fmt::ptr(data));
         LOG("  component {}({}) data: {}", dataComp->getName().data(), comp->name.data(), ref.toString(nullptr));
       }
       LOG("");
     }
   }
 
-  void * EntityManager::getNullable(EntityId eid, component_index_t index, archetype_t &archetype) const {
-    if(!this->entDescs.doesEntityExist(eid))
+  void *EntityManager::getNullable(EntityId eid, component_index_t index, archetype_t &archetype) const {
+    if (!this->entDescs.doesEntityExist(eid))
       return nullptr;
     auto desc = this->entDescs[eid.index()];
     archetype = desc.archetype_id; // should always be valid
@@ -322,7 +326,7 @@ namespace ecs {
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
   }
 
-  void * EntityManager::getNullableUnsafe(EntityId eid, component_index_t index, archetype_t &archetype) const {
+  void *EntityManager::getNullableUnsafe(EntityId eid, component_index_t index, archetype_t &archetype) const {
     G_ASSERT(this->entDescs.doesEntityExist(eid)); // sanity check in dev only
     auto desc = this->entDescs[eid.index()];
     archetype = desc.archetype_id; // should always be valid
@@ -331,21 +335,18 @@ namespace ecs {
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
   }
 
-  __forceinline bool EntityManager::getEntityArchetype(EntityId eid, int &idx, archetype_t &archetype) const
-  {
+  __forceinline bool EntityManager::getEntityArchetype(EntityId eid, int &idx, archetype_t &archetype) const {
     const bool ret = entDescs.getEntityArchetypeId(eid, archetype);
-    if (ret)
-    {
+    if (ret) {
       //DAECS_VALIDATE_ARCHETYPE(archetype);
     }
     return ret;
   }
 
-  int EntityManager::getNumComponents(EntityId eid) const
-  {
+  int EntityManager::getNumComponents(EntityId eid) const {
     int idx;
     archetype_t archetype = INVALID_ARCHETYPE;
-    if (!getEntityArchetype(eid,idx, archetype))
+    if (!getEntityArchetype(eid, idx, archetype))
       return -1;
     return data_state->archetypes.getComponentsCount(archetype) - 1; // first is eid
   }
@@ -353,204 +354,116 @@ namespace ecs {
   ComponentRef EntityManager::getComponentRef(EntityId eid, archetype_component_id cid) const {
 
     auto desc = this->entDescs.getEntityDesc(eid);
-    if(!desc)
+    if (!desc)
       return {};
-    auto data = data_state->archetypes.getComponentDataIdUnsafe(this->arch_data, desc->archetype_id, cid, desc->chunk_id);
-    if(!data)
+    auto data = data_state->archetypes.getComponentDataIdUnsafe(this->arch_data, desc->archetype_id, cid,
+                                                                desc->chunk_id);
+    if (!data)
       return {};
     auto cidx = data_state->archetypes.getComponentUnsafe(desc->archetype_id, cid);
     //ComponentRef(void *data, component_type_t type, type_index_t compIndex, uint16_t size);
     auto datacomp_data = data_state->dataComponents.getDataComponent(cidx);
-    if(!datacomp_data)
+    if (!datacomp_data)
       return {};
 
-    return {data, datacomp_data->componentHash, datacomp_data->componentIndex, data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
+    return {data, datacomp_data->componentHash, datacomp_data->componentIndex,
+            data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
   }
 
   ComponentRef EntityManager::getComponentRefCidx(EntityId eid, component_index_t cidx) const {
 
     auto desc = this->entDescs.getEntityDesc(eid);
-    if(!desc)
+    if (!desc)
       return {};
-    auto data = data_state->archetypes.getComponentDataUnsafe(this->arch_data, desc->archetype_id, cidx, desc->chunk_id);
-    if(!data)
+    auto data = data_state->archetypes.getComponentDataUnsafe(this->arch_data, desc->archetype_id, cidx,
+                                                              desc->chunk_id);
+    if (!data)
       return {};
     //auto cidx = this->archetypes.getComponentUnsafe(desc->archetype_id, cid);
     //ComponentRef(void *data, component_type_t type, type_index_t compIndex, uint16_t size);
     auto datacomp_data = data_state->dataComponents.getDataComponent(cidx);
-    if(!datacomp_data)
+    if (!datacomp_data)
       return {};
 
-    return {data, datacomp_data->componentHash, datacomp_data->componentIndex, data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
+    return {data, datacomp_data->componentHash, datacomp_data->componentIndex,
+            data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
   }
 
   void EntityManager::collectEntitiesWithComponent(std::vector<EntityId> &out, HashedConstString component) {
     component_index_t initializerIndex = data_state->dataComponents.getIndex(component.hash);
-    G_ASSERTF(initializerIndex != INVALID_COMPONENT_INDEX, "Unable to find component {}<{:#x}>\n", component.str, component.hash);
+    G_ASSERTF(initializerIndex != INVALID_COMPONENT_INDEX, "Unable to find component {}<{:#x}>\n", component.str,
+              component.hash);
     G_ASSERT(false);
-    for(int i = 1; i < this->entDescs.entDescs.size(); i++)
-    {
+    for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
 
     }
   }
 
   void EntityManager::collectEntitiesOfTemplate(std::vector<EntityId> &out, template_t template_id) {
-    for(int i = 1; i < this->entDescs.entDescs.size(); i++)
-    {
+    for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
       template_t tid;
       G_ASSERT(this->entDescs.getEntityTemplateId(ecs::EntityId(i), tid));
-      if(tid == template_id)
-      {
+      if (tid == template_id) {
         out.push_back(this->entDescs[i].eid);
       }
     }
   }
 
-  EntityManager::ResolvedStatus EntityManager::resolveQuery(uint32_t index, ResolvedStatus currentStatus, ResolvedQueryDesc &resDesc)
-  {
-    const CopyQueryDesc &copyDesc = queryDescs[index];
-    const char *name = copyDesc.getName();
-    const BaseQueryDesc desc = copyDesc.getDesc();
-    G_UNUSED(name);
-    G_ASSERT(desc.componentsRQ.size() + desc.componentsNO.size() + desc.componentsRW.size() + desc.componentsRO.size() > 0);
-    uint8_t ret = RESOLVED_MASK;
-    int componentsIterated = 0;
-
-    enum ReqType
-    {
-      DATA,
-      REQUIRED,
-      REQUIRED_NOT
-    };
-    auto makeRange = [&](dag::ConstSpan<ComponentDesc> components, ReqType req) -> bool {
-      auto &dest = resDesc.getComponents();
-      for (auto cdI = components.begin(), cdE = components.end(); cdI != cdE; ++cdI, ++componentsIterated)
+  static constexpr ecs::ComponentDesc set_camera_active_flag_ecs_query_comps[] =
       {
-        G_ASSERTF(componentsIterated < dest.size(), "{}: {} < {}", (uint8_t)req, componentsIterated, dest.size());
-        if (dest[componentsIterated] != INVALID_COMPONENT_INDEX)
-        {
-          G_ASSERT(bool(cdI->flags & CDF_OPTIONAL) == resDesc.getOptionalMask()[componentsIterated]);
-          continue;
-        }
-        auto &cd = *cdI;
-        component_index_t id = data_state->dataComponents.getIndex(cd.name);
-        LOGD3("query <{}>, component {:#x}, type {:#x}", name, cd.name, cd.type);
+          {ECS_HASH("transform"),                ecs::ComponentTypeInfo<TMatrix>()},
+          {ECS_HASH("position"),                 ecs::ComponentTypeInfo<ecs::Point3List>()},
+          {ECS_HASH("eid"),                      ecs::ComponentTypeInfo<ecs::EntityId>()},
+          {ECS_HASH("msg_sink"),                 ecs::ComponentTypeInfo<ecs::Tag>()},
+          {ECS_HASH("noECSDebug"),               ecs::ComponentTypeInfo<ecs::Tag>()},
+          {ECS_HASH("animchar"),                 ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
+          {ECS_HASH("anim_phys"),                ecs::ComponentTypeInfo<AnimatedPhys>()},
+          {ECS_HASH("animchar__animStateDirty"), ecs::ComponentTypeInfo<bool>()},
+      };
+  static ecs::CompileTimeQueryDesc set_camera_active_flag_ecs_query_desc
+      (
+          "set_camera_active_flag_ecs_query",
+          make_span(set_camera_active_flag_ecs_query_comps + 0, 2),/*rw*/
+          make_span(set_camera_active_flag_ecs_query_comps + 2, 2),/*ro*/
+          make_span(set_camera_active_flag_ecs_query_comps + 4, 2),/*rq*/
+          make_span(set_camera_active_flag_ecs_query_comps + 6, 2)/*no*/
+      );
 
-        if (id == INVALID_COMPONENT_INDEX)
-        {
-          if ((req == REQUIRED_NOT) || (cd.flags & CDF_OPTIONAL)) // optional component can be even not registered at all
-          {
-            ret &= ~FULLY_RESOLVED;
-            continue;
-          }
-          ret = NOT_RESOLVED;
-          return false;
-        }
-        // verify type
-        if (cd.type != ComponentTypeInfo<auto_type>::type && (req == DATA)) //-V560
-        {
-          DataComponent *comp = data_state->dataComponents.getDataComponent(id);
-          if (comp->componentHash != cd.type) // cd.type == auto_type is special case, basically it is 'auto' (generic). It is legit
-            // at least in require/require_not
-          {
-            auto dat = data_state;
-            EXCEPTION("component<{}> type mismatch in query <{}>, type is {}({:#x}), required in query <{}>({:#x})",
-                   dat->dataComponents.getName(id), name, dat->componentTypes.getName(comp->componentIndex), comp->componentHash,
-                   dat->componentTypes.getName(cd.type), cd.type);
-            resDesc.reset();
-            // wrong query can not become correct one ever. no need to check it, just assume it is empty query
-            ret = RESOLVED_MASK;
-            return false;
-          }
-        }
-        dest[componentsIterated] = id;
-      }
-      return true;
-    };
-    const bool wasResolved = isResolved(currentStatus);
-    if (!wasResolved)
-    {
-      const uint32_t dataComponentsCount = (uint32_t)desc.componentsRW.size() + (uint32_t)desc.componentsRO.size();
-      const uint32_t totalComponents = (uint32_t)desc.componentsRQ.size() + (uint32_t)desc.componentsNO.size() + dataComponentsCount;
-      G_ASSERT(resDesc.getComponents().size() == 0 || resDesc.getComponents().size() == totalComponents);
-      resDesc.getComponents().reserve(totalComponents);
-      resDesc.getComponents().assign((uint16_t)totalComponents, INVALID_COMPONENT_INDEX);
-      resDesc.getOptionalMask().reset();
-      for (uint32_t i = 0, e = dataComponentsCount; i < e; ++i)
-        if (copyDesc.components[i].flags & CDF_OPTIONAL)
-          resDesc.getOptionalMask().set(i);
-
-      const uint32_t checkComponents = totalComponents;
-
-      // reduce finds in later stages
-      for (uint32_t i = 0, e = checkComponents; i != e; ++i)
+  static constexpr ecs::ComponentDesc msg_sink_es_event_handler_comps[] =
       {
-        auto &cd = copyDesc.components[i];
-        auto cidx = data_state->dataComponents.getIndex(cd.name);
-        if (cidx != INVALID_COMPONENT_INDEX)
-        {
-          DataComponent *comp = data_state->dataComponents.getDataComponent(cidx);
+//start of 1 ro components at [0]
+          {ECS_HASH("eid"),      ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 1 rq components at [1]
+          {ECS_HASH("msg_sink"), ecs::ComponentTypeInfo<ecs::Tag>()}
+      };
 
-          if (comp->componentHash != cd.type)
-          {
-            if (i < dataComponentsCount || cd.type != ComponentTypeInfo<auto_type>::type)
-            {
-              EXCEPTION("component<{}> type mismatch in query <{}>, type is {}({:#x}), required in query <{}>({:#x})",
-                     data_state->dataComponents.getName(cidx), name, data_state->componentTypes.getName(comp->componentIndex),
-                     comp->componentHash, data_state->componentTypes.getName(cd.type), cd.type);
-              resDesc.reset();
-              // wrong query can not become correct one ever. no need to check it, just assume it is empty query
-              return RESOLVED_MASK;
-            }
-          }
-        }
-        resDesc.getComponents()[i] = cidx;
-      }
+  static void
+  msg_sink_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {}
 
-      for (uint32_t i = checkComponents, e = totalComponents; i < e; ++i)
-        resDesc.getComponents()[i] = data_state->dataComponents.getIndex(copyDesc.components[i].name);
-      resDesc.getRwCnt() = uint8_t(desc.componentsRW.size());
-      resDesc.getRoCnt() = uint8_t(desc.componentsRO.size());
-      resDesc.getRqCnt() = uint8_t(desc.componentsRQ.size());
-      resDesc.setRequiredComponentsCount(copyDesc.requiredSetCount);
-    }
-    else
-    {
-    }
-    // Note: order of range fill is important
-    if (!makeRange(dag::ConstSpan<ComponentDesc>(copyDesc.components.data(), resDesc.getRwCnt() + resDesc.getRoCnt()), DATA))
-      return (ResolvedStatus)ret;
-    G_ASSERTF(resDesc.getRwCnt() + resDesc.getRoCnt() == componentsIterated,
-                      "we rely on optionalmask to be parallel with data components");
-    if (wasResolved) // if query was partially resolved, it for sure has resolved required components
-      componentsIterated += (int)desc.componentsRQ.size();
-    else
-    {
-      if (!makeRange(desc.componentsRQ, REQUIRED))
-        return (ResolvedStatus)ret;
-    }
-    if (!makeRange(desc.componentsNO, REQUIRED_NOT))
-      return (ResolvedStatus)ret;
-    LOGD3("resolved query <{}>, resolve={}", name, (uint8_t)currentStatus);
-    return (ResolvedStatus)ret;
-  }
-
-  bool EntityManager::resolvePersistentQueryInternal(uint32_t index)
-  {
-    const ResolvedStatus ret = resolveQuery(index, getQueryStatus(index), resolvedQueries[index]);
-    orQueryStatus(index, ret);
-    LOGD3("set resolved query <{}> to {}", queryDescs[index].getName(), isResolved(index));
-    return ret != NOT_RESOLVED;
-  }
-
-  QueryId EntityManager::createQuery(const NamedQueryDesc &desc) {
-    QueryId h = createUnresolvedQuery(desc);
-    if (!h)
-      return h;
-    // return h;
-    uint32_t index = h.index();
-    if (queriesReferences[index] == 1 && resolvePersistentQueryInternal(index)) {} // recently added
-      //makeArchetypesQuery(0, index, false);
-    return h;
-  }
+  static ecs::EntitySystemDesc msg_sink_es_event_handler_es_desc
+      (
+          "msg_sink_es",
+          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
+          ecs::EntitySystemOps(msg_sink_es_event_handler_all_events),
+          empty_span(),
+          make_span(msg_sink_es_event_handler_comps + 0, 1)/*ro*/,
+          make_span(msg_sink_es_event_handler_comps + 1, 1)/*rq*/,
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated,
+              ecs::EventEntityDestroyed,
+              ecs::EventNetMessage>::build(),
+          0
+      );
+  static constexpr ecs::ComponentDesc look_for_players_query_comps[] =
+      {
+          {ECS_HASH("unit__playerId"), ecs::ComponentTypeInfo<int>()},
+      };
+  static ecs::CompileTimeQueryDesc look_for_players_query_desc
+      (
+          "look_for_players_query",
+          empty_span(),
+          make_span(set_camera_active_flag_ecs_query_comps, 1),/*ro*/
+          empty_span(),
+          empty_span()
+      );
 }

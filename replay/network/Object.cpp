@@ -34,3 +34,7 @@ namespace net
   ECS_REGISTER_CTM_TYPE(net::Object, nullptr);
   ECS_AUTO_REGISTER_COMPONENT_BASE(net::Object, "replication", nullptr)
 }
+
+namespace ecs {
+  ECS_REGISTER_EVENT(EventNetMessage);
+}

@@ -1,5 +1,5 @@
 #include "network/Connection.h"
-
+#include "network/message.h"
 #ifndef MYEXTENSION_OBJECT_H
 #define MYEXTENSION_OBJECT_H
 

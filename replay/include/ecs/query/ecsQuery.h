@@ -7,15 +7,24 @@
 
 namespace dag {
   template <typename T> // emulates dag::ConstSpan
-  class ConstSpan : public std::span<const T> {
-    using base_type = std::span<const T>;
-    using size_type = base_type::size_type;
+  class ConstSpan : public std::span<const typename std::remove_const<T>::type> {
+    using base_type = std::span<const typename std::remove_const<T>::type>;
+    using size_type = typename base_type::size_type;
+    using element_type = typename std::remove_const<T>::type;
   public:
-    ConstSpan(const T * ptr, size_type size) : base_type(const_cast<T*>(ptr), size) {}
-    ConstSpan(std::vector<T>::const_iterator it, size_type size) : base_type(it.base(), size) {}
+    ConstSpan(const element_type * ptr, size_type size) : base_type(ptr, size) {}
 
+    template<typename U = T, typename = std::enable_if_t<!std::is_const_v<U>>>
+    ConstSpan(typename std::vector<element_type>::const_iterator it, size_type size)
+        : base_type(it, size) {}
+
+    ConstSpan(): base_type() {}
   };
 }
+
+
+
+
 namespace ecs {
   class QueryIdDummy {};
 
@@ -38,10 +47,22 @@ namespace ecs {
         type(tp),
         flags(f),
         nameStr(n.str) {}
+    template <typename T>
+    constexpr ComponentDesc(const HashedConstString n, const ComponentTypeInfo<T> &, uint32_t f = 0) :
+        ComponentDesc(n, ComponentTypeInfo<T>::type, f)
+    {}
+
+    ComponentDesc() = default;
   };
+  template <typename T>
+  constexpr inline dag::ConstSpan<T> make_span(const T *ptr, size_t n) {
+    return dag::ConstSpan<T>(ptr, n);
+  }
+
+  inline dag::ConstSpan<ecs::ComponentDesc> empty_span(const ecs::ComponentDesc *) { return {}; }
+  inline dag::ConstSpan<ecs::ComponentDesc> empty_span() { return {}; }
 
   // The query system  has been HEAVILY optimized so I am still having issue understanding it
-  // I still haven't actually figured out how it checks if a specific archetype is compatible with a query
 
   struct BaseQueryDesc {
     dag::ConstSpan<ComponentDesc> componentsRW; // the components the action of this query will read from / write to (RW; ReadWrite)
@@ -117,7 +138,7 @@ namespace ecs {
   protected:
     QueryId query;
     //uint32_t quant = 0;
-    friend class EntityManager;
+    friend class GState;
     CompileTimeQueryDesc *next = NULL; // slist
     static CompileTimeQueryDesc *tail;
   };
@@ -136,7 +157,7 @@ namespace ecs {
     CopyQueryDesc() = default;
     const char *getName() const { return name.c_str(); }
     void clear() {}
-    void init(const EntityManager &mgr, const char *name_, const BaseQueryDesc &d);
+    void init(const char *name_, const BaseQueryDesc &d);
     const BaseQueryDesc getDesc() const;
   };
 

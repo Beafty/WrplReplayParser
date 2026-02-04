@@ -22,6 +22,7 @@
 #include "ecs/query/queryView.h"
 #include "ecs/query/eventsDB.h"
 #include "ecs/internal/ecsQueryInternal.h"
+#include "ecs/internal/ArchetypesQuery.h"
 
 namespace ecs {
   static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
@@ -40,7 +41,8 @@ namespace ecs {
     void Init() {
       this->componentTypes.initialize();
       dataComponents.initialize(componentTypes);
-
+      initCompileTimeQueries();
+      resetEsOrder();
     }
 
     [[nodiscard]] const ComponentTypes *getComponentTypes() const {
@@ -68,8 +70,14 @@ namespace ecs {
     // will create archetype in GState and in storage if not exists
     archetype_t EnsureArchetype(template_t tid, MgrArchetypeStorage *storage) {
       auto inst = this->templates.getInstTemplate(tid);
+      const uint32_t oldArchetypesCount = this->archetypes.size();
       if(inst->archetype_index == INVALID_ARCHETYPE) { // we havent created archetype yet, lets do that
-        inst->archetype_index = this->archetypes.createArchetype(inst->component_indexes.data(), (uint32_t)inst->component_indexes.size(), this->dataComponents, this->componentTypes);
+        inst->archetype_index = this->archetypes.createArchetype(inst->component_indexes.data(), (uint32_t)inst->component_indexes.size(), this->dataComponents, this->componentTypes, tid);
+      }
+      if (oldArchetypesCount != this->archetypes.size())
+      {
+        G_ASSERT(oldArchetypesCount + 1 == this->archetypes.size());
+        updateAllQueries();
       }
       this->archetypes.createArchetype(inst->archetype_index, storage);
       return inst->archetype_index;
@@ -83,6 +91,115 @@ namespace ecs {
     friend EntityManager;
     friend Component;
     friend InstantiatedTemplate;
+  protected:
+    bool makeArchetypesQuery(archetype_t first_archetype, uint32_t index, bool wasFullyResolved);
+    void resetEsOrder();
+    typedef uint64_t query_components_hash;
+    // thorough hash of RW, RO, RQ, and NO of a BaseQueryDesc
+    static query_components_hash query_components_hash_calc(const BaseQueryDesc &desc);
+    QueryId createUnresolvedQuery(const NamedQueryDesc &desc);
+    QueryId createQuery(const NamedQueryDesc &desc);
+    bool updatePersistentQuery(archetype_t last_arch_count, QueryId h, uint32_t &index, bool should_re_resolve);
+    void updateAllQueriesInternal();
+
+    std::unordered_map<event_type_t, std::vector<QueryId>> event_to_query; // maps an event to what queries use it
+    EventsDB db; // TODO: move to g_ecs_data
+    // don't fucking ask me to fully explain why this is like this I don't fucking know
+    // the reason all these comments say SOA is probably because you could also just make one big struct per query
+    // so instead they made multiple vectors for each subsection of query
+    //I am going to try to offload as much of this as I can to g_data_mgr to prevent a need to reparse every single state creation
+    std::vector<CopyQueryDesc> queryDescs;   // SoA, not empty ONLY if resolvedQueries is not resolved fully
+    // a list of references to a specific QueryId, basically overcomplicated std::shared_ptr managed on the EntityManager level
+    std::vector<uint16_t> queriesReferences; // SoA, reference count of ecs_query_handles
+    std::vector<uint8_t> queriesGenerations; // SoA, generation in ecs_query_handles. Sanity check.
+    uint32_t freeQueriesCount = 0; // keeps count of available query slots within queriesReferences
+    std::unordered_map<query_components_hash, QueryId> queryMap; // used with query hashing to see if a query already exists
+    std::vector<ResolvedQueryDesc> resolvedQueries;
+    archetype_t allQueriesUpdatedToArch = 0;
+    uint32_t lastQueriesResolvedComponents = 0;
+    typedef uint32_t status_word_type_t;
+    static constexpr status_word_type_t status_words_shift = get_const_log2(sizeof(status_word_type_t) * 4),
+        status_words_mask = (1 << status_words_shift) - 1;
+    // this stores ResolvedStatus with two bits in a vector, so does some funny bit packing
+    std::vector<status_word_type_t> resolvedQueryStatus; // SoA, two-bit vector
+    // SoA for QueryId
+    uint8_t currentQueryGen = 1;
+
+    typedef uint16_t es_index_type;
+    std::vector<const EntitySystemDesc *> esList;
+    std::vector<QueryId> esListQueries; // parallel to esList, index in ecs_query_handle
+    struct QueryHasher
+    {
+      size_t operator()(const QueryId &h) const { return wyhash64(uint32_t(h), 1); }
+    };
+    // maps all Events to what query they use, basically reverse of esList, es_index_type indexes into esListQueries and esList
+    std::unordered_map<QueryId, std::vector<es_index_type>, QueryHasher> queryToEsMap;
+    std::vector<ArchetypesQuery> archetypeQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add new
+                                                   // archetype
+    std::vector<ArchetypesEidQuery> archetypeEidQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add
+                                                         // new archetype
+    std::vector<uint16_t> archComponentsSizeContainers;
+    bool updateAllQueries()
+    {
+      if (DAGOR_LIKELY(allQueriesUpdatedToArch == this->archetypes.size()))
+        return false;
+      updateAllQueriesInternal();
+      return true;
+    }
+    bool resolvePersistentQueryInternal(uint32_t index);
+    bool makeArchetypesQueryInternal(archetype_t last_arch_count, uint32_t index, bool should_re_resolve);
+    bool updatePersistentQueryInternal(archetype_t last_arch_count, uint32_t index, bool should_re_resolve);
+    void initCompileTimeQueries();
+    enum ResolvedStatus : uint8_t
+    {
+      NOT_RESOLVED = 0,
+      FULLY_RESOLVED = 1, // im assuming fully resolved is has created ArchetypeQuery
+      RESOLVED = 2, // im assuming resolved is has created ResolvedQueryDesc
+      RESOLVED_MASK = 3
+    };
+
+    uint32_t addOneQuery();
+
+    static bool isFullyResolved(ResolvedStatus s) { return s & FULLY_RESOLVED; }
+    static bool isResolved(ResolvedStatus s) { return s != NOT_RESOLVED; }
+    ResolvedStatus getQueryStatus(uint32_t idx) const
+    {
+      const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
+      return (ResolvedStatus)((resolvedQueryStatus[wordIdx] >> wordShift) & RESOLVED_MASK);
+    }
+    inline bool isResolved(uint32_t index) const { return isResolved(getQueryStatus(index)); }
+    void orQueryStatus(uint32_t idx, ResolvedStatus status)
+    {
+      const uint32_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
+      resolvedQueryStatus[wordIdx] |= (status << wordShift);
+    }
+    void resetQueryStatus(uint32_t idx)
+    {
+      const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
+      resolvedQueryStatus[wordIdx] &= ~(status_word_type_t(RESOLVED_MASK) << wordShift);
+    }
+    void addOneResolvedQueryStatus()
+    {
+      uint32_t sz = (uint32_t)(resolvedQueries.size() + status_words_mask) >> status_words_shift;
+      if (sz != resolvedQueryStatus.size())
+        resolvedQueryStatus.push_back(status_word_type_t(0));
+    }
+    ResolvedStatus resolveQuery(uint32_t index, ResolvedStatus currentStatus, ResolvedQueryDesc &resDesc);
+
+    bool isQueryValidGen(QueryId id) const
+    {
+      if (!id)
+        return false;
+      auto idx = id.index();
+      return idx < queriesGenerations.size() && queriesGenerations[idx] == id.generation();
+    }
+    bool isQueryValid(QueryId id) const
+    {
+      bool ret = isQueryValidGen(id);
+          G_FAST_ASSERT(!ret || queriesReferences[id.index()]);
+      return ret;
+    }
+    void registerEsEvents();
   };
 
   extern OnDemandInit<GState> g_ecs_data;
@@ -148,32 +265,7 @@ namespace ecs {
     void collectEntitiesOfTemplate(std::vector<EntityId> &out, std::string_view templ_name) {return collectEntitiesOfTemplate(out, this->data_state->templates.getTemplateIdByName(templ_name));}
 
     EntityId getNext() {return this->entDescs.GetNextEid();}
-
-    typedef uint64_t query_components_hash;
-    // thorough hash of RW, RO, RQ, and NO of a BaseQueryDesc
-    static query_components_hash query_components_hash_calc(const BaseQueryDesc &desc);
-    QueryId createUnresolvedQuery(const NamedQueryDesc &desc);
-    QueryId createQuery(const NamedQueryDesc &desc);
-    bool resolvePersistentQueryInternal(uint32_t index);
-
   protected:
-
-    enum ResolvedStatus : uint8_t
-    {
-      NOT_RESOLVED = 0,
-      FULLY_RESOLVED = 1,
-      RESOLVED = 2,
-      RESOLVED_MASK = 3
-    };
-
-    uint32_t addOneQuery();
-    bool isQueryValidGen(QueryId id) const
-    {
-      if (!id)
-        return false;
-      auto idx = id.index();
-      return idx < queriesGenerations.size() && queriesGenerations[idx] == id.generation();
-    }
 
     friend Component;
     friend InstantiatedTemplate;
@@ -182,51 +274,7 @@ namespace ecs {
     EntityDescs entDescs;
     BitVector wasInit{false}; // used during entity creation
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
-    std::unordered_map<event_type_t, std::vector<QueryId>> event_to_query; // maps an event to what queries use it
-    EventsDB db; // TODO: move to g_ecs_data
-    // don't fucking ask me to fully explain why this is like this I don't fucking know
-    // the reason all these comments say SOA is probably because you could also just make one big struct per query
-    // so instead they made multiple vectors for each subsection of query
-    //I am going to try to offload as much of this as I can to g_data_mgr to prevent a need to reparse every single state creation
-    std::vector<CopyQueryDesc> queryDescs;   // SoA, not empty ONLY if resolvedQueries is not resolved fully
-    // a list of references to a specific QueryId, basically overcomplicated std::shared_ptr managed on the EntityManager level
-    std::vector<uint16_t> queriesReferences; // SoA, reference count of ecs_query_handles
-    std::vector<uint8_t> queriesGenerations; // SoA, generation in ecs_query_handles. Sanity check.
-    uint32_t freeQueriesCount = 0; // keeps count of available query slots within queriesReferences
-    std::unordered_map<query_components_hash, QueryId> queryMap; // used with query hashing to see if a query already exists
-    std::vector<ResolvedQueryDesc> resolvedQueries;
-    typedef uint32_t status_word_type_t;
-    static constexpr status_word_type_t status_words_shift = get_const_log2(sizeof(status_word_type_t) * 4),
-        status_words_mask = (1 << status_words_shift) - 1;
-    // this stores ResolvedStatus with two bits in a vector, so does some funny bit packing
-    std::vector<status_word_type_t> resolvedQueryStatus; // SoA, two-bit vector
-    // SoA for QueryId
-    uint8_t currentQueryGen = 0;
 
-    static bool isResolved(ResolvedStatus s) { return s != NOT_RESOLVED; }
-    ResolvedStatus getQueryStatus(uint32_t idx) const
-    {
-      const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
-      return (ResolvedStatus)((resolvedQueryStatus[wordIdx] >> wordShift) & RESOLVED_MASK);
-    }
-    inline bool isResolved(uint32_t index) const { return isResolved(getQueryStatus(index)); }
-    void orQueryStatus(uint32_t idx, ResolvedStatus status)
-    {
-      const uint32_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
-      resolvedQueryStatus[wordIdx] |= (status << wordShift);
-    }
-    void resetQueryStatus(uint32_t idx)
-    {
-      const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
-      resolvedQueryStatus[wordIdx] &= ~(status_word_type_t(RESOLVED_MASK) << wordShift);
-    }
-    void addOneResolvedQueryStatus()
-    {
-      uint32_t sz = (uint32_t)(resolvedQueries.size() + status_words_mask) >> status_words_shift;
-      if (sz != resolvedQueryStatus.size())
-        resolvedQueryStatus.push_back(status_word_type_t(0));
-    }
-    ResolvedStatus resolveQuery(uint32_t index, ResolvedStatus currentStatus, ResolvedQueryDesc &resDesc);
   };
 
 

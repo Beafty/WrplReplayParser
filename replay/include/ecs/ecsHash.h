@@ -26,6 +26,9 @@ constexpr HashVal<HashBits> ecs_mem_hash(const char *b, size_t len, HashVal<Hash
 constexpr hash_str_t ecs_mem_hash(const char *b, size_t len) { return ecs_mem_hash<32>(b, len); }
 constexpr hash_str_t ecs_str_hash(const char *b) { return ecs_str_hash<32>(b); }
 
+inline hash_str_t ecs_hash(std::string_view str) { return ecs_mem_hash(str.data(), str.length()); }
+
+
 struct HashedConstString
 {
   const char *str;

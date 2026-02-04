@@ -88,6 +88,7 @@ namespace ecs {
 
   protected:
     friend class EntityManager;
+    friend class GState;
 
     template<class T>
     friend
