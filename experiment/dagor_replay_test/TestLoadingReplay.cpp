@@ -87,8 +87,13 @@ int main()
   //std::exit(0);
   bool end = false;
   int AircraftCount = 0;
+  uint32_t packet_count = 0;
   while (!end && rdr->getNextPacket(pkt))
   {
+    packet_count++;
+    if(packet_count == 1500) {
+      state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
+    }
     switch(pkt->type)
     {
       case ReplayPacketType::EndMarker:
@@ -143,6 +148,7 @@ int main()
   //    LOG("    mid: {:#x}; count: {}", data2.first, data2.second);
   //  }
   //}
+  state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
   LOG("Aircraft Count: {}", AircraftCount);
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);

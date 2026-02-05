@@ -312,6 +312,11 @@ namespace ecs {
     G_ASSERT(oldQueriesCount + queries.size() < eastl::numeric_limits<archetype_t>::max());
     size_t oldOfsCount = oldQueriesCount * totalDataComponentsCount, newOfsCount =
         newQueriesCount * totalDataComponentsCount;
+    std::ostringstream t{};
+    for(auto arch : queries) {
+      t << fmt::format(" {}", this->templates.getTemplate(this->archetypes.getParentTemplate(arch))->getName());
+    }
+    LOG("Query \"{}\" adding archetypes of templates: {}", this->queryDescs[index].getName(), t.str());
 
     if (query.isInplaceOffsets(newOfsCount)) {
       // we still fit inside inplace array
@@ -525,10 +530,20 @@ namespace ecs {
     return ret;
   }
 
-  __forceinline bool GState::updatePersistentQuery(archetype_t last_arch_count, QueryId h, uint32_t &index, bool should_re_resolve) {
+  inline bool GState::updatePersistentQuery(archetype_t last_arch_count, QueryId h, uint32_t &index, bool should_re_resolve) {
     G_ASSERT(isQueryValid(h));
     index = h.index();
     return updatePersistentQueryInternal(last_arch_count, index, should_re_resolve);
+  }
+
+  void GState::registerEsEvent(es_index_type j) {
+    const EntitySystemDesc *es = esList[j];
+    if(!es->ops.onEvent) // Should never happen, but yea
+      return;
+    for (auto evt : es->evSet) {
+      const auto evtId = eventsDb.findEvent(evt);
+      esEvents[evt].push_back(j);
+    }
   }
 
   void GState::updateAllQueriesInternal() {
@@ -537,17 +552,17 @@ namespace ecs {
     const bool shouldResolveQueries = lastQueriesResolvedComponents != dataComponents.size();
     for (int index = 0, e = (int) queriesReferences.size(); index < e; ++index) {
       if (queriesReferences[index] && updatePersistentQueryInternal(allQueriesUpdatedToArch, index, shouldResolveQueries)) {
-        //auto it = queryToEsMap.find(QueryId::make(index, queriesGenerations[index]));
-        //if (it != queryToEsMap.end()) {
-        //  for (auto esIndex: it->second)
-        //    registerEs(esIndex);
-        //  queryToEsMap.erase(it);
-        //}
+        auto it = queryToEsMap.find(QueryId::make(index, queriesGenerations[index]));
+        if (it != queryToEsMap.end()) {
+          for (auto esIndex: it->second)
+            registerEsEvent(esIndex); // we dont have updates cause that's literally impossible
+          queryToEsMap.erase(it);
+        }
       }
     }
     lastQueriesResolvedComponents = (uint32_t) dataComponents.size();
     uint32_t currentArchetypeCount = archetypes.size();
-    //for (int ai = allQueriesUpdatedToArch, e = currentArchetypeCount; ai < e; ++ai)
+    //for (int ai = allQueriesUpdatedToArch, e = currentArchetypeCount; ai < e; ++ai) // only used for optimzied Create, recreate, destroy, which I dont do
     //  updateArchetypeESLists(ai);
     allQueriesUpdatedToArch = (archetype_t) currentArchetypeCount;
   }
@@ -556,11 +571,10 @@ namespace ecs {
     G_ASSERT(ECS_HASH("name").hash == ecs_hash("name") && ECS_HASH("name").hash == ECS_HASH_SLOW("name").hash);
     //esEvents.clear();
     //esOnChangeEvents.clear();
-    for (int j = 0, ej = (int) esList.size(); j < ej; ++j) {
+    for (es_index_type j = 0, ej = (es_index_type)esList.size(); j < ej; ++j) {
       QueryId h = esListQueries[j];
       if (!h || archetypeQueries[h.index()].getQueriesCount())
-        G_ASSERT(false); // im pretty sure this shouldnt happen
-        //registerEs(j);
+        registerEsEvent(j);
       else
         queryToEsMap[h].push_back((es_index_type) j);
     }
@@ -609,5 +623,163 @@ namespace ecs {
     }
     updateAllQueries();
     //lastEsGen = EntitySystemDesc::generation;
+  }
+
+  void GState::sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr) {
+    G_ASSERTF(evt.getFlags() & EVCAST_UNICAST, "Tried to send entity {:#x} event {} that is not unicast", eid.get_handle(), evt.getName());
+    return notifyESEventHandlers(eid, evt, mgr);
+  }
+
+  void GState::broadcastEventImmediate(Event &evt, EntityManager *mgr) {
+    G_ASSERTF(evt.getFlags() & EVCAST_BROADCAST, "Tried to send event {} that is not broadcast", evt.getName());
+    auto esListIt = esEvents.find(evt.getType());
+    if (esListIt != esEvents.end()) {
+      for (es_index_type esListNo : esListIt->second)
+      {
+        const EntitySystemDesc &es = *esList[esListNo];
+        performQueryEmptyAllowed(esListQueries[esListNo], es.ops.onEvent, evt, mgr);
+      }
+    }
+  }
+
+  static constexpr int MAX_ONE_EID_QUERY_COMPONENTS = 96;
+  inline void GState::performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr) {
+    uint32_t index = h.index();
+    auto &__restrict archDesc = archetypeQueries[index];
+    if (!archDesc.getQueriesCount())
+      return;
+
+    QueryView qv{mgr};
+    QueryView::ComponentsData componentData[MAX_ONE_EID_QUERY_COMPONENTS];
+    qv.componentData = componentData;
+    auto archBegin = archDesc.queriesBegin();
+    auto archEnd = archDesc.queriesEnd();
+    for(int i = 0;archBegin != archEnd; i++, archBegin++) {
+      auto curr_arch = mgr->arch_data.getArch(*archBegin);
+      auto EntityCount = curr_arch->getEntityCount();
+      qv.index_start = 0;
+      qv.index_end = EntityCount;
+      if(DAGOR_UNLIKELY(archDesc.getComponentsCount()==0)) { // has no data we need to read in
+        for(auto & chunk : curr_arch->chunks) {
+          qv.eid_refs = (ecs::EntityId*)(chunk.getCompArrayUnsafe(0, EntityCount)); // first array at 0th is always eid
+          qv.num_of_entities = chunk.used;
+          fun(evt, qv);
+        }
+      } else {
+        for(auto & chunk : curr_arch->chunks) {
+          qv.eid_refs = (ecs::EntityId*)(chunk.getCompArrayUnsafe(0, EntityCount)); // first array at 0th is always eid
+          qv.num_of_entities = chunk.used;
+          auto totalComponentsCount = archDesc.getComponentsCount();
+          auto *__restrict componentData = const_cast<QueryView::ComponentsData *>(qv.componentData);
+          auto *__restrict archetypeOffsets = archDesc.getArchetypeOffsetsPtr() + totalComponentsCount * i;
+          for(uint32_t compIndex = 0; compIndex != totalComponentsCount; compIndex++, componentData++, archetypeOffsets++) {
+            auto archOfs = *archetypeOffsets;
+            if (DAGOR_LIKELY(archOfs != ArchetypesQuery::INVALID_OFFSET)) {
+              *componentData = chunk.getCompArrayUnsafe(archOfs, EntityCount);
+            } else {
+              *componentData = nullptr;
+            }
+          }
+          fun(evt, qv);
+        }
+      }
+    }
+  }
+
+  inline void GState::performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr)
+  {
+    if (h)
+      performQueryES(h, fun, evt, mgr);
+    else
+      fun(evt, QueryView(mgr));
+  }
+
+  inline void GState::callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv) {
+    const EntitySystemDesc &es = *esList[esIndex];
+    es.ops.onEvent(evt, qv);
+  }
+
+  void GState::notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr) {
+    auto eventType = evt.getType();
+    auto esListIt = esEvents.find(eventType); // this is extremely slow, and should not be needed. We can register all events with flat
+    // arrays, not search.
+    if (esListIt == esEvents.end())
+      return; // nvm it can happen :(
+      //G_ASSERT(false); // shouldnt ever happen so lets make it a fail condition
+    auto &list = esListIt->second;
+    if(list.empty()) // entirely possible for us to have events that have no valid archetypes
+      return;
+    QueryView qv{mgr};
+    QueryView::ComponentsData componentData[MAX_ONE_EID_QUERY_COMPONENTS];
+    qv.componentData = componentData;
+    const uint32_t idx = eid.index();
+    for(es_index_type esIndex : list) {
+      QueryId queryId = esListQueries[esIndex];
+      //G_ASSERTF(queryId, "Empty queries are not allowed");
+      // invalid queryId signifies empty query, so just send it cause no data to serialize
+      if(!queryId || fillEidQueryView(eid, mgr->entDescs[idx], queryId, qv, mgr->arch_data))
+        callESEvent(esIndex, evt, qv);
+    }
+  }
+
+  bool GState::fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv,
+                                MgrArchetypeStorage &storage) {
+    //DAECS_EXT_ASSERT(isQueryValid(h));
+    const uint32_t qIndex = h.index();
+    auto &__restrict archDesc = archetypeQueries[qIndex];
+    const auto lastArch = archDesc.lastArch;
+    auto archetype = entDesc.archetype_id;
+    if (DAGOR_LIKELY(archetype > lastArch))
+      return false;
+    const auto queriesCount = archDesc.getQueriesCount();
+    const auto firstArch = archDesc.firstArch;
+
+    size_t itId = archetype - firstArch;
+    const auto archEidDesc = archetypeEidQueries[qIndex];
+    // all this basically does a check to see:
+    // 1: if this query has the archetype of the entity
+    // 2: where that archetype is inside this query so we can do proper lookup
+    if (DAGOR_UNLIKELY(itId > 0 && lastArch + 1 != queriesCount + firstArch)) // non sequential
+    {
+      if (DAGOR_LIKELY(archDesc.isInplaceQueries(queriesCount)))
+      {
+        // linear search inside inplace queries. that is likely be to quiet often case, and this data is already inside cache line
+        itId = std::find(archDesc.queriesInplace(), archDesc.queriesInplace() + queriesCount, archetype) - archDesc.queriesInplace();
+      }
+      else
+      {
+        // binary search otherwise
+        if (lastArch == archetype) // no cache miss comparison
+          itId = queriesCount - 1;
+        else
+          itId = eastl::binary_search_i(archDesc.queries, archDesc.queries + queriesCount, archetype) - archDesc.queries;
+      }
+    }
+    // likely that the archetype of our entity isnt applied to by this query
+    if (DAGOR_LIKELY(uint32_t(itId) >= queriesCount))
+      return false;
+    qv.index_start = 0; // we are going to point to specific entity data, so only iterate over this specific entities data
+    qv.index_end = 1;
+    qv.roRW = archDesc.roRW;
+    qv.id = h;
+    const uint32_t totalComponentsCount = archDesc.getComponentsCount();
+    G_ASSERT(archDesc.getComponentsCount() < MAX_ONE_EID_QUERY_COMPONENTS); // shouldnt happen cause this is the value gaijin uses so its THEIR fault
+    uint32_t idInChunk;
+    auto chunk = storage.getArch(archetype)->getChunkAndOffset(entDesc.chunk_id, idInChunk);
+    auto EntityCount = storage.getArch(archetype)->getEntityCount();
+    // get inlined bitch
+    auto *__restrict componentData = const_cast<QueryView::ComponentsData *>(qv.componentData);
+    auto *__restrict archetypeOffsets = archDesc.getArchetypeOffsetsPtr() + totalComponentsCount * itId;
+    auto *__restrict componentsSize = archComponentsSizeContainers.data() + archEidDesc.componentsSizesAt;
+    for(uint32_t compIndex = 0; compIndex != totalComponentsCount; compIndex++, componentData++, archetypeOffsets++) {
+      auto archOfs = *archetypeOffsets;
+      if (DAGOR_LIKELY(archOfs != ArchetypesQuery::INVALID_OFFSET)) {
+        *componentData = chunk->getCompArrayUnsafe(archOfs, EntityCount) + idInChunk * uint32_t(componentsSize[compIndex]);
+      } else {
+        *componentData = nullptr;
+      }
+    }
+    qv.eid_refs = (ecs::EntityId*)(chunk->getCompArrayUnsafe(0, EntityCount) + idInChunk * sizeof(ecs::EntityId));
+    return true;
   }
 }

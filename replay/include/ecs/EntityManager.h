@@ -92,6 +92,11 @@ namespace ecs {
     friend Component;
     friend InstantiatedTemplate;
   protected:
+    void sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr);
+    void broadcastEventImmediate(Event &evt, EntityManager *mgr);
+
+    void notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr);
+
     bool makeArchetypesQuery(archetype_t first_archetype, uint32_t index, bool wasFullyResolved);
     void resetEsOrder();
     typedef uint64_t query_components_hash;
@@ -102,8 +107,7 @@ namespace ecs {
     bool updatePersistentQuery(archetype_t last_arch_count, QueryId h, uint32_t &index, bool should_re_resolve);
     void updateAllQueriesInternal();
 
-    std::unordered_map<event_type_t, std::vector<QueryId>> event_to_query; // maps an event to what queries use it
-    EventsDB db; // TODO: move to g_ecs_data
+    EventsDB eventsDb;
     // don't fucking ask me to fully explain why this is like this I don't fucking know
     // the reason all these comments say SOA is probably because you could also just make one big struct per query
     // so instead they made multiple vectors for each subsection of query
@@ -139,6 +143,7 @@ namespace ecs {
     std::vector<ArchetypesEidQuery> archetypeEidQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add
                                                          // new archetype
     std::vector<uint16_t> archComponentsSizeContainers;
+    std::unordered_map<event_type_t, std::vector<es_index_type>> esEvents; // maps all the events to what EntitySystems use it
     bool updateAllQueries()
     {
       if (DAGOR_LIKELY(allQueriesUpdatedToArch == this->archetypes.size()))
@@ -200,6 +205,12 @@ namespace ecs {
       return ret;
     }
     void registerEsEvents();
+    void registerEsEvent(es_index_type j);
+    bool fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv, MgrArchetypeStorage &storage);
+    void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv);
+
+    void performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr);
+    void performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr);
   };
 
   extern OnDemandInit<GState> g_ecs_data;
@@ -265,10 +276,15 @@ namespace ecs {
     void collectEntitiesOfTemplate(std::vector<EntityId> &out, std::string_view templ_name) {return collectEntitiesOfTemplate(out, this->data_state->templates.getTemplateIdByName(templ_name));}
 
     EntityId getNext() {return this->entDescs.GetNextEid();}
+    void sendEventImmediate(EntityId eid, Event &evt);
+    void broadcastEventImmediate(Event &evt);
+    void sendEventImmediate(EntityId eid, Event &&evt);
+    void broadcastEventImmediate(Event &&evt);
   protected:
 
     friend Component;
     friend InstantiatedTemplate;
+    friend GState;
 
     GState *data_state = g_ecs_data.get();
     EntityDescs entDescs;

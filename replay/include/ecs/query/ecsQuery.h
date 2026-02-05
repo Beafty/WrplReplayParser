@@ -4,6 +4,7 @@
 #define WTFILEUTILS_QUERY_H
 #include "dag_generationRefId.h"
 #include <EASTL/fixed_function.h>
+#include "queryView.h"
 
 namespace dag {
   template <typename T> // emulates dag::ConstSpan
@@ -26,10 +27,6 @@ namespace dag {
 
 
 namespace ecs {
-  class QueryIdDummy {};
-
-  // while I dont really want to use this im also too lazy to update dagor engine code I copied
-  typedef GenerationRefId<8, QueryIdDummy> QueryId;
   //typedef uint32_t QueryId;
   enum
   {

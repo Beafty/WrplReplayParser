@@ -163,6 +163,7 @@ namespace ecs {
     this->entDescs.Allocate(eid);
     this->entDescs[eid.index()] = {eid, templId, archetype_id, chunk_id};
     this->wasInit.clear();
+    this->sendEventImmediate(eid, ecs::EventEntityCreated{});
     return eid;
   }
 
@@ -409,6 +410,24 @@ namespace ecs {
     }
   }
 
+  void EntityManager::sendEventImmediate(EntityId eid, Event &evt) {
+    if (!this->entDescs.doesEntityExist(eid))
+      EXCEPTION("tried to send a query to an entity that doesnt exist");
+    this->data_state->sendEventImmediate(eid, evt, this);
+  }
+
+  void EntityManager::broadcastEventImmediate(Event &evt) {
+    this->data_state->broadcastEventImmediate(evt, this);
+  }
+
+  void EntityManager::sendEventImmediate(EntityId eid, Event &&evt) {
+    return sendEventImmediate(eid, evt);
+  }
+
+  void EntityManager::broadcastEventImmediate(Event &&evt) {
+    return broadcastEventImmediate(evt);
+  }
+
   static constexpr ecs::ComponentDesc set_camera_active_flag_ecs_query_comps[] =
       {
           {ECS_HASH("transform"),                ecs::ComponentTypeInfo<TMatrix>()},
@@ -438,7 +457,29 @@ namespace ecs {
       };
 
   static void
-  msg_sink_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {}
+  msg_sink_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+    LOG("Created Message Sink wouw");
+  }
+
+  static void
+  log_any_entity_created_event(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+    LOG("Created any entity wouw");
+  }
+
+  static void
+  print_funny_data_hehe(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+    auto compBegin = components.begin(), compEnd = components.end();
+    LOG("New chunk started ");
+    G_ASSERT(compBegin != compEnd);
+    do {
+      auto eid = components.eid_refs[compBegin];
+      if(eid != ecs::INVALID_ENTITY_ID) {
+        auto unit__className = ((ecs::string*)components.componentData[0])[compBegin];
+        auto unit__missionName = ((ecs::string*)components.componentData[1])[compBegin];
+        LOG("Collected entity {:#x} with unit__className of value: {}; and unit__missionName of value: {}", eid.get_handle(), unit__className, unit__missionName);
+      }
+    } while (++compBegin != compEnd);
+  }
 
   static ecs::EntitySystemDesc msg_sink_es_event_handler_es_desc
       (
@@ -449,21 +490,47 @@ namespace ecs {
           make_span(msg_sink_es_event_handler_comps + 0, 1)/*ro*/,
           make_span(msg_sink_es_event_handler_comps + 1, 1)/*rq*/,
           empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntityCreated,
-              ecs::EventEntityDestroyed,
-              ecs::EventNetMessage>::build(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
+          0
+      );
+
+  static ecs::EntitySystemDesc all_players_handler_es
+      (
+          "all_players_handler_es",
+          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
+          ecs::EntitySystemOps(log_any_entity_created_event),
+          empty_span(),
+          empty_span(),
+          empty_span(),
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
           0
       );
   static constexpr ecs::ComponentDesc look_for_players_query_comps[] =
       {
           {ECS_HASH("unit__playerId"), ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__className"), ecs::ComponentTypeInfo<ecs::string>()},
+          {ECS_HASH("unit__missionName"), ecs::ComponentTypeInfo<ecs::string>()},
       };
   static ecs::CompileTimeQueryDesc look_for_players_query_desc
       (
           "look_for_players_query",
           empty_span(),
-          make_span(set_camera_active_flag_ecs_query_comps, 1),/*ro*/
+          make_span(look_for_players_query_comps, 1),/*ro*/
           empty_span(),
           empty_span()
+      );
+
+  static ecs::EntitySystemDesc act_on_all_tanks_es
+      (
+          "print_something_something",
+          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
+          ecs::EntitySystemOps(print_funny_data_hehe),
+          empty_span(),
+          make_span(look_for_players_query_comps+1, 2),/*ro*/
+          empty_span(),
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntitySomething>::build(),
+          0
       );
 }

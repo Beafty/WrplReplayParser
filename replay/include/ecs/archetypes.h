@@ -31,7 +31,7 @@ namespace ecs
     struct Chunk
     {
       uint8_t *__restrict data = nullptr; // points to chunk start
-
+      uint32_t used = 0; // amount of entities in this chunk
       [[nodiscard]] inline uint8_t * getData() const { return data; }
       [[nodiscard]] inline uint8_t * getCompArrayUnsafe(uint32_t ofs, uint16_t entity_count) const // pointer to all components of ofs
       {
@@ -51,10 +51,10 @@ namespace ecs
     BitVector avaiableSlots{true}; // lists all the available slots an entity can be created in
     // 'false' means slot isn't avaiable, 'true' means it is
     chunk_index_t last_available_slot = INVALID_CHUNK_INDEX_T; // the most recent avaiable slot turned available.
-
     uint16_t EntityCount = 0; // how many entities are allocated per Chunk
     uint32_t entity_size = 0;
     friend MgrArchetypeStorage;
+    friend GState;
   public:
     void printChunkBoundries(chunk_index_t chunk_id)
     {
@@ -65,6 +65,10 @@ namespace ecs
     void AllocateChunk()
     {
       chunks.emplace_back(entity_size*EntityCount);
+      ecs::EntityId *ptr = (ecs::EntityId*)(chunks[chunks.size()-1].getCompArrayUnsafe(0, EntityCount));
+      for(int i = 0; i < EntityCount; i ++) {
+        ptr[i] = ecs::INVALID_ENTITY_ID;
+      }
       avaiableSlots.resize(avaiableSlots.size()+EntityCount, true);
     }
     /// Gets the next available chunk id
@@ -93,7 +97,7 @@ namespace ecs
 
       // Calculate the index within that chunk
       uint32_t entity_index_in_chunk = chunk_id % EntityCount;
-      G_ASSERT(entity_index_in_chunk < EntityCount);
+      //G_ASSERT(entity_index_in_chunk < EntityCount); // what was I asserting on, MATH????
 
       // Get the component array for this component type within the chunk
       // comp_ofs is the byte offset where this component type starts within an entity
@@ -106,8 +110,12 @@ namespace ecs
 
     bool reserveChunkId(chunk_index_t chunk_id)
     {
+
       if(!avaiableSlots.get(chunk_id))
         EXCEPTION("Tried to reserve the chunk id for a already reserved chunk");
+
+      uint32_t chunk_list_index = chunk_id / EntityCount;
+      this->chunks[chunk_list_index].used++;
       avaiableSlots.set(chunk_id, false);
       //TODO, improve lookup by checking if a BitVector chunk is all false
       for(chunk_index_t slot = last_available_slot+1; slot < avaiableSlots.size(); slot++)
@@ -129,7 +137,20 @@ namespace ecs
       avaiableSlots.set(chunk_id, true); // dont care if it was already true or not
       if(chunk_id < last_available_slot)
         last_available_slot = chunk_id;
+
+      uint32_t chunk_list_index = chunk_id / EntityCount;
+      this->chunks[chunk_list_index].used--;
     }
+
+    Chunk * getChunkAndOffset(chunk_index_t chunk_id, uint32_t &offset) {
+      uint32_t chunk_list_index = chunk_id / EntityCount;
+      G_ASSERT(chunk_list_index < this->chunks.size());
+
+      offset = chunk_id % EntityCount;
+      return this->chunks.data()+chunk_list_index;
+    }
+
+    inline uint16_t getEntityCount() {return EntityCount;}
     //uint16_t entitySize = 0, componentsCnt = 0;
   };
 

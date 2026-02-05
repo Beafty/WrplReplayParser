@@ -18,6 +18,7 @@ namespace ecs
   {
   protected:
     friend EntityManager;
+    friend GState;
 
     std::vector<EntityDesc> entDescs;
     unsigned nextFreeSlot=1;

@@ -6,6 +6,7 @@
 namespace ecs {
   ECS_UNICAST_EVENT_TYPE(EventEntityCreated)
   ECS_UNICAST_EVENT_TYPE(EventEntityDestroyed)
+  ECS_BROADCAST_EVENT_TYPE(EventEntitySomething)
 }
 
 
