@@ -13,7 +13,7 @@ target_include_directories(LOGGER
 
 target_link_libraries(LOGGER PUBLIC
         fmt::fmt
-        # cpptrace::cpptrace
+        cpptrace::cpptrace
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

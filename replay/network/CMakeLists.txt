@@ -3,6 +3,7 @@ add_library(NET
         eid.cpp
         Connection.cpp
         Object.cpp
+        # Message.cpp
 )
 
 target_link_libraries(NET

@@ -15,7 +15,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_compile_definitions(_TARGET_64BIT)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_compile_definitions(_TARGET_PC)
-    add_compile_definitions(Windows)
+    # add_compile_definitions(Windows) // conflicts with imgui
     add_compile_definitions(_TARGET_PC_WIN)
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -35,6 +35,7 @@ if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR) # not a subproject, include te
     add_subdirectory(debugging)
     add_subdirectory(ClogDecryptor)
     add_subdirectory(experiment)
+    add_subdirectory(replay_inspector)
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hidden")
         add_subdirectory(hidden)
     endif ()

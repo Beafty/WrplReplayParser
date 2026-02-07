@@ -46,7 +46,7 @@ namespace ecs
           entitySize += 4-offset; // 19 % 4 == 3, 4-3 = 1, only need 1 byte to be alligned again
         }
       }
-      archetypeComponents[componentsAt+i].DATA_OFFSET = entitySize;
+      archetypeComponents[componentsAt+i].DATA_OFFSET = (uint16_t)entitySize;
       archetypeComponents[componentsAt+i].DATA_SIZE = true_size;
       entitySize += true_size;
     }

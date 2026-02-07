@@ -134,7 +134,7 @@ namespace ecs {
 
     inline size_t size() {return components.size();}
 
-  protected:
+  //protected:
     std::vector<DataComponent> components;
     std::unordered_map<component_t, component_index_t> componentIndex; // map of name hash to index in components
     StringTableAllocator names{13, 13};

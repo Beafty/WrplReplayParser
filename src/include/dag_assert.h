@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <cstdarg>  // for va_list, va_start, va_end
 #include <cstdint>
-//#include <cpptrace/cpptrace.hpp>
+#include <cpptrace/cpptrace.hpp>
 #include "utils.h"
 
 #ifdef __analysis_assume
@@ -43,7 +43,7 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
   if (!message.empty()) {
     LOGE("Message: {}", message);
   }
-  //LOGE("{}", cpptrace::generate_trace().to_string());
+  LOGE("{}", cpptrace::generate_trace().to_string());
   g_log_handler.wait_until_empty();
   g_log_handler.flush_all();
   std::exit(EXIT_FAILURE);

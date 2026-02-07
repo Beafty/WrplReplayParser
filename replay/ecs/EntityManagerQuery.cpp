@@ -167,7 +167,7 @@ namespace ecs {
       eastl::swap(ft, next);
     }
     memcpy(ft + cnt, add, size * sizeof(T));
-    cnt = nextSize;
+    cnt = (Cnt)nextSize;
     return ft;
   }
 
@@ -188,13 +188,13 @@ namespace ecs {
       if (!validCsz) // todo : only needed for eid queries. Can be deferred explicitly marked, if eid query is needed at all
       {
         if (totalDataComponentsCount) {
-          queryEid.componentsSizesAt = archComponentsSizeContainers.size();
+          queryEid.componentsSizesAt = (uint32_t)archComponentsSizeContainers.size();
           archComponentsSizeContainers.resize(totalDataComponentsCount + archComponentsSizeContainers.size());
         }
       }
       if (reResolve) {
-        query.rwCount = (uint8_t) resDesc.getRW().cnt;
-        query.roCount = (uint8_t) resDesc.getRO().cnt;
+        query.data.rwCount = (uint8_t) resDesc.getRW().cnt;
+        query.data.roCount = (uint8_t) resDesc.getRO().cnt;
         G_ASSERT(totalDataComponentsCount <= resDesc.getComponents().size());
         G_ASSERT(
             totalDataComponentsCount == 0 ||
@@ -285,7 +285,7 @@ namespace ecs {
       continue;
       loop_normal:;
       // we have found acceptable archetype
-      const uint32_t oldOffsets = allComponentsArchOffsets.size();
+      const uint32_t oldOffsets = (uint32_t)allComponentsArchOffsets.size();
 
       allComponentsArchOffsets.resize(oldOffsets + totalDataComponentsCount);
       const archetype_component_id *__restrict id = tempIds;
@@ -541,7 +541,7 @@ namespace ecs {
     if(!es->ops.onEvent) // Should never happen, but yea
       return;
     for (auto evt : es->evSet) {
-      const auto evtId = eventsDb.findEvent(evt);
+      //const auto evtId = eventsDb.findEvent(evt);
       esEvents[evt].push_back(j);
     }
   }

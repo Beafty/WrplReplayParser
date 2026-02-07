@@ -94,6 +94,14 @@ namespace ecs
       return this->name;
     }
 
+    const std::vector<template_t> &getParents() const {
+      return this->parents;
+    }
+
+    const std::vector<ComponentTemplInfo> &getComponents() const {
+      return this->components;
+    }
+
 
     // Copy constructor
     Template(const Template& other)

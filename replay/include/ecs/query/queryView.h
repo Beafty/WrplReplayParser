@@ -23,12 +23,13 @@ namespace ecs {
     EntityManager *mgr;
     QueryId id;
     uint32_t num_of_entities = 1; // number of entities this points to, for sendEvent, this will always be 1, for BroadcastEvent, this is set to entity count in a chunk
+    struct RWData
+    {
+      uint8_t roCount, rwCount;
+    };
     union
     {
-      struct
-      {
-        uint8_t roCount, rwCount;
-      };
+      RWData data;
       uint16_t roRW = 0;
     };
     friend GState;

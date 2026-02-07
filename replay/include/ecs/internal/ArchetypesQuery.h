@@ -8,20 +8,21 @@ namespace ecs {
   /// an ArchetypeQuery also stores the offset that each component this query uses in a double array
   /// mostly copied
   struct alignas(16) ArchetypesQuery {
-    [[nodiscard]] uint32_t getComponentsCount() const { return rwCount + roCount; }
+    [[nodiscard]] uint32_t getComponentsCount() const { return data.rwCount + data.roCount; }
     [[nodiscard]] inline bool hasComponents() const
     {
-      G_STATIC_ASSERT(offsetof(ArchetypesQuery, rwCount) == offsetof(ArchetypesQuery, roCount) + 1);
-      G_STATIC_ASSERT(sizeof(rwCount) == 1 && sizeof(roCount) == 1 && sizeof(roRW) == 2);
+      G_STATIC_ASSERT(offsetof(ArchetypesQuery, data.rwCount) == offsetof(ArchetypesQuery, data.roCount) + 1);
+      G_STATIC_ASSERT(sizeof(data.rwCount) == 1 && sizeof(data.roCount) == 1 && sizeof(roRW) == 2);
       G_STATIC_ASSERT(offsetof(ArchetypesQuery, queries) % sizeof(void *) == 0);
       return roRW != 0;
     }
+    struct rwData
+    {
+      uint8_t roCount, rwCount;
+    };
     union
     {
-      struct
-      {
-        uint8_t roCount, rwCount;
-      };
+      rwData data;
       uint16_t roRW;
     };
     archetype_t queriesCount = 0; // number of archetypes
@@ -89,7 +90,7 @@ namespace ecs {
       if (!isInplaceOffsets())
         free(allComponentsArchOffsets);
       allComponentsArchOffsets = nullptr;
-      roCount = 0, rwCount = 0;
+      roRW = 0;
       queriesCount = 0;
       firstArch = lastArch = 0;
     }
