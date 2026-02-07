@@ -82,6 +82,7 @@ int main()
 
 
   auto *pkt = new ReplayPacket();
+  auto start = std::chrono::high_resolution_clock::now();
   ParserState state{};
   net::CNetwork net{&state};
   //std::exit(0);
@@ -150,6 +151,11 @@ int main()
   //}
   state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
   LOG("Aircraft Count: {}", AircraftCount);
+  auto ended = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> duration = ended - start;
+
+  // Output the result
+  LOG("profile time {}", duration.count());
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->debugPrintEntities();
