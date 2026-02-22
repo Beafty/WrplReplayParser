@@ -137,7 +137,7 @@ namespace ecs
   }*/
 
   template <class ComponentType>
-  __forceinline bool ComponentsInitializer::insert(const component_t name, const FastGetInfo &lt, ComponentType &&val,
+  inline bool ComponentsInitializer::insert(const component_t name, const FastGetInfo &lt, ComponentType &&val,
                                                    const char *nameStr)
   {
     if (DAGOR_UNLIKELY(!lt.isValid()))
@@ -147,7 +147,7 @@ namespace ecs
     return true;
   }
 
-  __forceinline Component &ComponentsInitializer::operator[](const HashedConstString name)
+  inline Component &ComponentsInitializer::operator[](const HashedConstString name)
   {
     //LOG("ComponentsInitializer %s<0x%X>\n", name.str, name.hash);
     auto val = name.hash;
@@ -155,7 +155,7 @@ namespace ecs
     return base_type::back().second;
   }
 
-  //__forceinline ComponentsInitializer::ComponentsInitializer(ComponentsMap &&map)
+  //inline ComponentsInitializer::ComponentsInitializer(ComponentsMap &&map)
   //{
   //  for (auto it = map.begin(); it != map.end(); ++it)
   //  {

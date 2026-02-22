@@ -207,7 +207,7 @@ namespace ecs {
     void registerEsEvents();
     void registerEsEvent(es_index_type j);
     bool fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv, MgrArchetypeStorage &storage);
-    void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv);
+    void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr);
 
     void performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr);
     void performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr);
@@ -219,6 +219,10 @@ namespace ecs {
   class EntityManager {
 
   public:
+
+    // for ease of access
+    std::array<ecs::EntityId, 2048> uid_lookup;
+
     EntityManager();
     ~EntityManager();
     inline bool doesEntityExist(EntityId e) const { return entDescs.doesEntityExist(e); }

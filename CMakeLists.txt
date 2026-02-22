@@ -26,11 +26,16 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif ()
 
 
+
+
 if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR) # not a subproject, include tests
     message(STATUS "WtFileUtils ran as base project")
     print_stats() # print CMAKE stats about compiler and such
     set_compiler_flags() # sets the flags I want, idk how to do flags laugh at me
-
+    if(MINGW) # TODO: make this a flag for my IDE instead?
+        # CMAKE_LINKER_TYPE(MOLD)
+        set(CMAKE_C_USING_LINKER_LLD "-fuse-ld=mold")
+    endif()
     set_data_folders_loc()
     add_subdirectory(debugging)
     add_subdirectory(ClogDecryptor)

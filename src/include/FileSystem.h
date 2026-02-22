@@ -130,8 +130,8 @@ public:
     obj_type = isFile;
   }
 
-  void init(const std::string &name) {
-    init(fs::path(name));
+  void init(const std::string &name_) {
+    init(fs::path(name_));
   }
 
   std::string getExtension() {
@@ -513,7 +513,7 @@ public:
   SmartFSHandle operator[](const std::string &lookup_name) override {
     auto x = getFSObject(lookup_name);
     if (x == nullptr) {
-      EXCEPTION("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
+      LOGE("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
     }
     return SmartFSHandle(x);
   }
@@ -572,7 +572,7 @@ struct FileManager
 
   int find_files_in_folder(std::vector<std::string> &out_list, std::string &dir_path, const char *file_suffix_to_match = "",
                                    bool vromfs = true, bool realfs = true, bool subdirs = false);
-  inline void add_mount(fs::path path)
+  inline void add_mount(const fs::path& path)
   {
     this->real_fs_mounts.push_back(path);
   }

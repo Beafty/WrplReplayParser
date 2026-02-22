@@ -112,7 +112,7 @@ namespace ecs {
       write_string_no(cb, (uint32_t)all.strings.size(), short_bits);
       all.strings.emplace_back(pStr);
       cb.Write(all.strings.back().c_str(), (uint32_t)all.strings.back().length() + 1);
-      all.index.emplace(all.strings.back(), all.strings.size() - 1);
+      all.index.emplace(all.strings.back(),(uint32_t)(all.strings.size() - 1));
     }
     else
     {

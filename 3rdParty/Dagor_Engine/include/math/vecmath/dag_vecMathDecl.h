@@ -34,28 +34,22 @@ typedef const struct bsph3f& bsph3f_cref;
   #endif
 #endif
 
-#if defined(__SANITIZE_ADDRESS__)
-# define DAGOR_ASAN_ENABLED
-#elif defined(__has_feature)
-# if __has_feature(address_sanitizer)
-#   define DAGOR_ASAN_ENABLED
-# endif
-#endif
-
 #ifndef VECMATH_FINLINE
-  #define VECMATH_FINLINE __forceinline
+  #define VECMATH_FINLINE inline
 #endif
 
 #ifndef VECMATH_INLINE
   #define VECMATH_INLINE inline
 #endif
 
+
 #ifndef VECTORCALL
-  #if _TARGET_PC_MACOSX && __SSE__
+  #if _TARGET_PC_MACOSX && defined(__SSE__)
     #define VECTORCALL [[clang::vectorcall]]
-  #elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__
+  #elif (defined(_MSC_VER) || defined(__clang__))
       //__vectorcall is faster on msvc, even on x64 target
-    #define VECTORCALL __vectorcall
+    //#define VECTORCALL __vectorcall
+#define VECTORCALL // vectorcall doesnt work like this on msvc??? how did it work before????????????
   #else
     #define VECTORCALL
   #endif
@@ -134,8 +128,8 @@ struct mat44f
 {
   vec4f col0, col1, col2, col3;
 
-  VECTORCALL VECMATH_FINLINE void set33(mat33f_cref m) { col0 = m.col0; col1 = m.col1; col2 = m.col2; }
-  VECTORCALL VECMATH_FINLINE void set33(mat33f_cref m, vec4f c3)
+  VECTORCALL VECMATH_FINLINE void  set33(mat33f_cref m) { col0 = m.col0; col1 = m.col1; col2 = m.col2; }
+  VECTORCALL VECMATH_FINLINE void  set33(mat33f_cref m, vec4f c3)
     { col0 = m.col0; col1 = m.col1; col2 = m.col2; col3 = c3; }
 };
 

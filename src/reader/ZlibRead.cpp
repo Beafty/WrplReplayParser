@@ -3,7 +3,7 @@
 #include "zlib.h"
 #include "dag_assert.h"
 
-void ZlibLoadCB::open(GenReader &in_crd, int in_size, bool raw_inflate) {
+void ZlibLoadCB::open(IGenReader &in_crd, int in_size, bool raw_inflate) {
   assert(!loadCb && "already opened?");
   static_assert(SIZE_OF_Z_STREAM >= sizeof(z_stream));
 
@@ -41,6 +41,8 @@ unsigned ZlibLoadCB::fetchInput(void *handle, void *strm) {
   if (sz <= 0)
     return 0;
   sz = zcrd.loadCb->tryRead(zcrd.buffer, sz);
+  if (sz == 0)
+    return 0;
   G_ASSERT(!zcrd.fatalErrors || sz > 0);
   ((z_stream *) strm)->next_in = zcrd.buffer;
   ((z_stream *) strm)->avail_in = (uint32_t)sz;

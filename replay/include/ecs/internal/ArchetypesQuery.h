@@ -49,8 +49,8 @@ namespace ecs {
     };
     uint32_t getQueriesCount() const { return queriesCount; }
 
-    static __forceinline bool isInplaceQueries(size_t cnt) { return cnt <= max_inline_archs_count; }
-    [[nodiscard]] __forceinline bool isInplaceQueries() const { return isInplaceQueries(queriesCount); }
+    static inline bool isInplaceQueries(size_t cnt) { return cnt <= max_inline_archs_count; }
+    [[nodiscard]] inline bool isInplaceQueries() const { return isInplaceQueries(queriesCount); }
 
     std::span<const archetype_t> getQuerySpan() {
       if(isInplaceQueries()) {

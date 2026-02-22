@@ -43,6 +43,7 @@ target_include_directories(ZSTD
 
 add_library(ZSTD::ZSTD ALIAS ZSTD)
 
-set_target_properties(ZSTD PROPERTIES
-        COMPILE_OPTIONS --no-warnings
+target_compile_options(ZSTD PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/w>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:--no-warnings>
 )

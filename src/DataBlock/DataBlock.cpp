@@ -242,17 +242,17 @@ Point4 DataBlock::getPoint4(int i) const {
 
 IPoint2 DataBlock::getIPoint2(int i) const {
   if (i < 0 || i >= params.size())
-    return IPoint2(0.f, 0.f);
+    return IPoint2(0, 0);
   if (params[i]->type != TYPE_IPOINT2)
-    return IPoint2(0.f, 0.f);
+    return IPoint2(0, 0);
   return params[i]->data.ip2;
 }
 
 IPoint3 DataBlock::getIPoint3(int i) const {
   if (i < 0 || i >= params.size())
-    return IPoint3(0.f, 0.f, 0.f);
+    return IPoint3(0, 0, 0);
   if (params[i]->type != TYPE_IPOINT3)
-    return IPoint3(0.f, 0.f, 0.f);
+    return IPoint3(0, 0, 0);
   return params[i]->data.ip3;
 }
 

@@ -1,7 +1,7 @@
 #include "replay/Replay.h"
 #include "Replay/ReplayReader.h"
 
-uint32_t getPacketSize(GenReader &cb) {
+uint32_t getPacketSize(IGenReader &cb) {
   uint8_t first_byte;
   if(!cb.readInto(first_byte))
     return 0;
@@ -53,6 +53,29 @@ uint32_t getPacketSize(GenReader &cb) {
       return ((first_byte << 8) + payload[0]) ^ 0x4000;
     }
   }
+}
+
+void readFilesFromDirectory(const fs::path& dirPath, std::vector<fs::path>& fileSet) {
+  if (!fs::exists(dirPath) || !fs::is_directory(dirPath)) {
+    return;
+  }
+
+  for (const auto& entry : fs::directory_iterator(dirPath)) {
+    if (fs::is_regular_file(entry.status())) {
+      fileSet.emplace_back(fs::absolute(entry.path()));
+    }
+  }
+}
+
+
+std::string file_exists(std::string path, const std::vector<fs::path>& paths)
+{
+  for(auto &path_ : paths)
+  {
+    if(path_.filename().string() == path)
+      return path_.string();
+  }
+  return {};
 }
 
 ServerReplayReader::ServerReplayReader(std::vector<Replay> &rdrs) {

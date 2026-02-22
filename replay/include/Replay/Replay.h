@@ -29,7 +29,7 @@ struct ReplayData
     this->size = size;
   }
 
-  ReplayData(GenReader &rdr)
+  ReplayData(IGenReader &rdr)
   {
     this->size = rdr.getSize()-rdr.readOffset();
     this->data = (unsigned char *)malloc(this->size);
@@ -73,7 +73,10 @@ struct ReplayData
 class Replay
 {
 #define FOOTER_BLK_OFFSET_LOC 0x000002AC // where the integer that stores the footer blk offset is stored
+#define LEVEL_BIN_PATH_OFFS 0x00000008 // where xxx.bin starts
+#define MISSION_BLK_OFFS 0x00000088
 #define MAIN_DATA_START 0x000004CA // where the 'replay' starts, can either be the header blk or the zlib data
+
   fs::path replay_path;
   ReplayData *data;
   uint32_t footerBlkOffset;
@@ -82,6 +85,8 @@ class Replay
 
 public:
   std::array<char, 4> magic;
+  std::string_view level_bin; // 128 bytes
+  std::string_view level_blk; //260 bytes
   DataBlock HeaderBlk;
   DataBlock FooterBlk;
   int PlayerCount;
@@ -102,6 +107,8 @@ public:
   void parse()
   {
     auto data_span = data->getData();
+    level_bin = data->getStr(LEVEL_BIN_PATH_OFFS);
+    level_blk = data->getStr(MISSION_BLK_OFFS);
     footerBlkOffset = *data->getObj<uint32_t>(FOOTER_BLK_OFFSET_LOC);
     if (*data->getObj<uint8_t>(MAIN_DATA_START) == 1) // the BLK always starts with 0x01, zlib 0x78
     {

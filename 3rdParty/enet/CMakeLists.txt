@@ -35,6 +35,7 @@ target_include_directories(ENET
 
 add_library(ENET::ENET ALIAS ENET)
 
-set_target_properties(ENET PROPERTIES
-        COMPILE_OPTIONS --no-warnings
+target_compile_options(ENET PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/w>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:--no-warnings>
 )

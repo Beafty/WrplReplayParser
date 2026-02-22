@@ -150,24 +150,25 @@ namespace ecs {
     return (uint32_t) resolvedQueries.size() - 1;
   }
 
-  template<typename T, typename Cnt>
-  static T *add_to_fixed_container(T *ft, Cnt &__restrict cnt, const T *__restrict add, size_t size) {
+  template <typename T, typename Cnt>
+  static T *add_to_fixed_container(T *ft, Cnt &__restrict cnt, const T *__restrict add, size_t size)
+  {
     if (size == 0)
       return ft;
     G_ASSERT(cnt + size <= eastl::numeric_limits<Cnt>::max());
     const size_t nextSize = std::min<size_t>(size_t(cnt) + size, eastl::numeric_limits<Cnt>::max());
 
-    if (!ft) {
-      T *next = (T *) realloc(ft, nextSize * sizeof(T));
-      if (DAGOR_UNLIKELY(next == nullptr)) {
-        next = (T *) malloc(nextSize * sizeof(T)); // so no mem setting
-        memcpy(next, ft, cnt * sizeof(T));                  //-V575
-        free(ft);
-      }
-      eastl::swap(ft, next);
+
+    T *next = (T *)realloc(ft, nextSize * sizeof(T));
+    if (DAGOR_UNLIKELY(next == nullptr))
+    {
+      next = (T *)malloc(nextSize * sizeof(T)); // so no mem setting
+      memcpy(next, ft, cnt * sizeof(T));                  //-V575
+      free(ft);
     }
+    eastl::swap(ft, next);
     memcpy(ft + cnt, add, size * sizeof(T));
-    cnt = (Cnt)nextSize;
+    cnt = nextSize;
     return ft;
   }
 
@@ -516,7 +517,7 @@ namespace ecs {
     return makeArchetypesQuery(last_arch_count, index, isFullyResolved(status));
   }
 
-  __forceinline bool
+  inline bool
   GState::updatePersistentQueryInternal(archetype_t last_arch_count, uint32_t index, bool should_re_resolve) {
     //LOGD3("updatePersistent = {}, index = {}", queryDescs[index].name, index);
     //LOGD2("update = {}, current resolved= {}", queryDescs[index].name, (uint8_t) getQueryStatus(index));
@@ -658,7 +659,7 @@ namespace ecs {
         for(auto & chunk : curr_arch->chunks) {
           qv.eid_refs = (ecs::EntityId*)(chunk.getCompArrayUnsafe(0, EntityCount)); // first array at 0th is always eid
           qv.num_of_entities = chunk.used;
-          fun(evt, qv);
+          fun(mgr, evt, qv);
         }
       } else {
         for(auto & chunk : curr_arch->chunks) {
@@ -675,7 +676,7 @@ namespace ecs {
               *componentData = nullptr;
             }
           }
-          fun(evt, qv);
+          fun(mgr, evt, qv);
         }
       }
     }
@@ -686,12 +687,12 @@ namespace ecs {
     if (h)
       performQueryES(h, fun, evt, mgr);
     else
-      fun(evt, QueryView(mgr));
+      fun(mgr, evt, QueryView(mgr));
   }
 
-  inline void GState::callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv) {
+  inline void GState::callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr) {
     const EntitySystemDesc &es = *esList[esIndex];
-    es.ops.onEvent(evt, qv);
+    es.ops.onEvent(mgr, evt, qv);
   }
 
   void GState::notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr) {
@@ -713,7 +714,7 @@ namespace ecs {
       //G_ASSERTF(queryId, "Empty queries are not allowed");
       // invalid queryId signifies empty query, so just send it cause no data to serialize
       if(!queryId || fillEidQueryView(eid, mgr->entDescs[idx], queryId, qv, mgr->arch_data))
-        callESEvent(esIndex, evt, qv);
+        callESEvent(esIndex, evt, qv, mgr);
     }
   }
 

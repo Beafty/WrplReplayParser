@@ -25,6 +25,7 @@ target_include_directories(dag_math
         ${INCLUDES}
 )
 
-set_target_properties(dag_math PROPERTIES
-        COMPILE_OPTIONS --no-warnings
+target_compile_options(dag_math PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/w>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:--no-warnings>
 )

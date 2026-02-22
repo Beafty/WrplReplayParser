@@ -20,10 +20,10 @@ if (NOT FUNCTIONS_INCLUDED)
 
         # add_compile_definitions(_TARGET_SIMD_SSE=2)
         # add_compile_definitions(WITH_SHOW_INCLUDES=ON)
-
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
         if("${MSVC_WARNINGS}" STREQUAL "")
             set(MSVC_WARNINGS
-                    /W4 # Baseline reasonable warnings
+                    # /W4 # Baseline reasonable warnings
                     /w14242 # 'identifier': conversion from 'type1' to 'type2', possible loss of data
                     /w14254 # 'operator': conversion from 'type1:field_bits' to 'type2:field_bits', possible loss of data
                     /w14263 # 'function': member function does not override any base class virtual member function
@@ -137,7 +137,7 @@ if (NOT FUNCTIONS_INCLUDED)
                     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address " PARENT_SCOPE)
                     string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" PARENT_SCOPE)
                     # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebug" PARENT_SCOPE)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi /showIncludes /Y- /MDd" PARENT_SCOPE)
+                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi /Y- /MDd" PARENT_SCOPE)
                     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /debug" PARENT_SCOPE)
                 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
                     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0" PARENT_SCOPE)

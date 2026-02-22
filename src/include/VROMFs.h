@@ -153,7 +153,7 @@ public:
   //VROMFs(const std::span<char> &data) = 0;
 
 protected:
-  bool load_raw_vromfs_data(GenReader &reader) {
+  bool load_raw_vromfs_data(IGenReader &reader) {
     //char embedded_md5[16];
     //unsigned char signature[SIGNATURE_MAX_SIZE];
     //int signature_size = 0;

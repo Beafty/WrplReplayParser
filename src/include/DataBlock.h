@@ -11,7 +11,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
-#include "BitStream.h"
+#include "danet/BitStream.h"
 #include "reader.h"
 #include "zstd.h"
 #include "math/dag_Point2.h"
@@ -88,7 +88,7 @@ private:
   }
 
 public:
-  static bool ReadNames(GenReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount);
+  static bool ReadNames(IGenReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount);
 
   NameMap() {
     this->names_ = StringTableAllocator{};
@@ -524,8 +524,8 @@ public:
   }
 
   inline int findParam(const char *name) const {
-    int name_id = this->nm->GetIdFromName(name);
-    return this->findParam(name_id);
+    int name_id_ = this->nm->GetIdFromName(name);
+    return this->findParam(name_id_);
   }
 
   [[nodiscard]] inline int findParam(int name_id_, int after) const {
@@ -788,9 +788,9 @@ public:
   }
 
 
-  bool loadFromStream(GenReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict);
+  bool loadFromStream(IGenReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict);
 
-  bool loadFromBinDump(GenReader &crd, const std::shared_ptr<NameMap> &names);
+  bool loadFromBinDump(IGenReader &crd, const std::shared_ptr<NameMap> &names);
 
   bool loadText(std::span<char>& text);
   bool loadText(std::vector<char>& text)

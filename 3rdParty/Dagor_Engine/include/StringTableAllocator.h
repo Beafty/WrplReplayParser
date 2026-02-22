@@ -5,9 +5,6 @@
 
 #include <memory>
 #include "math/dag_adjpow2.h"
-#ifndef __forceinline
-#define __forceinline inline
-#endif
 
 #pragma pack(push, 4)
 struct StringTableAllocator
@@ -96,7 +93,7 @@ struct StringTableAllocator
   uint8_t page_shift = DEFAULT_PAGE_SIZE_SHIFT;
   uint8_t max_page_shift = MAX_PAGE_SIZE_SHIFT;
   uint8_t padding = 0;
-  __forceinline void addDataRaw_(const char *name, size_t len)
+  inline void addDataRaw_(const char *name, size_t len)
   {
     if (DAGOR_UNLIKELY(head.left < len))
       addPage((uint32_t)len);

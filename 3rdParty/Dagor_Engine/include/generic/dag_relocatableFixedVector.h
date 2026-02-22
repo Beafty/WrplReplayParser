@@ -157,7 +157,7 @@ protected:
   };
 #pragma pack(pop)
 
-  static __forceinline bool is_inplace(size_t cnt)
+  static inline bool is_inplace(size_t cnt)
   {
     return !canOverflow || cnt <= inplace_count; //-V560 A part of conditional expression is always false: !canOverflow.
   }

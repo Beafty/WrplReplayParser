@@ -5,6 +5,7 @@
 
 
 #include <danet/bitStream.h>
+#include "danet/daNetTypes.h"
 #include <DataBlock.h>
 #include "reader.h"
 #include "consts.h"

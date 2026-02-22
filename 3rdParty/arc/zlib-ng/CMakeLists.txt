@@ -97,6 +97,7 @@ target_include_directories(Zlib
 
 target_compile_definitions(Zlib PUBLIC DZLIB_COMPAT=1)
 
-set_target_properties(Zlib PROPERTIES
-        COMPILE_OPTIONS --no-warnings
+target_compile_options(Zlib PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/w>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:--no-warnings>
 )

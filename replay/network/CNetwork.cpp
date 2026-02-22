@@ -44,7 +44,6 @@ namespace net
       else
       {
         EXCEPTION("failed to read compressed packet {} of {} bytes from conn #{}", ctype, BITS_TO_BYTES(bs.GetNumberOfUnreadBits()), -1);
-        return nullptr;
       }
     };
 

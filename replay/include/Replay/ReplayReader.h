@@ -7,7 +7,7 @@
 #include "basic_replay_structs.h"
 #include "consts.h"
 
-uint32_t getPacketSize(GenReader &cb);
+uint32_t getPacketSize(IGenReader &cb);
 class IReplayReader
 {
 public:
@@ -18,7 +18,7 @@ public:
 class ReplayReader : public IReplayReader
 {
   ZlibLoadCB *crd;
-  GenReader *baseRdr;
+  IGenReader *baseRdr;
   uint32_t curr_time;
 public:
   explicit ReplayReader(ZlibLoadCB *crd)
@@ -27,7 +27,7 @@ public:
     this->baseRdr = nullptr;
   }
 
-  explicit ReplayReader(ZlibLoadCB *crd, GenReader *rdr)
+  explicit ReplayReader(ZlibLoadCB *crd, IGenReader *rdr)
   {
     this->crd = crd;
     this->baseRdr = rdr;

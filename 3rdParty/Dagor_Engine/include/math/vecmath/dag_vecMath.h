@@ -5,7 +5,7 @@
 #pragma once
 
 #include "dag_vecMathDecl.h"
-#include <stdint.h>
+#include <cstdint>
 //
 // basic arithmetic
 //

@@ -13,6 +13,10 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
         GIT_TAG release-2.28.5
 )
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linx")
+    set(SDL_X11 ON CACHE BOOL "" FORCE)
+    set(SDL_WAYLAND ON CACHE BOOL "" FORCE)
+endif ()
 # Disable audio and other unnecessary features
 set(SDL2_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
 set(SDL_AUDIO OFF CACHE BOOL "" FORCE)

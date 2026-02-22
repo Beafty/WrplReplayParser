@@ -56,6 +56,7 @@ public:
   INLINE real operator*(const Point2 &a) const { return x * a.x + y * a.y; }
   INLINE Point2 operator*(real a) const { return Point2(x * a, y * a); }
   INLINE Point2 operator/(real a) const { return operator*(1.0f / a); }
+  INLINE Point2 operator/(const Point2 &a) const {return {x/a.x, y/a.y};}
 
   INLINE Point2 &operator+=(const Point2 &a)
   {

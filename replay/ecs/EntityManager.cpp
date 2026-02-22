@@ -192,6 +192,7 @@ namespace ecs {
   }
 
   bool EntityManager::destroyEntity(EntityId eid) {
+    sendEventImmediate(eid, EventEntityDestroyed{});
     if (!this->doesEntityExist(eid))
       return false;
     auto desc = this->entDescs.getEntityDesc(eid);
@@ -332,7 +333,9 @@ namespace ecs {
     auto desc = this->entDescs[eid.index()];
     archetype = desc.archetype_id; // should always be valid
     G_ASSERT(archetype != INVALID_ARCHETYPE);
-    G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
+    //G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
+    if(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)
+      return nullptr;
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
   }
 
@@ -428,25 +431,47 @@ namespace ecs {
     return broadcastEventImmediate(evt);
   }
 
-  static constexpr ecs::ComponentDesc set_camera_active_flag_ecs_query_comps[] =
+
+  // THIS EVENT IS ACTUALLY USED
+  static void
+  uid_handler_add_delete_entities(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+    auto *eid = (ecs::EntityId*)components.componentData[0];
+    auto *uid = (int*)components.componentData[1];
+    if(evt.is<ecs::EventEntityCreated>()) {
+      if(*uid==-1) {
+        LOG("Entity {:#x} has no uid, normal?", eid->get_handle());
+        return;
+      }
+      G_ASSERT(mgr->uid_lookup[*uid] == ecs::INVALID_ENTITY_ID);
+      mgr->uid_lookup[*uid] = *eid;
+      //LOG("set uid {} to eid {}", *uid, eid->get_handle());
+    } else if (evt.is<ecs::EventEntityDestroyed>()) {
+      G_ASSERT(mgr->uid_lookup[*uid] != ecs::INVALID_ENTITY_ID);
+      mgr->uid_lookup[*uid] = ecs::INVALID_ENTITY_ID;
+      //LOG("removing entity at uid {}", *uid);
+    }
+  }
+
+  static constexpr ecs::ComponentDesc uid_lookup_add_remove_event[] =
       {
-          {ECS_HASH("transform"),                ecs::ComponentTypeInfo<TMatrix>()},
-          {ECS_HASH("position"),                 ecs::ComponentTypeInfo<ecs::Point3List>()},
-          {ECS_HASH("eid"),                      ecs::ComponentTypeInfo<ecs::EntityId>()},
-          {ECS_HASH("msg_sink"),                 ecs::ComponentTypeInfo<ecs::Tag>()},
-          {ECS_HASH("noECSDebug"),               ecs::ComponentTypeInfo<ecs::Tag>()},
-          {ECS_HASH("animchar"),                 ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
-          {ECS_HASH("anim_phys"),                ecs::ComponentTypeInfo<AnimatedPhys>()},
-          {ECS_HASH("animchar__animStateDirty"), ecs::ComponentTypeInfo<bool>()},
+          {ECS_HASH("eid"),      ecs::ComponentTypeInfo<ecs::EntityId>()},
+          {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
       };
-  static ecs::CompileTimeQueryDesc set_camera_active_flag_ecs_query_desc
+
+  static ecs::EntitySystemDesc uid_handler_add_delete_entities_desc
       (
-          "set_camera_active_flag_ecs_query",
-          make_span(set_camera_active_flag_ecs_query_comps + 0, 2),/*rw*/
-          make_span(set_camera_active_flag_ecs_query_comps + 2, 2),/*ro*/
-          make_span(set_camera_active_flag_ecs_query_comps + 4, 2),/*rq*/
-          make_span(set_camera_active_flag_ecs_query_comps + 6, 2)/*no*/
+          "msg_sink_es",
+          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
+          ecs::EntitySystemOps(uid_handler_add_delete_entities),
+          empty_span(),
+          make_span(uid_lookup_add_remove_event, 2)/*ro*/,
+          empty_span(),
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
+          0
       );
+
+
 
   static constexpr ecs::ComponentDesc msg_sink_es_event_handler_comps[] =
       {
@@ -457,17 +482,17 @@ namespace ecs {
       };
 
   static void
-  msg_sink_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  msg_sink_es_event_handler_all_events(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
     LOG("Created Message Sink wouw");
   }
 
   static void
-  log_any_entity_created_event(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  log_any_entity_created_event(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
     LOG("Created any entity wouw");
   }
 
   static void
-  print_funny_data_hehe(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  print_funny_data_hehe(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
     auto compBegin = components.begin(), compEnd = components.end();
     LOG("New chunk started ");
     G_ASSERT(compBegin != compEnd);

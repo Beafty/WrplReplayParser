@@ -103,7 +103,7 @@ std::shared_ptr<File> FileManager::loadVromfsFile(const fs::path &path) {
   if(!this->holder_dir)
     return nullptr;
   SmartFSHandle file = getObject(path);
-  if(!file && file->getFSObjectType() != isFile)
+  if(!file || file->getFSObjectType() != isFile)
     return nullptr;
   return file.asFile();
 }

@@ -1,6 +1,5 @@
 add_executable(dagor_rpl_test
         TestLoadingReplay.cpp
-        Replay.cpp
 )
 target_link_libraries(dagor_rpl_test
         LOGGER::LOGGER
