@@ -346,6 +346,8 @@ ECS_DECLARE_CREATABLE_TYPE(AnimationDataBase)
 ECS_DECLARE_CREATABLE_TYPE(CapsulesAOHolder)
 ECS_DECLARE_CREATABLE_TYPE(ecs::TemplatesListToInstantiate)
 ECS_DECLARE_CREATABLE_TYPE(BehaviourTree)
+ECS_DECLARE_CREATABLE_TYPE(BufferedHudData)
+ECS_DECLARE_CREATABLE_TYPE(InvalidType)
 
 #include "ecs/ComponentPrintingImplementations.h"
 

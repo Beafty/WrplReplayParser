@@ -284,6 +284,8 @@ namespace ecs {
     void broadcastEventImmediate(Event &evt);
     void sendEventImmediate(EntityId eid, Event &&evt);
     void broadcastEventImmediate(Event &&evt);
+    ecs::EntityId getUnit(uint16_t uid);
+
   protected:
 
     friend Component;

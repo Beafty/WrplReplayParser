@@ -15,6 +15,9 @@ namespace ecs {
 
   EntityManager::EntityManager() {
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
+    for(auto &eid : this->uid_lookup) {
+      eid = ecs::INVALID_ENTITY_ID;
+    }
     wasInit.resize(10000,
                    false); // just in case, current max datacomponents was like 950; edit: its now like 7000 cause of infantry and shit
   }
@@ -431,6 +434,14 @@ namespace ecs {
     return broadcastEventImmediate(evt);
   }
 
+  ecs::EntityId EntityManager::getUnit(uint16_t uid) {
+    uid &= 0x7FF;
+    if (uid == 0x7FF) {
+      return INVALID_ENTITY_ID;
+    }
+    return this->uid_lookup[uid];
+  }
+
 
   // THIS EVENT IS ACTUALLY USED
   static void
@@ -439,7 +450,7 @@ namespace ecs {
     auto *uid = (int*)components.componentData[1];
     if(evt.is<ecs::EventEntityCreated>()) {
       if(*uid==-1) {
-        LOG("Entity {:#x} has no uid, normal?", eid->get_handle());
+        LOGE("Entity {:#x} has no uid, normal?", eid->get_handle());
         return;
       }
       G_ASSERT(mgr->uid_lookup[*uid] == ecs::INVALID_ENTITY_ID);

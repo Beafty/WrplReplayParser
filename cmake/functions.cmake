@@ -20,7 +20,7 @@ if (NOT FUNCTIONS_INCLUDED)
 
         # add_compile_definitions(_TARGET_SIMD_SSE=2)
         # add_compile_definitions(WITH_SHOW_INCLUDES=ON)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
         if("${MSVC_WARNINGS}" STREQUAL "")
             set(MSVC_WARNINGS
                     # /W4 # Baseline reasonable warnings

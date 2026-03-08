@@ -13,7 +13,7 @@
 
 #include "cpu_features.h"
 
-Z_INTERNAL Z_TLS struct functable_s functable;
+Z_INTERNAL Z_TLS extern struct functable_s functable;
 
 /* stub functions */
 Z_INTERNAL uint32_t update_hash_stub(deflate_state *const s, uint32_t h, uint32_t val) {

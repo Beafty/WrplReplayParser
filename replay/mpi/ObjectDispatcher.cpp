@@ -2,6 +2,7 @@
 #include "ecs/EntityManager.h"
 #include "zstd.h"
 #include "state/ParserState.h"
+#include "mpi/GeneralObject.h"
 
 namespace mpi {
   void zstd_decompress(BitStream &in, BitStream &out) {
@@ -18,7 +19,7 @@ namespace mpi {
     ZSTD_decompress(out.GetData(), decomp_size, inData.data(), inData.size());
   }
 
-    Message *MainDispatch::dispatchMpiMessage(MessageID mid) {
+    Message *GeneralObject::dispatchMpiMessage(MessageID mid) {
       //LOG("incoming mid: 0x%x\n", mid);
       switch(mid) {
         case Replication:
@@ -29,6 +30,7 @@ namespace mpi {
           break;
         }
         case Kill: {
+          return new KillMessage(this);
           //LOG("KILL");
           break;
         }
@@ -52,18 +54,26 @@ namespace mpi {
       //LOG("no mid found\n");
       return nullptr;
     }
-    void MainDispatch::applyMpiMessage(const Message *m) {
+    void GeneralObject::applyMpiMessage(const Message *m) {
       auto mid = m->id;
       auto bs = (BitStream *)&m->payload;
       //LOG("Deserialzing for Reflection type: %0x\n", mid);
       switch(mid) {
+        case Kill: {
+          const KillMessage* kill_m = dynamic_cast<const KillMessage*>(m);
+          DeathType deathType = DeathType::Normal;
+          if(kill_m->offender_pid < 0 && kill_m->offender_vehicle.empty()) {
+            deathType = (DeathType)kill_m->offender_pid;
+          }
+          break;
+        }
         case ReflectionNoDecompress: {
           danet::deserializeReflectables(*bs, obj_dispatcher, this->state);
           break;
         }
         case Reflection1:
         case Reflection2: {
-          uint8_t tmp;
+          uint8_t tmp = 0;
           bs->Read(tmp);
           bool isCompressed = tmp == 1;
           BitStream * outBs;
@@ -112,8 +122,16 @@ namespace mpi {
     uint16_t count = oid & 0x7ff;
     uint8_t obj = (uint8_t)(oid >> 0xb);
     switch(obj) {
+      case 0:
       case 1:
       case 2:
+      case 0xc:
+      case 0xd:
+      case 0x10:
+      case 0x11:
+      case 0x12:
+      case 0x19:
+        G_ASSERT(extUid != INVALID_OBJECT_EXT_UID);
         return UnitRef_Dispatch(oid, extUid, &state->g_entity_mgr);
       case 3:
         break;
@@ -127,10 +145,16 @@ namespace mpi {
         }
         break;
       }
+      case 0x8: { // something to do with mission objectives, lookup "extendedEnding"
+        return nullptr;
+      }
       case 0xb: {
         switch(count) {
           case 0x2: {
             return &state->main_dispatch;
+          }
+          case 0x3: {
+            return nullptr; // want to silence the "unable to dispatch with this"
           }
           case 0x4: {
             return &state->gen_state;
@@ -153,6 +177,7 @@ namespace mpi {
         }
       }
     }
+    LOG("unable to dispatch to oid: {:#x}; type: {}; index: {}", oid, obj, count);
     return nullptr;
   }
 }

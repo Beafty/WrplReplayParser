@@ -498,4 +498,12 @@ struct CapsulesAOHolder {
   char data[8];
 };
 
+struct BufferedHudData {
+  char data[8];
+};
+
+struct InvalidType {
+  char data[8];
+};
+
 #endif //MYEXTENSION_BASICTYPEDEFS_H

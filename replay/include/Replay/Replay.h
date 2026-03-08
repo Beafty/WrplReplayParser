@@ -142,7 +142,7 @@ public:
   {
     auto* rdr = new FileStreamReader(this->replay_path.string(), time_wait);
     rdr->seekto(zlib_start);
-    auto *payload = new ReplayReader(new ZlibLoadCB(*rdr, 0xFFFFFFF), rdr);
+    auto *payload = new ReplayReader(new ZlibLoadCB(*rdr, 0xFFFFFFF, false, false), rdr);
     return payload;
   }
 

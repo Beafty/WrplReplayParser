@@ -644,6 +644,8 @@ namespace ecs {
   ECS_REGISTER_CTM_TYPE(CapsulesAOHolder, nullptr);
   ECS_REGISTER_CTM_TYPE(ecs::TemplatesListToInstantiate, nullptr);;
   ECS_REGISTER_CTM_TYPE(BehaviourTree, nullptr);
+  ECS_REGISTER_CTM_TYPE(BufferedHudData, nullptr);
+  ECS_REGISTER_CTM_TYPE(InvalidType, nullptr);
 }
 
 class ErrorSerializer final : public ecs::ComponentSerializer {
@@ -811,7 +813,8 @@ ECS_AUTO_REGISTER_COMPONENT(dm::DamagePartProps, "damagePartProps", nullptr)
 ECS_AUTO_REGISTER_COMPONENT(rendinst::RendInstDesc, "ri_extra__riSyncDesc", &ecs::rend_inst_desc_serializer)
 ECS_AUTO_REGISTER_COMPONENT(GameObjects, "game_objects", nullptr)
 ECS_AUTO_REGISTER_COMPONENT(freeAreaCheck::CheckTracesMgr, "free_area_check_traces", nullptr)
-ECS_AUTO_REGISTER_COMPONENT(ecs::Tag, "trace_mesh_faces", nullptr) // TODO
-ECS_AUTO_REGISTER_COMPONENT(ecs::Tag, "gun_shell_phys_ejection", nullptr) // TODO
-ECS_AUTO_REGISTER_COMPONENT(ecs::Tag, "player__support_units_status_notification_mgr", nullptr) // TODO
+ECS_AUTO_REGISTER_COMPONENT(InvalidType, "trace_mesh_faces", nullptr) // TODO
+ECS_AUTO_REGISTER_COMPONENT(InvalidType, "gun_shell_phys_ejection", nullptr) // TODO
+ECS_AUTO_REGISTER_COMPONENT(InvalidType, "player__support_units_status_notification_mgr", nullptr) // TODO
+ECS_AUTO_REGISTER_COMPONENT(InvalidType, "ik_pilot_inertia_seats__data", nullptr);
 ECS_AUTO_REGISTER_COMPONENT(CapsulesAOHolder, "capsules_ao", nullptr);

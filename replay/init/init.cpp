@@ -26,7 +26,7 @@ namespace mpi {
 
 
 // runs basic init steps
-void initialize(std::string &VromfsPath) {
+void initialize(std::string &VromfsPath, bool fonts) {
   register_listener(&mpi::base);
   mpi::register_object_dispatcher(&mpi::ObjectDispatcher);
   ecs::g_ecs_data.Init();
@@ -35,6 +35,10 @@ void initialize(std::string &VromfsPath) {
   std::string p2 = (basePath / "game.vromfs.bin").string();
   std::string p3 = (basePath / "mis.vromfs.bin").string();
   std::string p4 = (basePath / "lang.vromfs.bin").string();
+  if(fonts) {
+    std::string p5 = (basePath / "ui/fonts.vromfs.bin").string();
+    EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p5), "{} does not exist", p5);
+  }
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "{} does not exist", p1);
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "{} does not exist", p2);
   file_mgr.loadVromfs(p3); // optional

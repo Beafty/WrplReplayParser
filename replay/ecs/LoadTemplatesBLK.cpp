@@ -194,6 +194,9 @@ namespace ecs {
                                                   {TYPENAMEANDLEN("ip3"),
                                                    &load_blk_type<IPoint3, &DataBlock::getIPoint3>,
                                                    ComponentTypeInfo<IPoint3>::type},
+                                                  {TYPENAMEANDLEN("ip4"),
+                                                   &load_blk_type<IPoint4, &DataBlock::getIPoint4>,
+                                                   ComponentTypeInfo<IPoint4>::type},
                                                   {TYPENAMEANDLEN("b"), &load_blk_type<bool, &DataBlock::getBool>,
                                                    ComponentTypeInfo<bool>::type},
                                                   {TYPENAMEANDLEN("m"), &load_blk_type<TMatrix, &DataBlock::getTMatrix>,
@@ -444,7 +447,10 @@ namespace ecs {
             comp = ecs::Component{blk.getUInt64(i)};
             break;
           }
-          case DataBlock::TYPE_COUNT:
+          case DataBlock::TYPE_IPOINT4: {
+            comp = ecs::Component{blk.getIPoint4(i)};
+          }
+          case DataBlock::COUNT:
           default:
             EXCEPTION("Invalid Type");
         }

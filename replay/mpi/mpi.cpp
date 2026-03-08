@@ -22,7 +22,7 @@ namespace mpi {
     ObjectExtUID extUid;
     MessageID mid;
     if (obj_dispatcher && read_object_ext_uid(bs, oid, extUid) && bs.Read(mid)) {
-      //LOG("oid: 0x%04X; extUid: 0x%08X; mid: 0x%04X;\n", oid, extUid, mid);
+      // LOG("MPI Dispatch: oid: {:#x}; extUid: {:#x}; mid: {:#x};", oid, extUid, mid);
       //mpi_data[oid][mid] += 1; used for packet
       IObject *o = dispatch_object(oid, extUid, state);
       if (o) {
@@ -33,11 +33,13 @@ namespace mpi {
           uint32_t bytesReaded = BITS_TO_BYTES(bs.GetReadOffset());
           new(&m->payload)
               BitStream(bs.GetData() + bytesReaded, bs.GetNumberOfBytesUsed() - bytesReaded, copy_payload);
-          if (m->readPayload())
+          if (m->readPayload(state))
             return m;
           else
             m->destroy();
         }
+      } else {
+        // LOG("object doesen't exist");
       }
     }
     return nullptr;

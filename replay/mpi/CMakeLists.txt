@@ -5,6 +5,7 @@ add_library(MPI OBJECT
         serializers.cpp
         codegen/serializers.cpp
         Replication.cpp
+        BattleMessages.cpp
 )
 
 

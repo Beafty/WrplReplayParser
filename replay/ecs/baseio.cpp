@@ -109,7 +109,7 @@ namespace ecs
         return Component(tempData, userType, typeId, componentTypeInfo.size);
     }
     else
-      EXCEPTION("Attempt to deserialize type 0x%X %d<%s>, which has no typeIO and not pod", userType, typeId,
+      EXCEPTION("Attempt to deserialize type {:#x} {}<{}>, which has no typeIO and not pod", userType, typeId,
              componentTypes->getName(typeId).data());
     if (tempData)
       free(tempData);

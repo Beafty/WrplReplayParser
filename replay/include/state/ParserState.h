@@ -5,6 +5,7 @@
 #include "mpi/codegen/ReflIncludes.h"
 #include "network/CNetwork.h"
 #include "mpi/ObjectDispatcher.h"
+#include "mpi/GeneralObject.h"
 
 struct ParserState {
 
@@ -16,7 +17,8 @@ struct ParserState {
   GlobalElo glob_elo;
   GeneralState gen_state;
   net::CNetwork conn{this};
-  mpi::MainDispatch main_dispatch{this};
+  mpi::GeneralObject main_dispatch{this};
+  BattleMessageHandler battles_messages{this};
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }

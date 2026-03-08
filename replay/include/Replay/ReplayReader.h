@@ -46,7 +46,7 @@ public:
     if(crd->tryRead(packet->stream.GetData(), (int)pkt_sz) != pkt_sz)
       return false;
     packet->stream.SetWriteOffset(BYTES_TO_BITS(pkt_sz));
-    uint16_t type_t;
+    uint16_t type_t = 0x0;
     packet->stream.Read(type_t);
     // if two packets have the same timestamp, then only the first one encodes the timestamp
     if((type_t & 0x10) == 0)

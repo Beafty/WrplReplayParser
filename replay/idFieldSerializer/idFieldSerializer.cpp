@@ -87,26 +87,26 @@ IdFieldSerializer32 &IdFieldSerializer32::operator=(const IdFieldSerializer32 &o
 
 void IdFieldSerializer32::setFieldSize(uint32_t sz)
 {
-  assert(currWrSz < MAX_FIELDS_NUM);
+  G_ASSERT(currWrSz < MAX_FIELDS_NUM);
   sizes[currWrSz++] = sz;
 }
 
 
 void IdFieldSerializer32::checkFieldSize(uint8_t index, BitSize_t sz) const
 {
-  assert(index < currRdSz);
-  assert(sz == sizes[index]);
+  G_ASSERT(index < currRdSz);
+  G_ASSERT(sz == sizes[index]);
 }
 
 void IdFieldSerializer32::writeFieldsSize(BitStream &to) const
 {
-  assert(currWrSz);
+  G_ASSERT(currWrSz);
   to.AlignWriteToByteBoundary();
   BitSize_t offset = BITS_TO_BYTES(to.GetWriteOffset());
-  assert(offset <= USHRT_MAX);
+  G_ASSERT(offset <= USHRT_MAX);
   for (uint8_t j = 0; j < currWrSz; ++j)
   {
-    assert(sizes[j]);
+    G_ASSERT(sizes[j]);
     writeSize(to, sizes[j]);
   }
   to.AlignWriteToByteBoundary();
@@ -121,18 +121,18 @@ uint32_t IdFieldSerializer32::readFieldsSizeAndFlag(const BitStream &from)
   uint32_t fields = 0;
   uint16_t offset = 0;
   BitSize_t start = from.GetReadOffset();
-  assert((start & 7) == 0); // aligned to byte
+  G_ASSERT((start & 7) == 0); // aligned to byte
   from.Read(offset);
   from.ReadCompressed(fields);
   BitSize_t startBody = from.GetReadOffset();
   from.SetReadOffset(BYTES_TO_BITS(offset) + start);
   currRdSz = static_cast<uint8_t>(popcount(fields));
 
-  assert(currRdSz);
+  G_ASSERT(currRdSz);
   for (uint8_t j = 0; j < currRdSz; ++j)
   {
     sizes[j] = readSize(from);
-    assert(sizes[j]);
+    G_ASSERT(sizes[j]);
   }
   from.SetReadOffset(startBody);
   return fields;
@@ -140,7 +140,7 @@ uint32_t IdFieldSerializer32::readFieldsSizeAndFlag(const BitStream &from)
 
 void IdFieldSerializer32::skipReadingField(uint8_t index, const BitStream &from) const
 {
-  assert(index < currRdSz);
+  G_ASSERT(index < currRdSz);
   from.SetReadOffset(from.GetReadOffset() + sizes[index]);
 }
 
@@ -163,24 +163,24 @@ void IdFieldSerializer255::reset()
 
 void IdFieldSerializer255::setFieldSize(uint32_t sz)
 {
-  assert(currWrSz < MAX_FIELDS_NUM);
+  G_ASSERT(currWrSz < MAX_FIELDS_NUM);
   sizes[currWrSz++] = sz;
 }
 
 void IdFieldSerializer255::setFieldId(Id id)
 {
-  assert(currWrId < MAX_FIELDS_NUM);
+  G_ASSERT(currWrId < MAX_FIELDS_NUM);
   indices[currWrId++] = id;
 }
 
 void IdFieldSerializer255::writeFieldsIndex(BitStream &to, BitSize_t at) const
 {
-  assert(currWrId);
-  assert((at & 7) == 0); // aligned to byte
+  G_ASSERT(currWrId);
+  G_ASSERT((at & 7) == 0); // aligned to byte
   to.AlignWriteToByteBoundary();
   BitSize_t endBody = to.GetWriteOffset();
   // we are at the endBody
-  assert(currWrId == currWrSz);
+  G_ASSERT(currWrId == currWrSz);
   to.SetWriteOffset(at + BYTES_TO_BITS(sizeof(uint16_t)) /*offset*/);
   Index maxId = 1; //__bsr(0) === 32
   for (Index j = 0; j < currWrId; ++j)
@@ -200,23 +200,23 @@ inline static BitSize_t alingedToByte(BitSize_t count) { return count + 8 - (((c
 
 bool IdFieldSerializer255::readFieldsIndex(const BitStream &from)
 {
-  assert(currRdSz && bitsPerId);
+  G_ASSERT(currRdSz && bitsPerId);
   BitSize_t startBody = from.GetReadOffset();
   // we are at the startBody so reread offset and check count
   uint16_t offset = 0;
   Index count = 0;
   const BitSize_t rewind = BYTES_TO_BITS(sizeof(offset)) + BYTES_TO_BITS(sizeof(count));
-  assert(startBody >= rewind);
+  G_ASSERT(startBody >= rewind);
   from.SetReadOffset(startBody - rewind);
   from.Read(offset);
   from.Read(count);
-  assert(count == (currRdSz | (bitsPerId << BITS_PER_COUNT)));
+  G_ASSERT(count == (currRdSz | (bitsPerId << BITS_PER_COUNT)));
   BitSize_t bitsForIndices = alingedToByte(currRdSz * bitsPerId);
   from.SetReadOffset(startBody - rewind + BYTES_TO_BITS(offset) - bitsForIndices);
   for (Index j = 0; j < currRdSz; ++j)
     if (!from.ReadBits(reinterpret_cast<uint8_t *>(&indices[j]), bitsPerId))
     {
-      assert(false);
+      G_ASSERT(false);
       return false;
     }
   from.SetReadOffset(startBody);
@@ -229,15 +229,15 @@ uint32_t IdFieldSerializer255::getFieldSize(Index index) const { return sizes[in
 
 void IdFieldSerializer255::writeFieldsSize(BitStream &to, BitSize_t at) const
 {
-  assert(currWrId == 0 || currWrId == currWrSz);
-  assert(currWrSz);
-  assert((at & 7) == 0); // aligned to byte
+  G_ASSERT(currWrId == 0 || currWrId == currWrSz);
+  G_ASSERT(currWrSz);
+  G_ASSERT((at & 7) == 0); // aligned to byte
   to.AlignWriteToByteBoundary();
   BitSize_t offset = BITS_TO_BYTES(to.GetWriteOffset() - at);
-  assert(offset <= USHRT_MAX);
+  G_ASSERT(offset <= USHRT_MAX);
   for (Index j = 0; j < currWrSz; ++j)
   {
-    assert(sizes[j]);
+    G_ASSERT(sizes[j]);
     writeSize(to, sizes[j]);
   }
   to.AlignWriteToByteBoundary();
@@ -252,18 +252,18 @@ IdFieldSerializer255::Index IdFieldSerializer255::readFieldsSizeAndCount(const B
   uint16_t offset = 0;
   Index count = 0;
   BitSize_t start = from.GetReadOffset();
-  assert((start & 7) == 0); // aligned to byte
+  G_ASSERT((start & 7) == 0); // aligned to byte
   from.Read(offset);
   from.Read(count);
   BitSize_t startBody = from.GetReadOffset();
   from.SetReadOffset(BYTES_TO_BITS(offset) + start);
   currRdSz = count & BIT_MASK_COUNT;
   bitsPerId = count >> BITS_PER_COUNT;
-  assert(currRdSz);
+  G_ASSERT(currRdSz);
   for (Index j = 0; j < currRdSz; ++j)
   {
     sizes[j] = readSize(from);
-    assert(sizes[j]);
+    G_ASSERT(sizes[j]);
   }
   from.AlignReadToByteBoundary();
   end = from.GetReadOffset();
@@ -273,6 +273,6 @@ IdFieldSerializer255::Index IdFieldSerializer255::readFieldsSizeAndCount(const B
 
 void IdFieldSerializer255::skipReadingField(Index index, const BitStream &from) const
 {
-  assert(index < currRdSz);
+  G_ASSERT(index < currRdSz);
   from.SetReadOffset(from.GetReadOffset() + sizes[index]);
 }

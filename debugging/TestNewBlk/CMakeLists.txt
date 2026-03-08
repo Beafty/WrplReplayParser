@@ -5,6 +5,7 @@ add_executable(TestNewBlk
 target_link_libraries(TestNewBlk
         XXH3::XXH3
         EASTL::EASTL
+        DAG_MATH::DAG_MATH
 )
 
 

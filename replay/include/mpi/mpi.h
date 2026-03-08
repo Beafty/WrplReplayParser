@@ -96,6 +96,13 @@ namespace mpi // message passing interface
     return true;
   }
 
+#define SWITCH_MESSAGE_INDEXES(fields) \
+while(fields != 0) {                \
+  uin8_t curr_index = 0;               \
+  while ((fields >> curr_index) & 1 == 0) curr_index = 0\
+}
+
+
   class Message // base class for all messages
   {
   public:
@@ -115,6 +122,8 @@ namespace mpi // message passing interface
     void skipReadingField(uint8_t index) const { idFieldSerializer.skipReadingField(index, payload); }
 
     uint32_t readFieldsSizeAndFlag() { return idFieldSerializer.readFieldsSizeAndFlag(payload); }
+
+    void checkFieldSize(uint8_t index, BitSize_t size) {idFieldSerializer.checkFieldSize(index, size);}
 
   private:
     IdFieldSerializer32 idFieldSerializer;
@@ -170,7 +179,7 @@ namespace mpi // message passing interface
     // deserialize from/serialize parameters to 'payload' bitStream (if exist any)
     virtual void writePayload() {}
 
-    virtual bool readPayload() { return true; }
+    virtual bool readPayload(ParserState *state) { return true; }
   };
 
   Message *
