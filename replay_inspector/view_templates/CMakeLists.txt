@@ -17,6 +17,11 @@ target_link_libraries(TemplateViewer PRIVATE
         Replay::Replay
 )
 
+target_include_directories(TemplateViewer
+        PUBLIC
+        "${BASE_DIR}/replay_inspector/include"
+)
+
 if(WIN32)
     # Copy SDL2.dll to the output directory after build
     add_custom_command(TARGET TemplateViewer POST_BUILD

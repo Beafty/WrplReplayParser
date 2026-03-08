@@ -218,7 +218,7 @@ protected:
         assert(false && "data is zlib compressed!!!!");
       }
     } else {
-      if (!reader.read(fs.get(), (int)hdr.fullSz))
+      if (!reader.read(fs->data(), (int)hdr.fullSz))
         goto load_fail;
     }
 

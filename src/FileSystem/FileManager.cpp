@@ -51,7 +51,7 @@ std::shared_ptr<File> FileManager::getFile(const fs::path& path, bool lower, boo
 
 void FileManager::find_vromfs_files_in_folder(std::vector<fs::path> &out_list, const std::string &dir_path) {
   SmartFSHandle directory = getObject(fs::path(dir_path));
-  if(!directory && directory->getFSObjectType() != isDirectory)
+  if(!directory || directory->getFSObjectType() != isDirectory)
     return ;
   auto d = directory.asDirectory();
   std::vector<File *> files;

@@ -308,6 +308,7 @@ namespace net
       else if (!bs.ReadCompressed(ofs))
         return false;
       comp = (i == 0) ? ofs : (uint16_t)(comp + ofs + 1);
+      //LOG("comp: {}; bs_readoffs: {}", comp, bs.GetReadOffset());
       //std::cout << comp << " : " << bs.GetReadOffset() << "\n";
       if (comp >= templateComponentsCount)
       {
@@ -322,7 +323,7 @@ namespace net
       auto cmp = ecs::g_ecs_data->getDataComponents()->getDataComponent(cidx);
       ecs::component_type_t componentTypeName = cmp->componentHash;
       ecs::component_t componentNameHash = cmp->hash;
-
+      //LOG("{}({})", cmp->getName(), ecs::g_ecs_data->getComponentTypes()->getComponentData(cmp->componentIndex)->name);
       //std::cout << cmp->getName().data() << "("<< ecs::g_ecs_data->getComponentTypes()->getComponentData(cmp->componentIndex)->name.data() << ")\n";
       //std::cout.flush();
       if (ecs::MaybeComponent mbcomp = deserialize_init_component_typeless(componentTypeName, cidx, deserializer, mgr))
@@ -652,9 +653,6 @@ namespace net
            ecs::g_ecs_data->getComponentTypes()->getName(comp.getTypeId()),
            eid.get_handle(),
            mgr->getEntityTemplateName(eid));
-      //logerr("Attempt to serialize not-yet synced component <%s> of type <%s>, was entity %d<%s> re-created?",
-      //       mgr->getDataComponents().getComponentNameById(comp.getComponentId()), mgr.getComponentTypes().getTypeNameById(comp.getTypeId()),
-      //       (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
       return false;
     }
     write_component_index(comp.getComponentId(), bs);

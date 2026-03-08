@@ -142,6 +142,7 @@ protected:
     std::string fName;
     std::ifstream input;
     std::streamoff data_size;
+    int read_offset = 0;
 };
 
 /// a FileStreamReader functions similarly to a FileReader,

@@ -74,6 +74,12 @@ bool DataBlock::getTMatrix(int param_number, TMatrix &out) const {
   return true;
 }
 
+bool DataBlock::getIPoint4(int param_number, IPoint4 &out) const {
+  if (this->params[param_number]->type != TYPE_IPOINT4) return false;
+  out = this->params[param_number]->data.ip4;
+  return true;
+}
+
 bool DataBlock::getStr(const std::string &name, std::string &out, int index) const {
   int name_id_ = getNameIdNoAdd(name);
   Param *obj = getIndexedParam(name_id_, index, TYPE_STRING);
@@ -184,7 +190,17 @@ bool DataBlock::getTMatrix(const std::string &name, TMatrix &out, int index) con
   return false;
 }
 
-/*DLLEXPORT*/ const char *DataBlock::getStr(int i) const {
+bool DataBlock::getIPoint4(const std::string &name, IPoint4 &out, int index) const {
+  int name_id_ = getNameIdNoAdd(name);
+  Param *obj = getIndexedParam(name_id_, index, TYPE_IPOINT4);
+  if (obj) {
+    out = obj->data.ip4;
+    return true;
+  }
+  return false;
+}
+
+ const char *DataBlock::getStr(int i) const {
   if (i < 0 || i >= params.size())
     return NULL;
   if (params[i]->type != TYPE_STRING)
@@ -192,7 +208,7 @@ bool DataBlock::getTMatrix(const std::string &name, TMatrix &out, int index) con
   return params[i]->data.s.data();
 }
 
-/*DLLEXPORT*/ int DataBlock::getInt(int i) const {
+ int DataBlock::getInt(int i) const {
   if (i < 0 || i >= params.size())
     return 0;
   if (params[i]->type != TYPE_INT)
@@ -200,7 +216,7 @@ bool DataBlock::getTMatrix(const std::string &name, TMatrix &out, int index) con
   return params[i]->data.i;
 }
 
-/*DLLEXPORT*/ bool DataBlock::getBool(int i) const {
+ bool DataBlock::getBool(int i) const {
   if (i < 0 || i >= params.size())
     return false;
   if (params[i]->type != TYPE_BOOL)
@@ -208,7 +224,7 @@ bool DataBlock::getTMatrix(const std::string &name, TMatrix &out, int index) con
   return params[i]->data.b;
 }
 
-/*DLLEXPORT*/ real DataBlock::getReal(int i) const {
+ real DataBlock::getReal(int i) const {
   if (i < 0 || i >= params.size())
     return 0;
   if (params[i]->type != TYPE_REAL)
@@ -279,6 +295,14 @@ uint64_t DataBlock::getUInt64(int i) const {
   if (params[i]->type != TYPE_UINT64)
     return 0;
   return params[i]->data.u64;
+}
+
+IPoint4 DataBlock::getIPoint4(int i) const {
+  if (i < 0 || i >= params.size())
+    return IPoint4(0, 0, 0, 0);
+  if (params[i]->type != TYPE_UINT64)
+    return IPoint4(0, 0, 0, 0);
+  return params[i]->data.ip4;
 }
 
 DataBlock::DataBlock() {
@@ -738,9 +762,9 @@ static inline bool is_ident_char(char c)
 
 static inline const char *resolve_short_type(uint32_t type)
 {
-  static const char *types[DataBlock::TYPE_COUNT + 1] = {
-      "none", "t", "i", "r", "p2", "p3", "p4", "ip2", "ip3", "b", "c", "m", "i64", "err"};
-  G_ASSERT(type < DataBlock::TYPE_COUNT+1);
+  static const char *types[DataBlock::COUNT + 1] = {
+      "none", "t", "i", "r", "p2", "p3", "p4", "ip2", "ip3", "b", "c", "m", "i64", "ip4"};
+  G_ASSERT(type < DataBlock::COUNT+1);
   return types[type];
 }
 
@@ -879,7 +903,7 @@ bool DataBlock::writeText(std::ostream *cb, int level) const
         case TYPE_UINT64: {
           out = fmt::format("{}\n", p.data.u64);
           break;
-        }
+        } // TODO: IPoin4
         default:
           G_ASSERT(0);
       }
@@ -1112,6 +1136,15 @@ TMatrix DataBlock::getTm(const char *name, const TMatrix &ref) const {
   if (params[i]->type != TYPE_MATRIX)
     return ref;
   return params[i]->data.tm;
+}
+
+IPoint4 DataBlock::getIPoint4(const char *name, const IPoint4 &ref) const {
+  int i = findParam(name);
+  if (i < 0)
+    return ref;
+  if (params[i]->type != TYPE_MATRIX)
+    return ref;
+  return params[i]->data.ip4;
 }
 
 bool DataBlock::getBoolByNameId(int paramNameId, bool def) const {

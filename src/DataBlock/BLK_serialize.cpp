@@ -65,55 +65,58 @@ void DataBlock::construct_param(ParamBin &p, Param *into) {
         out = std::string_view(shared_params + actual);
       }
       new(into) Param(name_id_, out);
+      break;
     }
-    break;
     case TYPE_INT: {
       new(into) Param(name_id_, data.val);
+      break;
     }
-    break;
     case TYPE_REAL: {
       new(into) Param(name_id_, data.real);
+      break;
     }
-    break;
     case TYPE_POINT2: {
       new(into) Param(name_id_, *(Point2 *) (shared_params + data.val));
+      break;
     }
-    break;
     case TYPE_POINT3: {
       new(into) Param(name_id_, *(Point3 *) (shared_params + data.val));
+      break;
     }
-    break;
     case TYPE_POINT4: {
       new(into) Param(name_id_, *(Point4 *) (shared_params + data.val));
+      break;
     }
-    break;
     case TYPE_IPOINT2: {
       new(into) Param(name_id_, *(IPoint2 *) (shared_params + data.val));
-    }
       break;
+    }
     case TYPE_IPOINT3: {
       new(into) Param(name_id_, *(IPoint3 *) (shared_params + data.val));
+      break;
     }
-    break;
     case TYPE_BOOL: {
       new(into) Param(name_id_, data.val == 1);
+      break;
     }
-    break;
     case TYPE_E3DCOLOR: {
       new(into) Param(name_id_, E3DCOLOR(data.c.r, data.c.g, data.c.b, data.c.a));
+      break;
     }
-    break;
     case TYPE_MATRIX: {
       new(into) Param(name_id_, *(TMatrix *) (shared_params + data.val));
+      break;
     }
-    break;
     case TYPE_UINT64: {
       new(into) Param(name_id_, *(uint64_t *) (shared_params + data.val));
-    }
       break;
+    }
+    case TYPE_IPOINT4: {
+      new(into) Param(name_id_, *(IPoint4 *) (shared_params + data.val));
+      break;
+    }
     default:
-      return;
-      //EXCEPTION("Inavlid parameter type");
+      EXCEPTION("Invalid parameter type");
   }
   this->addParam(SharedPtr<Param>(into, this->shared));
 }

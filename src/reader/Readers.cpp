@@ -251,14 +251,17 @@ bool FileReader::read(void *ptr, int size)
 {
     if (!isValid())
         return false;
+    if (size+this->read_offset > this->data_size)
+      return false;
     input.read((char *)ptr, size);
+    this->read_offset += size;
     auto good = input.good();
     return true;
 }
 
 int FileReader::readOffset()
 {
-    return (int)input.tellg();
+    return this->read_offset;
 }
 
 int FileReader::getSize() {
@@ -273,6 +276,7 @@ bool FileReader::seekto(int offset)
         return false;
     }
     input.seekg(offset);
+    this->read_offset = offset;
     return true;
 }
 
@@ -284,6 +288,7 @@ bool FileReader::seekrel(int offset)
         return false;
     }
     input.seekg(offset+curr_off);
+    this->read_offset = offset + curr_off;
     return true;
 }
 

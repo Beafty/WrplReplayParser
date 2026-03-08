@@ -21,6 +21,7 @@
 #include "math/dag_TMatrix.h"
 #include "math/integer/dag_IPoint2.h"
 #include "math/integer/dag_IPoint3.h"
+#include "math/integer/dag_IPoint4.h"
 #include <unordered_map>
 #include "StringTableAllocator.h"
 
@@ -278,6 +279,7 @@ union Value {
   Point4 p4;
   IPoint2 ip2;
   IPoint3 ip3;
+  IPoint4 ip4;
   bool b;
   E3DCOLOR c;
   TMatrix tm;
@@ -353,6 +355,8 @@ public:
     Param(int name_id, const TMatrix &data) : Param(TYPE_MATRIX, name_id) { this->data.tm = data; }
 
     Param(int name_id, const uint64_t &data) : Param(TYPE_UINT64, name_id) { this->data.u64 = data; }
+
+    Param(int name_id, const IPoint4 &data) : Param(TYPE_IPOINT4, name_id) { this->data.ip4 = data; }
   };
 
   DataBlock();
@@ -384,9 +388,10 @@ public:
     TYPE_E3DCOLOR, ///< E3DCOLOR.
     TYPE_MATRIX,   ///< TMatrix.
     TYPE_UINT64,    ///< uint64_t
-    TYPE_COUNT
+    TYPE_IPOINT4, ///< IPoint4
+    COUNT // invalid
   };
-  static constexpr std::array<const char *, TYPE_COUNT+1> ParamTypeNames = {
+  static constexpr std::array<const char *, COUNT+1> ParamTypeNames = {
       "NONE",
       "STRING",
       "INT",
@@ -400,6 +405,7 @@ public:
       "E3DCOLOR",
       "MATRIX",
       "UINT64",
+      "IPOINT4",
       "COUNT"
   };
 
@@ -436,6 +442,8 @@ public:
 
   bool getTMatrix(int param_number, TMatrix &out) const;
 
+  bool getIPoint4(int param_number, IPoint4 &out) const;
+
   bool getStr(const std::string &name, std::string &out, int index) const;
 
   bool getBool(const std::string &name, bool &out, int index) const;
@@ -457,6 +465,8 @@ public:
   bool getE3DColor(const std::string &name, E3DCOLOR &out, int index) const;
 
   bool getTMatrix(const std::string &name, TMatrix &out, int index) const;
+
+  bool getIPoint4(const std::string &name, IPoint4 &out, int index) const;
 
   const char *getStr(int param_number) const;
 
@@ -482,6 +492,8 @@ public:
 
   uint64_t getUInt64(int param_number) const;
 
+  IPoint4 getIPoint4(int param_number) const;
+
   bool getBoolByNameId(int paramNameId, bool def) const;
 
   const char *getStr(const char *name, const char *ref) const;
@@ -505,6 +517,8 @@ public:
   E3DCOLOR getE3dcolor(const char *name, const E3DCOLOR &ref) const;
 
   TMatrix getTm(const char *name, const TMatrix &ref) const;
+
+  IPoint4 getIPoint4(const char *name, const IPoint4 &ref) const;
 
   uint64_t getUInt64(const char *name, const uint64_t &ref) const;
 
