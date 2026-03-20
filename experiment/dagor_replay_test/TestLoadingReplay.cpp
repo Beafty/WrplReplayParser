@@ -40,8 +40,6 @@ int main()
 {
   //std::signal(SIGSEGV, signal_handler);
   fs::path conf_dir = CONFIG_DIR;
-  g_log_handler.set_default_sink_logfile((conf_dir / "logfile.txt").string());
-  g_log_handler.start_thread();
   fs::path config_file = conf_dir / "dagor_replay_test.blk";
   DataBlock conf_blk;
   G_ASSERT(load(conf_blk, config_file.string().c_str()));
@@ -62,7 +60,9 @@ int main()
     bin_path_str = convert_os_path_to_wsl2(bin_path);
   }
 #endif
-  initialize(bin_path_str);
+  std::string logfile_str = (conf_dir / "logfile.txt").string();
+  initialize(bin_path_str, logfile_str);
+  g_log_handler.start_thread();
   //auto t = ecs::g_ecs_data->getTemplateDB()->getTemplate("attachable_wear_fast_sf_helmet_item");
   IReplayReader *rdr = nullptr;
   ServerReplay *srv_rpl = nullptr;
@@ -76,14 +76,15 @@ int main()
   else
   {
      rpl = new Replay(rpl_path_str);
-    rdr = rpl->getRplReader();
+    rdr = rpl->getFullDecompressReplayReader();
 
   }
 
 
   auto *pkt = new ReplayPacket();
   auto start = std::chrono::high_resolution_clock::now();
-  ParserState state{};
+  ParserState *state_ptr = new ParserState{};
+  ParserState &state = *state_ptr;
   //std::exit(0);
   bool end = false;
   int AircraftCount = 0;
@@ -149,20 +150,20 @@ int main()
   //  }
   //}
   state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
-  LOG("Aircraft Count: {}", AircraftCount);
+  //LOG("Aircraft Count: {}", AircraftCount);
   auto ended = std::chrono::high_resolution_clock::now();
+  delete state_ptr;
+  delete rdr;
+  delete srv_rpl;
+  delete rpl;
+  delete pkt;
   std::chrono::duration<double, std::milli> duration = ended - start;
-
   // Output the result
-  LOG("profile time {}", duration.count());
+  std::cout << "profile time " << duration.count() << " " << packet_count;
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->debugPrintEntities();
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->getTemplateDB()->DebugPrint();
-  delete rdr;
-  delete srv_rpl;
-  delete rpl;
-  delete pkt;
   return 0;
 }

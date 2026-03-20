@@ -6,6 +6,7 @@
 #include "network/CNetwork.h"
 #include "mpi/ObjectDispatcher.h"
 #include "mpi/GeneralObject.h"
+#include "tracy/Tracy.hpp"
 
 struct ParserState {
 
@@ -23,6 +24,7 @@ struct ParserState {
     players.resize(player_count);
   }
   ~ParserState() {
+    ZoneScoped;
     for(auto v : Zones) {
       delete v;
     }

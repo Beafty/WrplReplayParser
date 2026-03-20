@@ -1,6 +1,14 @@
 add_executable(dagor_rpl_test
         TestLoadingReplay.cpp
 )
+include(FetchContent)
+FetchContent_Declare(
+        mimalloc
+        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+        GIT_TAG        v2.1.2 # use desired version
+)
+FetchContent_MakeAvailable(mimalloc)
+
 target_link_libraries(dagor_rpl_test
         LOGGER::LOGGER
         fmt::fmt
@@ -14,6 +22,8 @@ target_link_libraries(dagor_rpl_test
         dagECS::dagECS
         INIT::INIT
         Replay::Replay
+        Zlib::Zlib
+        # mimalloc
 
 )
 

@@ -4,6 +4,7 @@ add_library(LOGGER STATIC logger.cpp)
 set(INCLUDES
         "${BASE_DIR}/src/include"
         "${BASE_DIR}/3rdParty/Dagor_Engine/include"
+        "${BASE_DIR}/3rdParty/tracy/public"
 )
 
 target_include_directories(LOGGER
@@ -14,6 +15,7 @@ target_include_directories(LOGGER
 target_link_libraries(LOGGER PUBLIC
         fmt::fmt
         cpptrace::cpptrace
+        Tracy::TracyClient
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

@@ -26,7 +26,10 @@ namespace mpi {
 
 
 // runs basic init steps
-void initialize(std::string &VromfsPath, bool fonts) {
+void initialize(std::string &VromfsPath, std::string &logfile_path, bool fonts) {
+  ZoneScoped;
+  if(!logfile_path.empty())
+    g_log_handler.set_default_sink_logfile(logfile_path);
   register_default_sigsev_handler();
   register_listener(&mpi::base);
   mpi::register_object_dispatcher(&mpi::ObjectDispatcher);

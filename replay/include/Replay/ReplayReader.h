@@ -6,6 +6,9 @@
 #include "reader.h"
 #include "basic_replay_structs.h"
 #include "consts.h"
+#include "libdeflate.h"
+
+#include "tracy/Tracy.hpp"
 
 uint32_t getPacketSize(IGenReader &cb);
 class IReplayReader
@@ -36,7 +39,6 @@ public:
 
   bool getNextPacket(ReplayPacket *packet) override
   {
-    
     uint32_t pkt_sz = getPacketSize(*crd);
     if(pkt_sz == 0)
       return false;
@@ -72,10 +74,61 @@ public:
     delete baseRdr;
   }
 };
+
+class FullDecompressReplayReader: public IReplayReader {
+  BaseReader *crd = nullptr;
+  uint32_t curr_time;
+public:
+  FullDecompressReplayReader(std::span<uint8_t> zlib_data) {
+    ZoneScoped;
+    auto ptr = (uint8_t*)malloc(zlib_data.size()*3);
+    size_t dest_len;
+    auto ctx = libdeflate_alloc_decompressor();
+    libdeflate_result ret;
+    {
+      ZoneScopedN("Replay uncompress")
+      ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, zlib_data.size()*3, &dest_len);
+      //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
+    }
+    G_ASSERT(ret == LIBDEFLATE_SUCCESS);
+    //G_ASSERT(ret == Z_OK);
+    libdeflate_free_decompressor(ctx);
+    crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
+  }
+
+  bool getNextPacket(ReplayPacket *packet) override
+  {
+    uint32_t pkt_sz = getPacketSize(*crd);
+    if(pkt_sz == 0)
+      return false;
+    packet->stream.~BitStream();
+    packet->stream = BitStream(crd->getPtr(), pkt_sz, false);
+    if (!crd->seekrel((int)pkt_sz))
+      return false;
+    uint16_t type_t = 0x0;
+    packet->stream.Read(type_t);
+    // if two sequential packets have the same timestamp, then only the first one encodes the timestamp
+    if((type_t & 0x10) == 0)
+    {
+      packet->stream.Read(curr_time);
+    }
+    else
+    {
+      type_t ^= 0x10;
+    }
+    packet->timestamp_ms = curr_time;
+    packet->type = (ReplayPacketType)type_t;
+    return true;
+  }
+  ~FullDecompressReplayReader() {
+    delete crd;
+  }
+};
+
 class Replay;
 class ServerReplayReader : public IReplayReader
 {
-  std::vector<ReplayReader*> readers;
+  std::vector<IReplayReader*> readers;
   int index = 0;
 public:
   explicit ServerReplayReader(std::vector<Replay> &rdrs);

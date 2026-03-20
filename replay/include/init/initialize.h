@@ -9,7 +9,7 @@
 #include "dag_assert.h"
 
 
-void initialize(std::string &VromfsPath, bool fonts=false);
+void initialize(std::string &VromfsPath, std::string &logfile_path, bool fonts=false);
 
 
 #endif //MYEXTENSION_INITIALIZE_H

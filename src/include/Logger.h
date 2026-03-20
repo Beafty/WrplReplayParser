@@ -15,6 +15,7 @@
 #include "iostream"
 #include "queue"
 #include "memory"
+#include "tracy/Tracy.hpp"
 
 #include "fmt/base.h"
 #include "fmt/format.h"
@@ -388,8 +389,22 @@ void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL lev
   if(g_log_handler.sink_dbg_lvl_allowed(sink, level)) {                                                 \
     (log_ext(__FUNCTION__, __LINE__, sink, level, fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__)))     \
   }
+#define ONLY_ERROR_LOGGING 1
+#ifdef ONLY_ERROR_LOGGING
+#define LOGI(format_, ...)
+#define LOGD(format_, ...)
+#define LOGD1(format_, ...)
+#define LOGD2(format_, ...)
+#define LOGD3(format_, ...)
+#define LOGE(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
 
-
+#define ELOGI(sink, format_, ...)
+#define ELOGD(sink, format_, ...)
+#define ELOGD1(sink, format_, ...)
+#define ELOGD2(sink, format_, ...)
+#define ELOGD3(sink, format_, ...)
+#define ELOGE(sink, format_, ...) LOG_FMT_EXT(sink, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
+#else
 #define LOGI(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::INFO, format_, __VA_ARGS__)
 #define LOGD(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
 #define LOGD1(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
@@ -403,6 +418,8 @@ void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL lev
 #define ELOGD2(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L2, format_, __VA_ARGS__)
 #define ELOGD3(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L3, format_, __VA_ARGS__)
 #define ELOGE(sink, format_, ...) LOG_FMT_EXT(sink, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
+#endif
+
 
 
 #define LOG LOGI

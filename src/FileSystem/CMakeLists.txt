@@ -11,6 +11,7 @@ target_link_libraries(FS
         Zlib::Zlib
         DAG_MATH::DAG_MATH
         BLK::BLK
+        VROMFS::VROMFS
 )
 
 add_library(FS::FS ALIAS FS)

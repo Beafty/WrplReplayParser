@@ -6,6 +6,9 @@ target_link_libraries(Replay
         ZSTD
         LZ4::LZ4
         dagECS::dagECS
+        Zlib::Zlib
+        libdeflate::libdeflate_static
+        Tracy::TracyClient
 )
 add_library(Replay::Replay ALIAS Replay)
 

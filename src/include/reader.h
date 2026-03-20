@@ -96,6 +96,10 @@ public:
         return size;
     }
 
+    char * getPtr() {
+      return  data + read_offset;
+    }
+
     int readOffset() override;
 
     int getSize() override;

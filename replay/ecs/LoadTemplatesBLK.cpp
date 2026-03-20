@@ -325,7 +325,7 @@ namespace ecs {
         ((out_array.capacity() * 3u) / 4u)) // if we are wasting at least 25% or more (TODO: tune this formula
       // according to real world usage)
       out_array.shrink_to_fit();
-    return std::move(out_array);
+    return out_array;
   }
 
   std::string mangle_name(const char * n, const std::string &parent_type, const std::string &child_type) {
@@ -449,6 +449,7 @@ namespace ecs {
           }
           case DataBlock::TYPE_IPOINT4: {
             comp = ecs::Component{blk.getIPoint4(i)};
+            break;
           }
           case DataBlock::COUNT:
           default:
@@ -723,6 +724,7 @@ public:
 };
 
 void parseTemplates() {
+  ZoneScoped;
   auto file = file_mgr.getFile("templates/entities.blk");
   LoadContext ctx{};
   ctx.parse_blk("templates/entities.blk");

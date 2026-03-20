@@ -79,10 +79,11 @@ std::string file_exists(std::string path, const std::vector<fs::path>& paths)
 }
 
 ServerReplayReader::ServerReplayReader(std::vector<Replay> &rdrs) {
+  ZoneScoped;
   this->readers.reserve(rdrs.size());
   for(auto &rpl : rdrs)
   {
-    this->readers.push_back(rpl.getRplReader());
+    this->readers.push_back(rpl.getFullDecompressReplayReader());
   }
 }
 

@@ -2,7 +2,10 @@
 #include "VROMFs.h"
 #include <algorithm>
 #include <cctype>
+
 bool FileManager::loadVromfs(std::string &vromfsPath) {
+
+  ZoneScoped;
   if (!fs::exists(vromfsPath))
     return false;
   if(holder_dir)

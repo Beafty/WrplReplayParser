@@ -2,6 +2,7 @@
 #include "ecs/ComponentTypesDefs.h"
 #include "network/CNetwork.h"
 #include "network/message.h"
+#include "tracy/Tracy.hpp"
 
 namespace ecs {
   OnDemandInit<GState> g_ecs_data{};
@@ -272,6 +273,7 @@ namespace ecs {
   }
 
   ecs::EntityManager::~EntityManager() {
+    ZoneScoped;
     LOGD("starting EntityManager Destruction");
     for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
       if (!this->entDescs.doesEntityExist(i))
@@ -279,8 +281,8 @@ namespace ecs {
       destroyEntity(EntityId(i)); //
     }
     LOGD("finished EntityManager Destruction");
-    g_log_handler.wait_until_empty();
-    g_log_handler.flush_all();
+    //g_log_handler.wait_until_empty();
+    //g_log_handler.flush_all();
   }
 
   void EntityManager::debugPrintEntities() {
