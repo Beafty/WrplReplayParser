@@ -72,10 +72,19 @@ class vector_reg(DataTypeRegister):
         base = datatype.datatype.reg.name
         return f"{base}<{str(datatype.template_args[0])}>" # the second arg is only for code generation
 
+
+
 class zigZagInt_reg(DataTypeRegister):
     name = "danet::zigZagInt"
     custom_loader = zigZagInt_loader
     custom_writer = zigZagInt_writer
+    @staticmethod
+    def serialize_name(datatype: 'DataTypeCompiled'):
+        return "int"
+
+    @staticmethod
+    def get_base_name(datatype: 'DataTypeCompiled'):
+        return "int"
 
 
 class zigZagVector_reg(DataTypeRegister):
@@ -83,6 +92,14 @@ class zigZagVector_reg(DataTypeRegister):
     template_type_args = [DataTypeType]
     custom_loader = zigZagVector_loader
     custom_writer = zigZagVector_writer
+    @staticmethod
+    def serialize_name(datatype: 'DataTypeCompiled'):
+        base = "std::vector"
+        return f"{base}<{str(datatype.template_args[0])}>"
+
+    @staticmethod
+    def get_base_name(datatype: 'DataTypeCompiled'):
+        return "std::vector"
 
 
 class array_reg(DataTypeRegister):

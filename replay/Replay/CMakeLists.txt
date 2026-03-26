@@ -1,4 +1,5 @@
 add_library(Replay
+        STATIC
         ReplayReader.cpp
 )
 
@@ -8,7 +9,6 @@ target_link_libraries(Replay
         dagECS::dagECS
         Zlib::Zlib
         libdeflate::libdeflate_static
-        Tracy::TracyClient
 )
 add_library(Replay::Replay ALIAS Replay)
 

@@ -52,6 +52,9 @@ class InstReflectable:
         self.oss.write(f"class {self.obj_name} : public danet::ReflectableObject")
         self.oss.write(" {\npublic:\n"f"  DECL_REFLECTION({self.obj_name}, danet::ReflectableObject)\n")
 
+    def write_header_bindings(self):
+        self.oss.write(f"  py::class_<{self.obj_name}, danet::ReflectableObject, std::unique_ptr<{self.obj_name}, py::nodelete>>(mpi, \"{self.obj_name}\")\n")
+
     def verify_params(self):
         curr_ids = set()
         payload: list = []
@@ -60,6 +63,16 @@ class InstReflectable:
                 raise Exception(f"{self.obj_name}.{varname} repeats id {var.var_id}")
             curr_ids.add(var.var_id)
             var.requestCoder(self.mgr)
+            payload.append((varname, var))
+        self.vars = NullIndexList(payload)
+
+    def verify_params_no_coder(self):
+        curr_ids = set()
+        payload: list = []
+        for varname, var in self._iter_vars():
+            if var.var_id in curr_ids:
+                raise Exception(f"{self.obj_name}.{varname} repeats id {var.var_id}")
+            curr_ids.add(var.var_id)
             payload.append((varname, var))
         self.vars = NullIndexList(payload)
 
@@ -74,6 +87,13 @@ class InstReflectable:
                 self.oss.write(f"  danet::ReflectionVar<{self.mgr.refractor_raw_name(curr_var[1].data_type)}> {curr_var[0]}" "{" f"\"{curr_var[0]}\", {next_var_ref}, {curr_var[1].var_id}, danet::{curr_var[1].EncoderName}" "};\n")
             else:
                 self.oss.write(f"  danet::ReflectionVar<{self.mgr.refractor_raw_name(curr_var[1].data_type)}> {curr_var[0]}" "{" f"\"{curr_var[0]}\", {next_var_ref}, {curr_var[1].var_id}" "};\n")
+
+    def serialize_bindings(self):
+        for v in self.vars.ls:
+
+            self.oss.write(f"    .def_property_readonly(\"{v[0]}\", []({self.obj_name}*ths){'{'}return &ths->{v[0]}.data;{'}'})\n")
+        self.oss.write("  ;\n")
+
 
     def write_ctor(self):
         self.oss.write(f"  {self.obj_name}() : ReflectableObject() " " {\n")

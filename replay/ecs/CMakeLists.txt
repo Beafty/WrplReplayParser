@@ -1,4 +1,5 @@
 add_library(dagECS
+        STATIC
         ComponentTypes.cpp
         ComponentTypesDefs.cpp
         BitStreamDeserializer.cpp

@@ -23,6 +23,7 @@
 #include "ecs/query/eventsDB.h"
 #include "ecs/internal/ecsQueryInternal.h"
 #include "ecs/internal/ArchetypesQuery.h"
+#include <shared_mutex>
 
 namespace ecs {
   static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
@@ -33,6 +34,7 @@ namespace ecs {
     DataComponents dataComponents{};
     TemplateDB templates{};
     Archetypes archetypes{};
+    std::shared_mutex rw_mutex;
 
 
   public:

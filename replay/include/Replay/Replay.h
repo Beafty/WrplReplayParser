@@ -67,25 +67,29 @@ struct ReplayData {
 
 
 class Replay {
+#define MAGIC_OFFS 0x00000003
 #define FOOTER_BLK_OFFSET_LOC 0x000002AC // where the integer that stores the footer blk offset is stored
 #define LEVEL_BIN_PATH_OFFS 0x00000008 // where xxx.bin starts
 #define MISSION_BLK_OFFS 0x00000088
 #define MAIN_DATA_START 0x000004D2 // where the 'replay' starts, can either be the header blk or the zlib data
 #define PLAYER_COUNT_OFFS 0x000002D8
+#define SESSION_ID_OFFS 0x000002DC
 
   fs::path replay_path;
   ReplayData *data;
   uint32_t footerBlkOffset;
   uint32_t zlib_start = MAIN_DATA_START;
   uint32_t zlib_size = 0;
-
+  bool valid = false;
 public:
-  std::array<char, 4> magic;
+  uint32_t magic;
+  const uint32_t current_magic = 25951248;
   std::string_view level_bin; // 128 bytes
   std::string_view level_blk; //260 bytes
   DataBlock HeaderBlk;
   DataBlock FooterBlk;
   int PlayerCount;
+  uint64_t session_id;
 
 
   Replay(const std::string &path) {
@@ -130,12 +134,21 @@ public:
     delete data;
   }
 
+  bool check_magic() {
+    return this->magic == this->current_magic;
+  }
+
 private:
   void parse() {
+    magic = *data->getObj<uint32_t>(MAGIC_OFFS);
+    valid = this->check_magic();
+    if(!valid)
+      return;
     level_bin = data->getStr(LEVEL_BIN_PATH_OFFS);
     level_blk = data->getStr(MISSION_BLK_OFFS);
     PlayerCount = *data->getObj<int>(PLAYER_COUNT_OFFS);
     footerBlkOffset = *data->getObj<uint32_t>(FOOTER_BLK_OFFSET_LOC);
+    session_id = *data->getObj<uint64_t>(SESSION_ID_OFFS);
     if (*data->getObj<uint8_t>(MAIN_DATA_START) == 1) // the BLK always starts with 0x01, zlib 0x78
     {
       auto span = data->getData(MAIN_DATA_START);
@@ -160,7 +173,6 @@ void readFilesFromDirectory(const fs::path &dirPath, std::vector<fs::path> &file
 std::string file_exists(std::string path, const std::vector<fs::path> &paths);
 
 class ServerReplay {
-  std::vector<Replay> replay_files;
 
   void init_from_path(fs::path &path) {
     std::vector<fs::path> files;
@@ -184,6 +196,7 @@ class ServerReplay {
     }
   }
 public:
+  std::vector<Replay> replay_files;
   ServerReplay(fs::path &path) {
     init_from_path(path);
   }

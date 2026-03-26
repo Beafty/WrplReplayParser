@@ -8,6 +8,7 @@ def datablock_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
       {'{'}
         std::vector<char> raw;
         raw.resize(size);
+        bs->AlignReadToByteBoundary();
         REPL_VER(bs->ReadArray(raw.data(), size));
         BaseReader rdr{'{'}raw.data(), (int)raw.size(), false{'}'};
         REPL_VER({datatype.get_ref_to_child(name)}loadFromStream(rdr, nullptr, nullptr));

@@ -1,4 +1,3 @@
-
 add_library(LOGGER STATIC logger.cpp)
 
 set(INCLUDES
@@ -22,6 +21,5 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(LOGGER PUBLIC /Zc:preprocessor) # some of the logging preprossor logic under MSVC needs this
 endif ()
 add_library(LOGGER::LOGGER ALIAS LOGGER)
-
 
 SetGenFlags(LOGGER)

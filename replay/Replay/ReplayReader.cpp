@@ -1,5 +1,6 @@
 #include "replay/Replay.h"
 #include "Replay/ReplayReader.h"
+#include "libdeflate.h"
 
 uint32_t getPacketSize(IGenReader &cb) {
   uint8_t first_byte;
@@ -106,3 +107,20 @@ bool ServerReplayReader::getNextPacket(ReplayPacket *packet) {
 
 
 IReplayReader::~IReplayReader() = default;
+
+FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_data)  {
+  ZoneScoped;
+  auto ptr = (uint8_t*)malloc(zlib_data.size()*3);
+  size_t dest_len;
+  auto ctx = libdeflate_alloc_decompressor();
+  libdeflate_result ret;
+  {
+    ZoneScopedN("Replay uncompress")
+    ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, zlib_data.size()*3, &dest_len);
+    //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
+  }
+  G_ASSERT(ret == LIBDEFLATE_SUCCESS);
+  //G_ASSERT(ret == Z_OK);
+  libdeflate_free_decompressor(ctx);
+  crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
+}

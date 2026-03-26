@@ -1,4 +1,5 @@
 add_library(NET
+        STATIC
         CNetwork.cpp
         eid.cpp
         Connection.cpp
@@ -31,3 +32,15 @@ target_include_directories(NET
 
 
 SetGenFlags(NET)
+
+get_target_property(flags NET COMPILE_OPTIONS)
+message(STATUS "NET COMPILE_OPTIONS: ${flags}")
+
+get_target_property(defs NET COMPILE_DEFINITIONS)
+message(STATUS "NET COMPILE_DEFINITIONS: ${defs}")
+
+get_target_property(props NET PROPERTIES)
+message(STATUS "NET PROPERTIES: ${props}")
+
+# Print full compile command (when using Ninja generator)
+get_target_property(dummy NET TYPE) # Forces evaluation

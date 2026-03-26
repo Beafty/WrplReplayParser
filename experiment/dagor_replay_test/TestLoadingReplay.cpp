@@ -36,8 +36,7 @@ std::string convert_os_path_to_wsl2(const char *str) {
 }
 
 
-int main()
-{
+int main() {
   //std::signal(SIGSEGV, signal_handler);
   fs::path conf_dir = CONFIG_DIR;
   fs::path config_file = conf_dir / "dagor_replay_test.blk";
@@ -67,49 +66,43 @@ int main()
   IReplayReader *rdr = nullptr;
   ServerReplay *srv_rpl = nullptr;
   Replay *rpl = nullptr;
-  if(is_server_replay)
-  {
+  ParserState *state_ptr = nullptr;
+  if (is_server_replay) {
     fs::path t{rpl_path_str};
     srv_rpl = new ServerReplay(t);
     rdr = srv_rpl->getRplReader();
-  }
-  else
-  {
-     rpl = new Replay(rpl_path_str);
+    state_ptr = new ParserState{srv_rpl};
+  } else {
+    rpl = new Replay(rpl_path_str);
     rdr = rpl->getFullDecompressReplayReader();
-
+    state_ptr = new ParserState{rpl};
   }
 
 
   auto *pkt = new ReplayPacket();
   auto start = std::chrono::high_resolution_clock::now();
-  ParserState *state_ptr = new ParserState{};
   ParserState &state = *state_ptr;
   //std::exit(0);
   bool end = false;
   int AircraftCount = 0;
   uint32_t packet_count = 0;
-  while (!end && rdr->getNextPacket(pkt))
-  {
+  while (!end && rdr->getNextPacket(pkt)) {
+    state.curr_time_ms = pkt->timestamp_ms;
     packet_count++;
-    if(packet_count == 1500) {
+    if (packet_count == 1500) {
       state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
     }
-    switch(pkt->type)
-    {
-      case ReplayPacketType::EndMarker:
-      {
-        LOG("Replay Ending at time {}", ((float)pkt->timestamp_ms)/1000);
+    switch (pkt->type) {
+      case ReplayPacketType::EndMarker: {
+        LOG("Replay Ending at time {}", ((float) pkt->timestamp_ms) / 1000);
         end = true;
         break;
       }
-      case ReplayPacketType::StartMarker:
-      {
+      case ReplayPacketType::StartMarker: {
         LOGD("Replay StartMarker");
         break;
       }
-      case ReplayPacketType::AircraftSmall:
-      {
+      case ReplayPacketType::AircraftSmall: {
         AircraftCount++;
         break;
       }
@@ -117,8 +110,7 @@ int main()
         break;
       case ReplayPacketType::MPI: {
         auto m = mpi::dispatch(pkt->stream, &state, false);
-        if(m != nullptr)
-        {
+        if (m != nullptr) {
           mpi::send(m);
           delete m;
         }
@@ -128,8 +120,7 @@ int main()
         LOG("NextSegment");
         break;
       }
-      case ReplayPacketType::ECS:
-      {
+      case ReplayPacketType::ECS: {
         state.onPacket(pkt);
         break;
       }
@@ -152,6 +143,9 @@ int main()
   state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
   //LOG("Aircraft Count: {}", AircraftCount);
   auto ended = std::chrono::high_resolution_clock::now();
+  for (auto &plr: state_ptr->players) {
+    LOGE("Name: {}; team: {}", plr.uid.data.name, plr.team.data);
+  }
   delete state_ptr;
   delete rdr;
   delete srv_rpl;

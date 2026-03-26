@@ -1,12 +1,15 @@
 add_library(PyMpi
         codegen_objects.cpp
         mpi.cpp
+        types.cpp
+        codegen_types.cpp
 )
 
 target_link_libraries(PyMpi
         pybind11::module
         Python::Python
         MPI::MPI
+        pyECS::pyECS
 )
 
 add_library(PyMpi::PyMpi ALIAS PyMpi)

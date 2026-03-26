@@ -111,9 +111,11 @@ if (NOT FUNCTIONS_INCLUDED)
         #     add_compile_options(${GCC_WARNINGS} ${GEN_NO_NON_MSVC})
             # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-multichar -Wno-attributes -Wno-ignored-attributes" PARENT_SCOPE)
         # endif ()
-
+        option(SDL_STATIC "Build a static version of the library" ON)
+        option(SDL_SHARED "Build a static version of the library" OFF)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             add_compile_definitions(TRACY_ENABLE)
+            # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif ()
         if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
             if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -124,7 +126,7 @@ if (NOT FUNCTIONS_INCLUDED)
                     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi" PARENT_SCOPE)
                     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /debug" PARENT_SCOPE)
                     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /wd4068" PARENT_SCOPE)
-                    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" PARENT_SCOPE)
+                    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" PARENT_SCOPE)
                     # set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded" PARENT_SCOPE)
                 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
                     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static" PARENT_SCOPE)
@@ -187,4 +189,20 @@ if (NOT FUNCTIONS_INCLUDED)
         message("set warthunder dir to D:/SteamLibrary/steamapps/common/War Thunder")
         add_compile_definitions(WARTHUNDER_DIR="D:/SteamLibrary/steamapps/common/War Thunder")
     endfunction()
+
+    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        function(attach_signal_tracer target)
+            add_dependencies(${target} signal_tracer)
+            add_custom_command(TARGET ${target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    $<TARGET_FILE:signal_tracer>
+                    $<TARGET_FILE_DIR:${target}>
+                    COMMENT "Copying signal_tracer next to ${target}"
+            )
+        endfunction()
+    else()
+        function(attach_signal_tracer target) # placeholder for non linux trgets
+        endfunction()
+    endif ()
 endif ()
+

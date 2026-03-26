@@ -1,7 +1,7 @@
 import inspect
 import types
 import ast
-from typing import TextIO
+from typing import TextIO, Union
 from write_header import write_header
 
 # a special type using in template args to represent that this template input is a type
@@ -32,12 +32,19 @@ class DataTypeRegister:
     # read DataTypeType comments for more info
     # leaving this to default params would be the same as no template args
     template_type_args = []
+
     @staticmethod
     def serialize_name(datatype: 'DataTypeCompiled'):
         base = datatype.datatype.reg.name
         if len(datatype.template_args):
             return f"{base}<{','.join([str(x) for x in datatype.template_args])}>"
         return base
+
+    @staticmethod
+    def get_base_name(datatype: Union['DataTypeCompiled', 'DataType']):
+        if isinstance(datatype, DataTypeCompiled):
+            datatype = datatype.datatype
+        return datatype.reg.name
 
 
 def parse_raw_datatype_name(name: str) -> tuple[list[str], str]:
@@ -371,7 +378,6 @@ class DataTypeManager:
         return DataTypeInst(name, type_comp, is_ptr, count)
     def get_compiled_type(self, type_inst: str) -> DataTypeCompiled:
         """
-        
         :param type_inst:
         :return:
         """
@@ -455,6 +461,96 @@ class DataTypeManager:
                     f.write(serializer)
                 f.write("}")
 
+
+    def compile_bindings(self, header_path: str, cpp_path: str):
+        # codegen_objects.cpp is where all reflectable based objects will be created in pybind11
+        # codegen_types.cpp is where all codegen types data will be instantiated
+        # types.cpp will be the intersection of all types definition, all objects will import this
+        # codegen_objects.h where reflectable object module will be defined
+        # codegen_types.h where codegen types module will be defined
+        with open(f"{header_path}/codegen_types.h", "w") as f:
+            write_header(f)
+            f.write("""
+#pragma once
+#include "Module.h"
+
+class PyCodegenTypes : protected Module {
+public:
+  PyCodegenTypes() : Module() {}
+  void include(py::module_ &m);
+};
+
+extern PyCodegenTypes py_codegen_types;
+""")
+        with open(f"{header_path}/codegen_objects.h", "w") as f:
+            write_header(f)
+            f.write("""
+#pragma once
+#include "Module.h"
+
+class PyCodegenObjects : protected Module {
+public:
+  PyCodegenObjects() : Module() {}
+  void include(py::module_ &m);
+};
+
+extern PyCodegenObjects py_codegen_objects;
+""")
+            # D:\ReplayParser\python\mpi\codegen_types.cpp
+            # D:\\ReplayParser\\python\\mpi/codegen_types.cppa
+
+        def does_nm_contain_serialized_types(nm: NameSpace):
+            if isinstance(nm, DataType):
+                if len(nm.vars) > 0:
+                    return True
+            for nms in nm.contains.values():
+                payload = does_nm_contain_serialized_types(nms)
+                if payload:
+                    return True
+            return False
+        def write_namespace(nm_: NameSpace, io: TextIO):
+            for nm in nm_.contains.values():
+                if does_nm_contain_serialized_types(nm):
+                    if isinstance(nm, DataType):
+                        base_type = nm.reg.get_base_name(nm)
+                        io.write(f"  py::class_<{base_type}>(mpi, \"{nm.name}\")\n")
+                        for v in nm.vars:
+                            io.write(f"    .def_readonly(\"{v.var_name}\", &{base_type}::{v.var_name})\n")
+                        io.write("    ;\n")
+                    else:
+                        write_namespace(nm, io)
+        with open(f"{cpp_path}/codegen_types.cpp", "w") as f:
+            write_header(f)
+            f.write(f"#include \"modules/mpi/mpi.h\"\n")
+            f.write(f"#include \"modules/mpi/codegen_types.h\"\n")
+            f.write("#include \"mpi/types.h\"\n")
+            f.write("#include \"modules/mpi/bind_array.h\"\n")
+            f.write("#include \"pybind11/stl_bind.h\"\n")
+            f.write(f"PyCodegenTypes py_codegen_types{'{}'};\n")
+            f.write("void PyCodegenTypes::include(py::module_ &m) {\n  DO_INCLUDE()\n  py_mpi.include(m);\n")
+            f.write("  auto mpi = m.def_submodule(\"mpi\");\n")
+            # first step, write all the base type
+            write_namespace(self.datatypes, f)
+            for data_type_name, data_type in self.inst_datatypes.items():
+                nm = data_type.datatype.reg.get_base_name(data_type)
+                full = data_type.datatype.reg.serialize_name(data_type)
+                # print(data_type_name, data_type, self.refractor_raw_name(data_type_name), nm)
+                # print(data_type.datatype.name)
+                if len(data_type.datatype.vars) > 0:
+                    pass # serialized above in write_namespace
+                elif nm == "std::vector":
+                    ...
+                    f.write(f"  py::bind_vector<{full}>(mpi, \"Vector_{data_type.template_args[0].datatype.name}\");\n\n")
+                elif nm == "std::array":
+                    f.write(f"  bind_array<{data_type.template_args[0].datatype.name}, {data_type.template_args[1]}>(mpi, \"Array\");\n\n")
+                else: # all these should be types that already exist
+                    ...
+
+            f.write("}")
+
+
     def refractor_raw_name(self, raw_type: str) -> str:
         compiled = self.get_compiled_type(raw_type)
         return compiled.datatype.reg.serialize_name(compiled)
+
+

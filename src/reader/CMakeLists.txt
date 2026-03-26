@@ -1,4 +1,5 @@
 add_library(READER
+        STATIC
         Readers.cpp
         ZlibRead.cpp
 )

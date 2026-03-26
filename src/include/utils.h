@@ -94,4 +94,10 @@ inline void FormatHexToStream(std::basic_ostream<char> &oss, std::span<char> buf
   }
 }
 
+inline std::ostringstream FormatHexToStream(std::span<char> buff) {
+  std::ostringstream oss{};
+  FormatHexToStream(oss, buff);
+  return oss;
+}
+
 #endif //MYEXTENSION_UTILS_H

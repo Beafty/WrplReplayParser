@@ -8,6 +8,7 @@
 #include <math/dag_Quat.h>
 #include <math/dag_adjpow2.h>
 #include <algorithm>
+#include "state/ParserState.h"
 
 #define debug(...) logmessage(_MAKE4C('DNET'), __VA_ARGS__)
 
@@ -298,7 +299,7 @@ namespace danet
     return ret;
   }
 
-  bool ReflectableObject::deserialize(BitStream &bs, int /* data_size */)
+  bool ReflectableObject::deserialize(BitStream &bs, int /* data_size */, ParserState *state)
   {
     checkWatermark();
 
@@ -350,13 +351,16 @@ namespace danet
       if (!out)
       {
         LOGE("(REFLECTION) can't decode value for var '{}' in obj {} (type = '{}')", v->getVarName(), fmt::ptr(this), getClassName());
+        bs.SetReadOffset(ppp);
         idFieldSerializer.skipReadingField(j, bs); // skip
         continue;
       }
       if (bs.GetReadOffset() - ppp != idFieldSerializer.getFieldSize(j))
       {
-        if (out != 2)
+        if (out != 2) {
+          LOGE("{}", ((float)state->curr_time_ms)/1000);
           LOGE("(REFLECTION) Invalid parsed size for var '{}', needed {} but parsed {}", v->getVarName(), idFieldSerializer.getFieldSize(j), bs.GetReadOffset() - ppp);
+        }
         // e.g. both Ship and HVM have the same MPI_OID_GROUND_MODEL and the same reflection variables persistent ids
         // but WarShip fields really differ from those of HeavyVehicleModel
         bs.SetReadOffset(ppp);
@@ -415,7 +419,7 @@ namespace danet
         LOG("can't resolve (or bad reflection object) {} by oid {:#x}\n", fmt::ptr(refl), oid);
       bool read_fail = false;
       if (!refl || refl->debugWatermark != DANET_WATERMARK ||
-          !refl->deserialize(bs, int(data_written) - BITS_TO_BYTES(int(startPosAfterId - start_pos))))
+          !refl->deserialize(bs, int(data_written) - BITS_TO_BYTES(int(startPosAfterId - start_pos)), state))
         read_fail = true;
       else
       {
@@ -469,6 +473,8 @@ namespace danet
       LOG("invalid classId {}, num_registered_obj_creators = {}\n", classId, num_registered_obj_creators);
       return NULL;
     }
+    //auto oss = FormatHexToStream(std::span((char*)bs.GetData(), bs.GetNumberOfBytesUsed()));
+    //LOGE("Replicated id: {} data: {}", classId, oss.str());
     ReplicatedObject *ret = (*registered_repl_obj_creators[classId].create)(bs, state);
 
     return ret;

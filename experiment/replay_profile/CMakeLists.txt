@@ -18,7 +18,6 @@ target_link_libraries(ProfileReplayParsing
         dagECS::dagECS
         INIT::INIT
         Replay::Replay
-        Tracy::TracyClient
 )
 
 target_include_directories(ProfileReplayParsing
@@ -28,6 +27,9 @@ target_include_directories(ProfileReplayParsing
         "${BASE_DIR}/3rdParty/tracy/public"
         # "${BASE_DIR}/3rdParty"
 )
+
+
+attach_signal_tracer(ProfileReplayParsing)
 
 # target_compile_definitions(ProfileReplayParsing PUBLIC TRACY_ENABLE)
 # SetGenFlags(dagor_rpl_test)

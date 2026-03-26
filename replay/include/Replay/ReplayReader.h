@@ -6,7 +6,6 @@
 #include "reader.h"
 #include "basic_replay_structs.h"
 #include "consts.h"
-#include "libdeflate.h"
 
 #include "tracy/Tracy.hpp"
 
@@ -79,22 +78,7 @@ class FullDecompressReplayReader: public IReplayReader {
   BaseReader *crd = nullptr;
   uint32_t curr_time;
 public:
-  FullDecompressReplayReader(std::span<uint8_t> zlib_data) {
-    ZoneScoped;
-    auto ptr = (uint8_t*)malloc(zlib_data.size()*3);
-    size_t dest_len;
-    auto ctx = libdeflate_alloc_decompressor();
-    libdeflate_result ret;
-    {
-      ZoneScopedN("Replay uncompress")
-      ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, zlib_data.size()*3, &dest_len);
-      //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
-    }
-    G_ASSERT(ret == LIBDEFLATE_SUCCESS);
-    //G_ASSERT(ret == Z_OK);
-    libdeflate_free_decompressor(ctx);
-    crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
-  }
+  FullDecompressReplayReader(std::span<uint8_t> zlib_data);
 
   bool getNextPacket(ReplayPacket *packet) override
   {

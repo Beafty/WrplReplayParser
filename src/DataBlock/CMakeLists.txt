@@ -1,4 +1,5 @@
 add_library(BLK
+        STATIC
         DataBlock.cpp
         BLK_serialize.cpp
         DataBlockShared.cpp
@@ -10,7 +11,6 @@ target_link_libraries(BLK
         READER::READER
         DAG_MATH::DAG_MATH
         BS::BS
-        FS::FS
 )
 add_library(BLK::BLK ALIAS BLK)
 

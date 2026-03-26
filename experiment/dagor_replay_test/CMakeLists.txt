@@ -1,14 +1,6 @@
 add_executable(dagor_rpl_test
         TestLoadingReplay.cpp
 )
-include(FetchContent)
-FetchContent_Declare(
-        mimalloc
-        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-        GIT_TAG        v2.1.2 # use desired version
-)
-FetchContent_MakeAvailable(mimalloc)
-
 target_link_libraries(dagor_rpl_test
         LOGGER::LOGGER
         fmt::fmt
@@ -33,5 +25,7 @@ target_include_directories(dagor_rpl_test
         "${BASE_DIR}/src/include"
         # "${BASE_DIR}/3rdParty"
 )
+
+attach_signal_tracer(dagor_rpl_test)
 
 # SetGenFlags(dagor_rpl_test)

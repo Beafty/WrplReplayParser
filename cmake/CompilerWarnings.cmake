@@ -118,7 +118,7 @@ function(
     set(PROJECT_WARNINGS_C "${PROJECT_WARNINGS_CXX}")
 
     set(PROJECT_WARNINGS_CUDA "${CUDA_WARNINGS}")
-    set_compiler_flags()
+    # set_compiler_flags()
     target_compile_options(
             ${project_name}
             INTERFACE # C++ warnings

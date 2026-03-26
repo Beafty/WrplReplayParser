@@ -1,4 +1,5 @@
 add_library(INIT
+        STATIC
         init.cpp
 )
 

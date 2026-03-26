@@ -74,16 +74,20 @@ int main()
   ServerReplay *srv_rpl = nullptr;
   Replay *rpl = nullptr;
   double timer_sum = 0.0;
-  if(is_server_replay)
   {
-    fs::path t{rpl_path_str};
-    srv_rpl = new ServerReplay(t);
+    ZoneScopedN("Replay Load")
+    if(is_server_replay)
+    {
+      fs::path t{rpl_path_str};
+      srv_rpl = new ServerReplay(t);
+    }
+    else
+    {
+      rpl = new Replay(rpl_path_str);
+    }
   }
-  else
-  {
-    rpl = new Replay(rpl_path_str);
-  }
-  for(int i = 0; i < 200; i++) {
+  int timer_count = 200;
+  for(int i = 0; i < timer_count; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     ZoneScopedN("loop")
     {
@@ -151,14 +155,23 @@ int main()
         delete state_ptr;
         delete rdr;
       }
-      auto ended = std::chrono::high_resolution_clock::now();
+      {
+        ZoneScopedN("End Stuff")
+        auto ended = std::chrono::high_resolution_clock::now();
 
-      std::chrono::duration<double, std::milli> duration = ended - start;
-      timer_sum += duration.count();
-      std::cout << i << " profile time: " << duration.count() << " : " << (timer_sum / (double) (i + 1)) << "\n";
+        std::chrono::duration<double, std::milli> duration = ended - start;
+        timer_sum += duration.count();
+        {
+          //ZoneScopedN("Printing times");
+          //std::cout << i << " profile time: " << duration.count() << " : " << (timer_sum / (double) (i + 1)) << "\n";
+        }
+      }
+      int * bad_ptr = 0x0;
+      *bad_ptr = 5;
     }
   }
 
+  std::cout << "Average time: " << (timer_sum / (double) (timer_count)) << std::endl;
 
   delete srv_rpl;
   delete rpl;

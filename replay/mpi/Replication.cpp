@@ -5,70 +5,150 @@ void force_link_replication() {
   std::cout << "";
 }
 
-IMPLEMENT_REPLICATION(Airfield)
 
-IMPLEMENT_REPLICATION(BombingZone)
+danet::ReplicatedObject* create_zone(BitStream &bs, uint8_t zone_id, ParserState * state) {
+  IdFieldSerializer255 serializer255{};
+  BitSize_t end;
+  uint32_t count = serializer255.readFieldsSizeAndCount(bs, end);
+  G_ASSERT(serializer255.readFieldsIndex(bs));
+  auto local_44 = bs.GetReadOffset();
+  //LOGE("Creating Zone");
+  uint8_t mission_area_id;
+  uint8_t maybe_team_id;
+  uint32_t some_val;
+  uint16_t some_val_2;
+  for(uint16_t i = 0; i < count; i++) {
+    BitSize_t start_size = bs.GetReadOffset();
+    switch (serializer255.getFieldId(i)) {
+      case 1: {
+        bs.Read(mission_area_id);
+        //LOGE("Mission area_id: {}", mission_area_id);
+        break;
+      }
+      case 2: {
+        bs.Read(maybe_team_id);
+        //LOGE("maybe_team_id: {}", maybe_team_id);
+        break;
+      }
+      case 3: {
+        bs.ReadCompressed(some_val);
+        //LOGE("some_val_1: {}", some_val);
+        break;
+      }
+      case 4: {
+        bs.Read(some_val_2);
+        //LOGE("some_val_2: {}", some_val_2);
+        break;
+      }
+      default:
+        EXCEPTION("");
+    }
+    G_ASSERT(bs.GetReadOffset()-start_size == serializer255.getFieldSize(i));
 
-IMPLEMENT_REPLICATION(CaptureZone)
+    //LOGE("{}; data: {}", serializer255.getFieldId(i), FormatHexToStream(data).str());
+  }
+  //LOGE("mission_area_id: {}; maybe_team_id: {}, some_val: {}; some_val_2: {}", mission_area_id, maybe_team_id, some_val, some_val_2);
+  if(mission_area_id == state->Zones.size()) {
+    danet::ReplicatedObject * obj;
+    switch(zone_id) {
+      case 0: {obj = new BombingZone(); break;}
+      case 1: {obj = new CaptureZone(); break;}
+      case 2: {obj = new RearmZone(); break;}
+      case 3: {obj = new ExitZone(); break;}
+      case 4: {obj = new PickupZone(); break;}
+      default:
+        EXCEPTION("Invalid Zone id: {}", zone_id);
+    }
+    state->Zones.push_back(obj);
+  }
+  bs.SetReadOffset(end);
+  return state->Zones[mission_area_id];
+}
 
-IMPLEMENT_REPLICATION(DMSquad)
+IMPLEMENT_REPLICATION(Airfield) // 0
 
-IMPLEMENT_REPLICATION(ExitZone)
+IMPLEMENT_REPLICATION(BombingZone) // 1
 
-IMPLEMENT_REPLICATION(FlightModelWrap)
+IMPLEMENT_REPLICATION(CaptureZone) // 2
 
-IMPLEMENT_REPLICATION(IGroundModel)
+IMPLEMENT_REPLICATION(DMSquad) // 3
 
-IMPLEMENT_REPLICATION(InfantryTroop)
+IMPLEMENT_REPLICATION(ExitZone) // 4
 
-IMPLEMENT_REPLICATION(InteractiveObject)
+IMPLEMENT_REPLICATION(FlightModelWrap) // 5
 
-IMPLEMENT_REPLICATION(InteractiveObjectProxy)
+IMPLEMENT_REPLICATION(IGroundModel) // 6
 
-IMPLEMENT_REPLICATION(MissionArea)
+IMPLEMENT_REPLICATION(InfantryTroop) // 7
 
-IMPLEMENT_REPLICATION(MissionDrawing)
+IMPLEMENT_REPLICATION(InteractiveObject) // 8
 
-IMPLEMENT_REPLICATION(MissionObjective)
+IMPLEMENT_REPLICATION(InteractiveObjectProxy) // 9
 
-IMPLEMENT_REPLICATION(MissionZone)
+IMPLEMENT_REPLICATION(MissionArea) // 10
 
-IMPLEMENT_REPLICATION(ObjectsGroup)
+IMPLEMENT_REPLICATION(MissionDrawing) // 11
 
-IMPLEMENT_REPLICATION(OrderPlayerProgress)
+IMPLEMENT_REPLICATION(MissionObjective) // 12
 
-IMPLEMENT_REPLICATION(PickupZone)
+IMPLEMENT_REPLICATION(MissionZone) // 13
 
-IMPLEMENT_REPLICATION(RaceMode)
+IMPLEMENT_REPLICATION(ObjectsGroup) // 14
 
-IMPLEMENT_REPLICATION(RearmZone)
+IMPLEMENT_REPLICATION(OrderPlayerProgress) // 15
 
-IMPLEMENT_REPLICATION(RespawnBase)
+IMPLEMENT_REPLICATION(PickupZone) // 16
 
-IMPLEMENT_REPLICATION(Squadron)
+IMPLEMENT_REPLICATION(RaceMode) // 17
 
-IMPLEMENT_REPLICATION(UnitWinch)
+IMPLEMENT_REPLICATION(RearmZone) // 18
 
-IMPLEMENT_REPLICATION(Waypoint)
+IMPLEMENT_REPLICATION(RespawnBase) // 19
 
-IMPLEMENT_REPLICATION(Wing)
+IMPLEMENT_REPLICATION(Squadron)  // 20
+
+IMPLEMENT_REPLICATION(UnitWinch) // 21
+
+IMPLEMENT_REPLICATION(Waypoint) // 22
+
+IMPLEMENT_REPLICATION(Wing) // 23
+
+
 danet::ReplicatedObject * Airfield::createReplicatedObject(BitStream &bs, ParserState *state) {
   LOG("Parsing Replicated Airfield");
   return nullptr;
 }
 
 danet::ReplicatedObject * BombingZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated BombingZone");
-  auto obj = new BombingZone();
-  state->Zones.push_back(obj);
-  return obj;
+  //LOGE("Parsing Replicated BombingZone");
+  auto zone = create_zone(bs, 0, state);
+  IdFieldSerializer255 serializer255{};
+  BitSize_t end;
+  auto count = serializer255.readFieldsSizeAndCount(bs, end);
+  G_ASSERT(serializer255.readFieldsIndex(bs));
+  for(uint16_t i = 0; i < count; i++) {
+    std::vector<char> data{};
+    data.resize(BITS_TO_BYTES(serializer255.getFieldSize(i)));
+    bs.ReadBits((uint8_t*)data.data(), serializer255.getFieldSize(i));
+    //LOGE("Index: {}; size: {}; data: {}", serializer255.getFieldId(i), serializer255.getFieldSize(i), FormatHexToStream(data).str());
+  }
+  return zone;
 }
 
 danet::ReplicatedObject * CaptureZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated CaptureZone");
-  auto obj = new CaptureZone();
-  state->Zones.push_back(obj);
-  return nullptr;
+  //LOGE("Parsing Replicated CaptureZone");
+  auto zone = create_zone(bs, 1, state);
+  IdFieldSerializer255 serializer255{};
+  BitSize_t end;
+  auto count = serializer255.readFieldsSizeAndCount(bs, end);
+  G_ASSERT(serializer255.readFieldsIndex(bs));
+  for(uint16_t i = 0; i < count; i++) {
+    std::vector<char> data{};
+    data.resize(BITS_TO_BYTES(serializer255.getFieldSize(i)));
+    bs.ReadBits((uint8_t*)data.data(), serializer255.getFieldSize(i));
+    //LOGE("Index: {}; size: {}; data: {}", serializer255.getFieldId(i), serializer255.getFieldSize(i), FormatHexToStream(data).str());
+  }
+  return zone;
 }
 
 danet::ReplicatedObject * DMSquad::createReplicatedObject(BitStream &bs, ParserState *state) {
@@ -77,10 +157,8 @@ danet::ReplicatedObject * DMSquad::createReplicatedObject(BitStream &bs, ParserS
 }
 
 danet::ReplicatedObject * ExitZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated ExitZone");
-  auto obj = new ExitZone();
-  state->Zones.push_back(obj);
-  return nullptr;
+  LOGE("Parsing Replicated ExitZone");
+  return create_zone(bs, 3, state);
 }
 
 danet::ReplicatedObject * FlightModelWrap::createReplicatedObject(BitStream &bs, ParserState *state) {
@@ -140,10 +218,8 @@ danet::ReplicatedObject * OrderPlayerProgress::createReplicatedObject(BitStream 
 }
 
 danet::ReplicatedObject * PickupZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated PickupZone");
-  auto obj = new PickupZone();
-  state->Zones.push_back(obj);
-  return nullptr;
+  LOGE("Parsing Replicated PickupZone");
+  return create_zone(bs, 4, state);
 }
 
 danet::ReplicatedObject * RaceMode::createReplicatedObject(BitStream &bs, ParserState *state) {
@@ -152,10 +228,8 @@ danet::ReplicatedObject * RaceMode::createReplicatedObject(BitStream &bs, Parser
 }
 
 danet::ReplicatedObject * RearmZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated RearmZone");
-  auto obj = new RearmZone();
-  state->Zones.push_back(obj);
-  return nullptr;
+  LOGE("Parsing Replicated RearmZone");
+  return create_zone(bs, 2, state);
 }
 
 danet::ReplicatedObject * RespawnBase::createReplicatedObject(BitStream &bs, ParserState *state) {

@@ -1,4 +1,5 @@
 add_library(FS
+        STATIC
         FSObject.cpp
         Directory.cpp
         File.cpp
@@ -12,6 +13,7 @@ target_link_libraries(FS
         DAG_MATH::DAG_MATH
         BLK::BLK
         VROMFS::VROMFS
+
 )
 
 add_library(FS::FS ALIAS FS)

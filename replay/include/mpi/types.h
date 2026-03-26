@@ -2,13 +2,14 @@
 
 #ifndef WTFILEUTILS_TYPES_H
 #define WTFILEUTILS_TYPES_H
-
+#include "string"
+#include "cstdint"
+#include "dag_assert.h"
+#include "vector"
+#include "array"
+#include "ecs/entityId.h"
 namespace danet {
-  typedef int zigZagInt;
-
-  template <typename T>
-  class zigZagVector : public std::vector<T> {};
-  struct UnitId {
+  struct UnitId { // so that Uid and uint16_t can have different encoders
     uint16_t val{};
   };
 }
@@ -22,7 +23,7 @@ namespace danet {
     char name[82]{};
 
     std::string_view get_player_name() {
-      return std::string_view(name, sizeof(name));
+      return std::string_view(name, std::min(strlen(name), sizeof(name)));
     }
   };
 #pragma pack(pop)

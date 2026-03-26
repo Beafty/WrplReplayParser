@@ -7,10 +7,13 @@
 #include "mpi/ObjectDispatcher.h"
 #include "mpi/GeneralObject.h"
 #include "tracy/Tracy.hpp"
+#include "Replay/Replay.h"
 
 struct ParserState {
 
-  ParserState(int player_count=32) : players(player_count) {}
+  explicit ParserState(int player_count=32) : players(player_count) {}
+  explicit ParserState(Replay *replay): players(replay->PlayerCount) {}
+  explicit ParserState(ServerReplay *replay): players(replay->replay_files[0].PlayerCount) {}
   ecs::EntityManager g_entity_mgr{};
   std::vector<MPlayer> players;
   std::vector<danet::ReplicatedObject*> Zones;
@@ -20,6 +23,7 @@ struct ParserState {
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
   BattleMessageHandler battles_messages{this};
+  uint32_t curr_time_ms = 0;
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }

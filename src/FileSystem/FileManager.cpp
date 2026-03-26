@@ -125,4 +125,11 @@ int FileManager::find_files_in_folder(std::vector<std::string> &out_list, std::s
 
 FileManager file_mgr{};
 
-
+bool load(DataBlock &blk, const char *fname) {
+  auto file = file_mgr.getFile(fname, true);
+  if (file) {
+    //LOG("Loading BLK at path: {}", fname);
+    return file->loadBlk(blk);
+  }
+  return false;
+}

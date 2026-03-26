@@ -1,4 +1,4 @@
-add_library(MPI OBJECT
+add_library(MPI STATIC
         mpi.cpp
         reflection.cpp
         ObjectDispatcher.cpp

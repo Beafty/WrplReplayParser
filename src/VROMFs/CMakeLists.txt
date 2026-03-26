@@ -1,10 +1,12 @@
 add_library(VROMFS
+        STATIC
         VROMFs.cpp
 )
 
 target_link_libraries(VROMFS
         ZSTD::ZSTD
-        BLK::BLK
+        LOGGER::LOGGER
+        # BLK::BLK
 )
 add_library(VROMFS::VROMFS ALIAS VROMFS)
 

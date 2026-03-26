@@ -40,6 +40,7 @@ target_include_directories(PyReplayParser PRIVATE
         "${BASE_DIR}/replay/include"
         "${BASE_DIR}/python/include"
 )
+attach_signal_tracer(PyReplayParser)
 
 # target_link_options(PyReplayParser PRIVATE
 #         -static-libgcc
