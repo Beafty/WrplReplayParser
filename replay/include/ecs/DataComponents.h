@@ -73,6 +73,24 @@ namespace ecs {
   };
 
   struct DataComponents {
+    size_t printMemoryUsage(int indent = 0) {
+      std::string indent_str{};
+      indent_str.resize(indent, ' ');
+      LOGE("{}DataComponent Memory Usage:", indent_str);
+      indent_str.resize(indent+2, ' ');
+      size_t components_size = this->components.capacity() * sizeof(DataComponent);
+      LOGE("{}components size: {} bytes in {} datacomponents", indent_str, components_size, this->components.size());
+      size_t componentIndex_size = estimateMemoryUsage(this->componentIndex);
+      LOGE("{}componentIndex size: {} bytes", indent_str, componentIndex_size);
+      size_t names_size = names.head.left + names.head.used;
+      for(auto &page : names.pages) {
+        names_size+= (page.used + page.left);
+      }
+      names_size += sizeof(StringTableAllocator::StringPage)*names.pages.size();
+      LOGE("{}names size: {} in {} pages", indent_str, names_size, names.pages.size()+1);
+      return components_size+componentIndex_size+names_size;
+    }
+
     inline component_index_t getIndex(component_t hash) const {
       auto x = componentIndex.find(hash);
       if (x != componentIndex.end()) {

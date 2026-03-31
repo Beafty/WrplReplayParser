@@ -108,9 +108,9 @@ bool ServerReplayReader::getNextPacket(ReplayPacket *packet) {
 
 IReplayReader::~IReplayReader() = default;
 
-FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_data)  {
+FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_data, double expected_multiply_size)  {
   ZoneScoped;
-  auto ptr = (uint8_t*)malloc(zlib_data.size()*3);
+  auto ptr = (uint8_t*)malloc((size_t)(((double)zlib_data.size())*expected_multiply_size));
   size_t dest_len;
   auto ctx = libdeflate_alloc_decompressor();
   libdeflate_result ret;
@@ -123,4 +123,73 @@ FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_d
   //G_ASSERT(ret == Z_OK);
   libdeflate_free_decompressor(ctx);
   crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
+}
+
+bool MemoryEfficientServerReplayReader::getNextPacket(ReplayPacket *packet) {
+  if(this->curr_reader) {
+    if (this->curr_reader->getNextPacket(packet)) {
+      return true;
+    }
+    delete_curr_reader();
+  }
+  if(this->curr_file_index >= this->base_dir->size()) {
+    return false;
+  }
+  setup_reader(this->curr_file_index);
+  this->curr_file_index++;
+  auto ret = this->curr_reader->getNextPacket(packet);
+  G_ASSERT(ret);
+  return ret;
+}
+
+void MemoryEfficientServerReplayReader::setup_reader(int index) {
+  if(this->super_efficiency) {
+    this->current_replay = new Replay(this->base_dir->operator[](index).string());
+    this->curr_reader = this->current_replay->getRplReader();
+  } else {
+    Replay t_rpl(this->base_dir->operator[](index).string());
+    this->curr_reader = t_rpl.getFullDecompressReplayReader(1.05);
+  }
+}
+
+void MemoryEfficientServerReplayReader::delete_curr_reader() {
+  if(this->super_efficiency) {
+    delete this->curr_reader;
+    delete this->current_replay;
+    this->curr_reader = nullptr;
+    this->current_replay = nullptr;
+  } else {
+    delete this->curr_reader;
+    this->current_replay = nullptr;
+  }
+}
+
+MemoryEfficientServerReplayReader::MemoryEfficientServerReplayReader(std::vector<fs::path> &base_dir,
+                                                                     Replay *replay_0, bool memory_efficient) {
+  this->super_efficiency = memory_efficient;
+  this->base_dir = &base_dir;
+  this->current_replay = nullptr;
+  if(this->super_efficiency) {
+    this->curr_reader = replay_0->getRplReader();
+  } else {
+    this->curr_reader = replay_0->getFullDecompressReplayReader(1.05);
+  }
+  this->curr_file_index = 1;
+}
+
+
+std::string file_exists(const std::string& path, const std::vector<fs::path> &paths) {
+  for (auto &path_: paths) {
+    if (path_.filename().string() == path)
+      return path_.string();
+  }
+  return {};
+}
+
+fs::path file_exists_fs(const std::string& path, const std::vector<fs::path> &paths) {
+  for (auto &path_: paths) {
+    if (path_.filename().string() == path)
+      return path_;
+  }
+  return {};
 }

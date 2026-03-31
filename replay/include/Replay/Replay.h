@@ -123,10 +123,11 @@ public:
     return payload;
   }
 
-  FullDecompressReplayReader *getFullDecompressReplayReader() {
+  // on average, you need 3x the buffer size to store the replay data for a normal client replay. a server replay overrides this to be 1.05.
+  FullDecompressReplayReader *getFullDecompressReplayReader(double growth_size=3) {
     ZoneScoped;
     auto dat = data->getData(zlib_start);
-    auto *rdr = new FullDecompressReplayReader(std::span(dat.data(), zlib_size));
+    auto *rdr = new FullDecompressReplayReader(std::span(dat.data(), zlib_size), growth_size);
     return rdr;
   }
 
@@ -170,7 +171,9 @@ private:
 
 void readFilesFromDirectory(const fs::path &dirPath, std::vector<fs::path> &fileSet);
 
-std::string file_exists(std::string path, const std::vector<fs::path> &paths);
+std::string file_exists(const std::string& path, const std::vector<fs::path> &paths);
+fs::path file_exists_fs(const std::string& path, const std::vector<fs::path> &paths);
+
 
 class ServerReplay {
 
@@ -215,7 +218,35 @@ public:
   ServerReplayReader *getRplReader() {
     return new ServerReplayReader(this->replay_files);
   }
-
+};
+class ParserState;
+class MemoryEfficientServerReplay {
+public:
+  explicit MemoryEfficientServerReplay(const std::string &path) {
+    std::vector<fs::path> temp_files{};
+    readFilesFromDirectory(path, temp_files);
+    if (auto p = file_exists_fs("0000.wrpl", temp_files); !p.empty()) {
+      file_paths.emplace_back(p);
+      this->base_replay = new Replay(p.string());
+    }
+    for (int i = 1; i > 0; i += 2) {
+      if (auto p = file_exists_fs(fmt::format("{:0>4}.wrpl", i), temp_files); !p.empty()) {
+        file_paths.emplace_back(p);
+      } else {
+        break;
+      }
+    }
+  }
+  IReplayReader *getRplReader() {
+    return new MemoryEfficientServerReplayReader(this->file_paths, this->base_replay);
+  }
+  ~MemoryEfficientServerReplay() {
+    delete base_replay;
+  }
+private:
+  std::vector<fs::path> file_paths{};
+  Replay *base_replay = nullptr;
+  friend ParserState;
 };
 
 

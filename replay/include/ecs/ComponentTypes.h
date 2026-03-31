@@ -234,6 +234,38 @@ namespace ecs {
     ComponentTypeFlags flags;
   };
 
+  template <typename K, typename V>
+  size_t estimateMemoryUsage(const std::unordered_map<K, V>& map) {
+    // 1. Bucket array: array of pointers, one per bucket
+    size_t bucketArraySize = map.bucket_count() * sizeof(void*);
+
+    // 2. Elements: each entry is stored in a linked-list node
+    //    A node typically contains: key, value, hash (sometimes), and a next pointer
+    size_t perNodeOverhead = sizeof(K) + sizeof(V) + sizeof(void*) + sizeof(size_t);
+    size_t nodesSize = map.size() * perNodeOverhead;
+
+    // 3. The unordered_map object itself (load factor, size, etc.)
+    size_t objectSize = sizeof(map);
+
+    return objectSize + bucketArraySize + nodesSize;
+  }
+
+  template <typename K, typename V, typename NN, typename NNN>
+  size_t estimateMemoryUsage(const std::unordered_map<K, V, NN, NNN>& map) {
+    // 1. Bucket array: array of pointers, one per bucket
+    size_t bucketArraySize = map.bucket_count() * sizeof(void*);
+
+    // 2. Elements: each entry is stored in a linked-list node
+    //    A node typically contains: key, value, hash (sometimes), and a next pointer
+    size_t perNodeOverhead = sizeof(K) + sizeof(V) + sizeof(void*) + sizeof(size_t);
+    size_t nodesSize = map.size() * perNodeOverhead;
+
+    // 3. The unordered_map object itself (load factor, size, etc.)
+    size_t objectSize = sizeof(map);
+
+    return objectSize + bucketArraySize + nodesSize;
+  }
+
   struct ComponentTypes {
     std::vector<ComponentInfo> types;
     std::unordered_map<component_type_t, type_index_t> typesIndex; // hash to index.
@@ -245,6 +277,21 @@ namespace ecs {
     void initialize();
 
   public:
+    size_t printMemoryUsage(int indent=0) {
+      std::string indent_str{};
+      indent_str.resize(indent, ' ');
+      LOGE("{}ComponentTypes memory usage:", indent_str);
+      indent_str.resize(indent+2, ' ');
+      auto types_size = sizeof(ComponentInfo)*types.capacity();
+      for (auto &t : types) {
+        types_size+=t.ctm->getMemSize();
+      }
+      LOGE("{}types size: {} bytes in {} components", indent_str, types_size, types.size());
+      auto types_index_size = estimateMemoryUsage(this->typesIndex);
+      LOGE("{}typesIndex size: {} bytes", indent_str, types_index_size);
+      return types_index_size+types_size;
+    }
+
     uint32_t getTypeCount() const { return (uint32_t) types.size(); }
 
 
@@ -266,6 +313,14 @@ namespace ecs {
         return getCTM(idx);
       }
       return nullptr;
+    }
+
+    inline void createAllCTMs() {
+      for(auto &info : this->types) {
+        if(!info.ctm) {
+          info.ctm = info.create();
+        }
+      }
     }
 
     inline std::string_view getName(type_index_t index) {

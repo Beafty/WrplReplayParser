@@ -243,7 +243,7 @@ namespace ecs {
   static inline void load_component_list_impl(TemplateParseContext &ctx, DataBlock &blk, const std::string &type_name, Cb cb) {
     auto prevList = ctx.components;
     std::vector<ecs::ComponentTemplInfo> olist{};
-    olist.reserve(500); // there is an issue with the resise op, so we want to avoid it as much as possible.
+    //olist.reserve(500); // there is an issue with the resise op, so we want to avoid it as much as possible.
     ctx.components = &olist;
     //ctx.info = nullptr;
     //ctx.db = nullptr;
@@ -459,6 +459,7 @@ namespace ecs {
         auto hash = ECS_HASH(name_.c_str());
         ecs::component_index_t idx = g_ecs_data->getDataComponents()->getIndex(hash.hash);
         // object type doesnt do name mangling, so this checks to ensure that doesnt cause issues
+        //G_ASSERT(idx != INVALID_COMPONENT_INDEX); // I am not adding mutexes to datacomponents god dammit
         G_ASSERT(idx == INVALID_COMPONENT_INDEX || g_ecs_data->getDataComponents()->getDataComponent(hash.hash)->componentHash == comp.getUserType());
         if (idx == INVALID_COMPONENT_INDEX) {
           idx = g_ecs_data->createComponent(hash, comp.getTypeId(), nullptr);
@@ -603,8 +604,8 @@ public:
       }
       if(tmpl_blk->getBool("_override", false))
         db_ = overrides;
-      std::vector<ecs::ComponentTemplInfo> components;
-      components.reserve(500); // there is an issue with the resise op, so we want to avoid it as much as possible. TODO
+      std::vector<ecs::ComponentTemplInfo> components{};
+      //components.reserve(500); // there is an issue with the resise op, so we want to avoid it as much as possible. TODO
       std::vector<ecs::template_t> parents;
       ecs::TemplateParseContext ctx{&components, &parents, db_, blk->getBlockName().data(), blk->getNameId("_value")};
       ctx.templName = tmpl_blk->getBlockName().data();
@@ -720,6 +721,7 @@ public:
     G_ASSERT(load(blk, path));
     resolve_imports(&blk, &overrides);
     ecs::g_ecs_data->getTemplateDB()->applyFrom(std::move(overrides));
+    ecs::g_ecs_data->getComponentTypes()->createAllCTMs();
   }
 };
 
@@ -728,4 +730,5 @@ void parseTemplates() {
   auto file = file_mgr.getFile("templates/entities.blk");
   LoadContext ctx{};
   ctx.parse_blk("templates/entities.blk");
+
 }

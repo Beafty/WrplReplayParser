@@ -4,6 +4,7 @@
 #define MYEXTENSION_ARCHETYPES_H
 #include <cmath>
 #include "Logger.h"
+#include <shared_mutex>
 
 
 
@@ -221,8 +222,9 @@ namespace ecs
       return this->archetypes[arch].COMPONENT_COUNT;
     }
   protected:
-    friend EntityManager;
+    std::shared_mutex archetypes_mtx{};
     friend GState;
+    friend EntityManager; // mgr directly access components for performance, maybe //TODO?
     struct ArchetypeInfo
     {
       component_index_t firstNonEidIndex, count;

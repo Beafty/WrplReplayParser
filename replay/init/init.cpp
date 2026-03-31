@@ -23,10 +23,10 @@ namespace mpi {
   }
 }
 
-
+bool TranslationAllowed = false;
 
 // runs basic init steps
-void initialize(std::string &VromfsPath, std::string &logfile_path, bool fonts) {
+void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
   ZoneScoped;
   if(!logfile_path.empty())
     g_log_handler.set_default_sink_logfile(logfile_path);
@@ -45,8 +45,10 @@ void initialize(std::string &VromfsPath, std::string &logfile_path, bool fonts) 
   }
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "{} does not exist", p1);
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "{} does not exist", p2);
-  file_mgr.loadVromfs(p3); // optional
-  auto translation_allowed = file_mgr.loadVromfs(p4); // optional, TODO
+  if(mis)
+    file_mgr.loadVromfs(p3); // optional
+  if (lang)
+    TranslationAllowed = file_mgr.loadVromfs(p4); // optional, TODO
   parseTemplates();
   //ecs::g_ecs_data->getTemplateDB()->DebugPrintTemplate("medic_box_item");
   hello();

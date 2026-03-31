@@ -64,12 +64,12 @@ int main() {
   g_log_handler.start_thread();
   //auto t = ecs::g_ecs_data->getTemplateDB()->getTemplate("attachable_wear_fast_sf_helmet_item");
   IReplayReader *rdr = nullptr;
-  ServerReplay *srv_rpl = nullptr;
+  MemoryEfficientServerReplay *srv_rpl = nullptr;
   Replay *rpl = nullptr;
   ParserState *state_ptr = nullptr;
   if (is_server_replay) {
     fs::path t{rpl_path_str};
-    srv_rpl = new ServerReplay(t);
+    srv_rpl = new MemoryEfficientServerReplay(t.string());
     rdr = srv_rpl->getRplReader();
     state_ptr = new ParserState{srv_rpl};
   } else {

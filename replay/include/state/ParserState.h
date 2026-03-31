@@ -14,6 +14,7 @@ struct ParserState {
   explicit ParserState(int player_count=32) : players(player_count) {}
   explicit ParserState(Replay *replay): players(replay->PlayerCount) {}
   explicit ParserState(ServerReplay *replay): players(replay->replay_files[0].PlayerCount) {}
+  explicit ParserState(MemoryEfficientServerReplay *replay): players(replay->base_replay->PlayerCount) {}
   ecs::EntityManager g_entity_mgr{};
   std::vector<MPlayer> players;
   std::vector<danet::ReplicatedObject*> Zones;

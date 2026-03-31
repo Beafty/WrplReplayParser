@@ -86,7 +86,7 @@ int main()
       rpl = new Replay(rpl_path_str);
     }
   }
-  int timer_count = 200;
+  int timer_count = 5;
   for(int i = 0; i < timer_count; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     ZoneScopedN("loop")
@@ -162,12 +162,12 @@ int main()
         std::chrono::duration<double, std::milli> duration = ended - start;
         timer_sum += duration.count();
         {
-          //ZoneScopedN("Printing times");
-          //std::cout << i << " profile time: " << duration.count() << " : " << (timer_sum / (double) (i + 1)) << "\n";
+          ZoneScopedN("Printing times");
+          std::cout << i << " profile time: " << duration.count() << " : " << (timer_sum / (double) (i + 1)) << "\n";
         }
       }
-      int * bad_ptr = 0x0;
-      *bad_ptr = 5;
+      //int * bad_ptr = 0x0;
+      //*bad_ptr = 5;
     }
   }
 

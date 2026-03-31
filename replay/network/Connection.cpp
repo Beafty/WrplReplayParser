@@ -261,18 +261,18 @@ namespace net
     if (clientCidx == ecs::INVALID_COMPONENT_INDEX)                                              // component is missing on client
     {
       const ecs::type_index_t typeIdx = ecs::g_ecs_data->getComponentTypes()->findType(type);
-      if (error)
-      {
+      //if (error)
+      //{
         //int loglev = typeIdx != ecs::INVALID_COMPONENT_TYPE_INDEX ? LOGLEVEL_WARN : LOGLEVEL_ERR;
         //G_UNUSED(loglev);
         EXCEPTION("component scidx={}, name={:#x} type={:#x}({}) is missing in template <{}> on client", serverCidx, name, type,
                    ecs::g_ecs_data->getComponentTypes()->getName(typeIdx), serverTemplates[templateId].c_str());
-      }
-      if (typeIdx != ecs::INVALID_COMPONENT_TYPE_INDEX)
-        clientCidx =
-            ecs::g_ecs_data->createComponent(HashedConstString{nullptr, name}, typeIdx, nullptr);
-      else
-        EXCEPTION("Unknown Component found while parsing template. hash: {:#x}", type);
+      //}
+      //if (typeIdx != ecs::INVALID_COMPONENT_TYPE_INDEX)
+      //  clientCidx =
+      //      ecs::g_ecs_data->createComponent(HashedConstString{nullptr, name}, typeIdx, nullptr);
+      //else
+      //  EXCEPTION("Unknown Component found while parsing template. hash: {:#x}", type);
     }
     if (serverCidx >= serverToClientCidx.size())
       serverToClientCidx.resize(serverCidx + 1, ecs::INVALID_COMPONENT_INDEX);

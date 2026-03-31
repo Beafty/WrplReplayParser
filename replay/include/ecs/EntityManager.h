@@ -34,11 +34,23 @@ namespace ecs {
     DataComponents dataComponents{};
     TemplateDB templates{};
     Archetypes archetypes{};
-    std::shared_mutex rw_mutex;
-
-
   public:
-    GState() {Init();}
+    GState() { Init(); }
+
+    void printCurrentMemoryUsage(int indent=0) {
+      std::string indent_str{};
+
+      indent_str.resize(indent, ' ');
+      LOGE("{}Global State (GState) Memory Usage", indent_str);
+      indent_str.resize(indent+2, ' ');
+      auto component_types_size = this->componentTypes.printMemoryUsage(indent+2);
+      LOGE("{}Combined Size: {}", indent_str, component_types_size);
+      auto datacomponent_types_size = this->dataComponents.printMemoryUsage(indent+2);
+      LOGE("{}Combined Size: {}", indent_str, datacomponent_types_size);
+      auto templates_size = this->templates.printMemoryUsage(indent+2);
+      LOGE("{}Combined Size: {}", indent_str, templates_size);
+      LOGE("{}Overall Size: {}", indent_str, component_types_size+datacomponent_types_size+templates_size);
+    }
 
     void Init() {
       this->componentTypes.initialize();
@@ -67,48 +79,93 @@ namespace ecs {
       return &templates;
     }
 
+    // because of how the persistent state works, an archetype can exist in GState that has actually not been created in the EntityManager
+    // because that specific archetype was only needed for a previous replay
+    // this is always called within the mutex already, so need for the shared lock
+    void ensureArchetypeInStorage(archetype_t arch_index, MgrArchetypeStorage *storage) {
+      this->archetypes.createArchetype(arch_index, storage);
+    }
+
     // given a template, it will attempt to ensure the archetype exists for it
     // assumes InstTemplate has already been created
     // will create archetype in GState and in storage if not exists
     archetype_t EnsureArchetype(template_t tid, MgrArchetypeStorage *storage) {
-      auto inst = this->templates.getInstTemplate(tid);
-      const uint32_t oldArchetypesCount = this->archetypes.size();
-      if(inst->archetype_index == INVALID_ARCHETYPE) { // we havent created archetype yet, lets do that
-        inst->archetype_index = this->archetypes.createArchetype(inst->component_indexes.data(), (uint32_t)inst->component_indexes.size(), this->dataComponents, this->componentTypes, tid);
+      InstantiatedTemplate *inst = this->templates.getInstTemplate(tid);;
+
+
+      // Step 2: Check if archetype needs to be created
+      archetype_t arch_index = inst->archetype_index;
+
+      if (arch_index == INVALID_ARCHETYPE) {
+        std::unique_lock lk(this->archetypes.archetypes_mtx);
+
+        // Double-check after acquiring lock
+        arch_index = inst->archetype_index;
+        if (arch_index == INVALID_ARCHETYPE) {
+          arch_index = this->archetypes.createArchetype(
+              inst->component_indexes.data(),
+              (uint32_t) inst->component_indexes.size(),
+              this->dataComponents,
+              this->componentTypes,
+              tid
+          );
+
+          inst->archetype_index = arch_index;
+          updateAllQueries();
+        }
+        this->archetypes.createArchetype(arch_index, storage);
+      } else {
+        std::shared_lock lk(this->archetypes.archetypes_mtx);
+        this->archetypes.createArchetype(arch_index, storage);
       }
-      if (oldArchetypesCount != this->archetypes.size())
-      {
-        G_ASSERT(oldArchetypesCount + 1 == this->archetypes.size());
-        updateAllQueries();
-      }
-      this->archetypes.createArchetype(inst->archetype_index, storage);
-      return inst->archetype_index;
-    };
+
+      return arch_index;
+    }
+
 
     inline component_index_t
     createComponent(const HashedConstString name, type_index_t component_type, ComponentSerializer *io) {
       return this->dataComponents.createComponent(name, component_type, io, this->componentTypes);
     }
 
-    friend EntityManager;
+    std::string_view getTemplateName(template_t tid) {
+      std::shared_lock lk(this->templates.template_mtx);
+      auto templ = this->templates.getTemplateNoLock(tid);
+      if (templ) return templ->getName();
+      return "";
+    }
+
+    template_t getTemplateIdByName(std::string_view name) {
+      return this->templates.getTemplateIdByName(name);
+    }
+
+    void sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr);
+
+    void broadcastEventImmediate(Event &evt, EntityManager *mgr);
+
     friend Component;
     friend InstantiatedTemplate;
   protected:
-    void sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr);
-    void broadcastEventImmediate(Event &evt, EntityManager *mgr);
-
     void notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr);
 
     bool makeArchetypesQuery(archetype_t first_archetype, uint32_t index, bool wasFullyResolved);
+
     void resetEsOrder();
+
     typedef uint64_t query_components_hash;
+
     // thorough hash of RW, RO, RQ, and NO of a BaseQueryDesc
     static query_components_hash query_components_hash_calc(const BaseQueryDesc &desc);
+
     QueryId createUnresolvedQuery(const NamedQueryDesc &desc);
+
     QueryId createQuery(const NamedQueryDesc &desc);
+
     bool updatePersistentQuery(archetype_t last_arch_count, QueryId h, uint32_t &index, bool should_re_resolve);
+
     void updateAllQueriesInternal();
 
+  private:
     EventsDB eventsDb;
     // don't fucking ask me to fully explain why this is like this I don't fucking know
     // the reason all these comments say SOA is probably because you could also just make one big struct per query
@@ -134,31 +191,35 @@ namespace ecs {
     typedef uint16_t es_index_type;
     std::vector<const EntitySystemDesc *> esList;
     std::vector<QueryId> esListQueries; // parallel to esList, index in ecs_query_handle
-    struct QueryHasher
-    {
+    struct QueryHasher {
       size_t operator()(const QueryId &h) const { return wyhash64(uint32_t(h), 1); }
     };
+
     // maps all Events to what query they use, basically reverse of esList, es_index_type indexes into esListQueries and esList
     std::unordered_map<QueryId, std::vector<es_index_type>, QueryHasher> queryToEsMap;
     std::vector<ArchetypesQuery> archetypeQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add new
-                                                   // archetype
+    // archetype
     std::vector<ArchetypesEidQuery> archetypeEidQueries; // SoA, we need to update ArchetypesQuery from ResolvedQueryDesc again, if we add
-                                                         // new archetype
+    // new archetype
     std::vector<uint16_t> archComponentsSizeContainers;
     std::unordered_map<event_type_t, std::vector<es_index_type>> esEvents; // maps all the events to what EntitySystems use it
-    bool updateAllQueries()
+    bool updateAllQueries() // lock is done during only access that needs mutex
     {
       if (DAGOR_LIKELY(allQueriesUpdatedToArch == this->archetypes.size()))
         return false;
       updateAllQueriesInternal();
       return true;
     }
+
     bool resolvePersistentQueryInternal(uint32_t index);
+
     bool makeArchetypesQueryInternal(archetype_t last_arch_count, uint32_t index, bool should_re_resolve);
+
     bool updatePersistentQueryInternal(archetype_t last_arch_count, uint32_t index, bool should_re_resolve);
+
     void initCompileTimeQueries();
-    enum ResolvedStatus : uint8_t
-    {
+
+    enum ResolvedStatus : uint8_t {
       NOT_RESOLVED = 0,
       FULLY_RESOLVED = 1, // im assuming fully resolved is has created ArchetypeQuery
       RESOLVED = 2, // im assuming resolved is has created ResolvedQueryDesc
@@ -168,51 +229,61 @@ namespace ecs {
     uint32_t addOneQuery();
 
     static bool isFullyResolved(ResolvedStatus s) { return s & FULLY_RESOLVED; }
+
     static bool isResolved(ResolvedStatus s) { return s != NOT_RESOLVED; }
-    ResolvedStatus getQueryStatus(uint32_t idx) const
-    {
+
+    ResolvedStatus getQueryStatus(uint32_t idx) const {
       const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
-      return (ResolvedStatus)((resolvedQueryStatus[wordIdx] >> wordShift) & RESOLVED_MASK);
+      return (ResolvedStatus) ((resolvedQueryStatus[wordIdx] >> wordShift) & RESOLVED_MASK);
     }
+
     inline bool isResolved(uint32_t index) const { return isResolved(getQueryStatus(index)); }
-    void orQueryStatus(uint32_t idx, ResolvedStatus status)
-    {
+
+    void orQueryStatus(uint32_t idx, ResolvedStatus status) {
       const uint32_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
       resolvedQueryStatus[wordIdx] |= (status << wordShift);
     }
-    void resetQueryStatus(uint32_t idx)
-    {
+
+    void resetQueryStatus(uint32_t idx) {
       const status_word_type_t wordIdx = idx >> status_words_shift, wordShift = (idx & status_words_mask) << 1;
       resolvedQueryStatus[wordIdx] &= ~(status_word_type_t(RESOLVED_MASK) << wordShift);
     }
-    void addOneResolvedQueryStatus()
-    {
-      uint32_t sz = (uint32_t)(resolvedQueries.size() + status_words_mask) >> status_words_shift;
+
+    void addOneResolvedQueryStatus() {
+      uint32_t sz = (uint32_t) (resolvedQueries.size() + status_words_mask) >> status_words_shift;
       if (sz != resolvedQueryStatus.size())
         resolvedQueryStatus.push_back(status_word_type_t(0));
     }
+
     ResolvedStatus resolveQuery(uint32_t index, ResolvedStatus currentStatus, ResolvedQueryDesc &resDesc);
 
-    bool isQueryValidGen(QueryId id) const
-    {
+    bool isQueryValidGen(QueryId id) const {
       if (!id)
         return false;
       auto idx = id.index();
       return idx < queriesGenerations.size() && queriesGenerations[idx] == id.generation();
     }
-    bool isQueryValid(QueryId id) const
-    {
+
+    bool isQueryValid(QueryId id) const {
       bool ret = isQueryValidGen(id);
           G_FAST_ASSERT(!ret || queriesReferences[id.index()]);
       return ret;
     }
+
     void registerEsEvents();
+
     void registerEsEvent(es_index_type j);
-    bool fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv, MgrArchetypeStorage &storage);
+
+    bool fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv,
+                          MgrArchetypeStorage &storage);
+
     void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr);
 
     void performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr);
+
     void performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr);
+
+    friend EntityManager;
   };
 
   extern OnDemandInit<GState> g_ecs_data;
@@ -226,7 +297,9 @@ namespace ecs {
     std::array<ecs::EntityId, 2048> uid_lookup;
 
     EntityManager();
+
     ~EntityManager();
+
     inline bool doesEntityExist(EntityId e) const { return entDescs.doesEntityExist(e); }
 
     template_t getEntityTemplateId(EntityId &eid) {
@@ -236,39 +309,45 @@ namespace ecs {
     }
 
 
+    void *getNullable(EntityId eid, component_index_t index, archetype_t &archetype) const;
 
-    void* getNullable(EntityId eid, component_index_t index, archetype_t &archetype) const;
-    void* getNullableUnsafe(EntityId eid, component_index_t index, archetype_t &archetype) const;
-    template <class T>
-    T* getNullable(EntityId eid, HashedConstString component) {
-      if(!this->entDescs.doesEntityExist(eid))
+    void *getNullableUnsafe(EntityId eid, component_index_t index, archetype_t &archetype) const;
+
+    template<class T>
+    T *getNullable(EntityId eid, HashedConstString component) {
+      if (!this->entDescs.doesEntityExist(eid))
         return nullptr;
       auto cidx = this->data_state->dataComponents.getIndex(component.hash);
-      if(cidx == INVALID_COMPONENT_INDEX)
+      if (cidx == INVALID_COMPONENT_INDEX)
         return nullptr;
       //auto comp = this->data_state->dataComponents.getDataComponent(cidx);
       archetype_t arch = INVALID_ARCHETYPE;
-      return (T*)this->getNullableUnsafe(eid, cidx, arch);
+      return (T *) this->getNullableUnsafe(eid, cidx, arch);
     }
 
     template_t buildTemplateIdByName(const char *templ_name);
+
     void instantiateTemplate(template_t t);
+
     /// validates that an initializer
     inline bool validateInitializer(template_t templId, ComponentsInitializer &comp_init);
+
     EntityId createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer);
+
     bool destroyEntity(EntityId eid);
+
     ComponentRef getComponentRef(EntityId eid, archetype_component_id cid) const;   // cid is 0.. till getNumComponents
     ComponentRef getComponentRefCidx(EntityId eid, component_index_t cidx) const;
 
     inline bool getEntityArchetype(EntityId eid, int &idx, archetype_t &archetype) const;
+
     int getNumComponents(EntityId eid) const;
 
     std::string_view getEntityTemplateName(EntityId &eid) {
       template_t t = getEntityTemplateId(eid);
       if (t == INVALID_TEMPLATE_INDEX)
         return "";
-      Template *templ = this->data_state->templates[t];
-      return templ->name;
+      return this->data_state->getTemplateName(t);
     }
 
     void debugPrintEntity(EntityId eid);
@@ -279,13 +358,22 @@ namespace ecs {
 
     void collectEntitiesOfTemplate(std::vector<EntityId> &out, template_t template_id);
 
-    void collectEntitiesOfTemplate(std::vector<EntityId> &out, std::string_view templ_name) {return collectEntitiesOfTemplate(out, this->data_state->templates.getTemplateIdByName(templ_name));}
+    void collectEntitiesOfTemplate(std::vector<EntityId> &out,
+                                   std::string_view templ_name) { return collectEntitiesOfTemplate(out,
+                                                                                                   this->data_state->getTemplateIdByName(
+                                                                                                       templ_name));
+    }
 
-    EntityId getNext() {return this->entDescs.GetNextEid();}
+    EntityId getNext() { return this->entDescs.GetNextEid(); }
+
     void sendEventImmediate(EntityId eid, Event &evt);
+
     void broadcastEventImmediate(Event &evt);
+
     void sendEventImmediate(EntityId eid, Event &&evt);
+
     void broadcastEventImmediate(Event &&evt);
+
     ecs::EntityId getUnit(uint16_t uid);
 
   protected:
@@ -300,7 +388,6 @@ namespace ecs {
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
 
   };
-
 
 
 }

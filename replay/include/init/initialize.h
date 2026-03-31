@@ -8,8 +8,9 @@
 #include "utils.h"
 #include "dag_assert.h"
 
+extern bool TranslationAllowed;
 
-void initialize(std::string &VromfsPath, std::string &logfile_path, bool fonts=false);
+void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts=false, bool lang=true, bool mis=true);
 
 
 #endif //MYEXTENSION_INITIALIZE_H

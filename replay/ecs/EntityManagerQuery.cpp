@@ -622,11 +622,13 @@ namespace ecs {
   }
 
   void GState::sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr) {
+    std::shared_lock lk(this->archetypes.archetypes_mtx);
     G_ASSERTF(evt.getFlags() & EVCAST_UNICAST, "Tried to send entity {:#x} event {} that is not unicast", eid.get_handle(), evt.getName());
     return notifyESEventHandlers(eid, evt, mgr);
   }
 
   void GState::broadcastEventImmediate(Event &evt, EntityManager *mgr) {
+    std::shared_lock lk(this->archetypes.archetypes_mtx);
     G_ASSERTF(evt.getFlags() & EVCAST_BROADCAST, "Tried to send event {} that is not broadcast", evt.getName());
     auto esListIt = esEvents.find(evt.getType());
     if (esListIt != esEvents.end()) {
@@ -651,7 +653,12 @@ namespace ecs {
     auto archBegin = archDesc.queriesBegin();
     auto archEnd = archDesc.queriesEnd();
     for(int i = 0;archBegin != archEnd; i++, archBegin++) {
+      archetype_t arch_id = *archBegin;
+
+      ensureArchetypeInStorage(arch_id, &mgr->arch_data);
+
       auto curr_arch = mgr->arch_data.getArch(*archBegin);
+
       auto EntityCount = curr_arch->getEntityCount();
       qv.index_start = 0;
       qv.index_end = EntityCount;

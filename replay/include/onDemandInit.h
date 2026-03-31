@@ -21,6 +21,7 @@ public:
 
   ~OnDemandInit()
   {
+    ZoneScoped;
     delete obj;
   }
 private:

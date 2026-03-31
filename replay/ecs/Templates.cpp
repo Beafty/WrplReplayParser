@@ -5,12 +5,20 @@
 namespace ecs {
 
   Template *TemplateDB::getTemplate(const template_t t) {
+    std::shared_lock lk(this->template_mtx);
+    if (t < templates.size())
+      return &templates[t];
+    return nullptr;
+  }
+
+  Template * TemplateDB::getTemplateNoLock(template_t t) {
     if (t < templates.size())
       return &templates[t];
     return nullptr;
   }
 
   Template *TemplateDB::getTemplate(const std::string_view &t) {
+    std::shared_lock lk(this->template_mtx);
     auto it = template_lookup.find(t);
     if (it != template_lookup.end())
       return getTemplate(it->second);
@@ -26,6 +34,7 @@ namespace ecs {
   }
 
   void TemplateDB::printTempl(const Template &t, int spacing, ComponentTypes &types, DataComponents &comps) {
+    std::shared_lock lk(this->template_mtx);
     std::string spaces_b(spacing, ' ');
     LOG("{}{}:", spaces_b, t.name);
     for(const auto &tid : t.parents)
@@ -42,6 +51,7 @@ namespace ecs {
   }
 
   void TemplateDB::DebugPrint() {
+    std::shared_lock lk(this->template_mtx);
     for(const auto &t : this->templates)
     {
       printTempl(t, 0, *g_ecs_data->getComponentTypes(), *g_ecs_data->getDataComponents());
@@ -49,6 +59,8 @@ namespace ecs {
   }
 
   void TemplateDB::DebugPrintTemplate(const std::string& templ) {
+
+    std::shared_lock lk(this->template_mtx);
     auto t = this->getTemplate(templ);
     if(t)
       printTempl(*t, 0, *g_ecs_data->getComponentTypes(), *g_ecs_data->getDataComponents());
@@ -56,8 +68,9 @@ namespace ecs {
 
 
   InstantiatedTemplate *TemplateDB::getInstTemplate(template_t t) {
+    std::shared_lock lk(this->template_mtx);
     if(t < this->inst_templates.size())
-      return &this->inst_templates[t];
+      return this->inst_templates[t];
     return nullptr;
   }
 
@@ -73,9 +86,12 @@ namespace ecs {
   }
 
   template_t TemplateDB::buildTemplateIdByName(const char *templ_name) {
-    template_t id = this->getTemplateIdByName(templ_name);
-    if(DAGOR_LIKELY(id != INVALID_TEMPLATE_INDEX))
-      return id;
+    {
+      std::shared_lock lk(this->template_mtx);
+      template_t id = this->getTemplateIdByNameNoLock(templ_name);
+      if(DAGOR_LIKELY(id != INVALID_TEMPLATE_INDEX))
+        return id;
+    }
     std::vector<std::string> template_parts;
     std::vector<template_t> parents;
     auto combined_name = std::string(templ_name);
@@ -88,28 +104,57 @@ namespace ecs {
       const template_t it = this->getTemplateIdByName(parts);
       if(it == INVALID_TEMPLATE_INDEX)
       {
-        EXCEPTION("Can't find template %s while building compound template '%s'", parts.c_str(), templ_name);
+        EXCEPTION("Can't find template {} while building compound template '{}'", parts.c_str(), templ_name);
       }
       for(const template_t parent : parents)
       {
         if(it==parent)
         {
-          EXCEPTION("Duplicate template %s found will build compound template '%s'", parts.c_str(), templ_name);
+          EXCEPTION("Duplicate template {} found will build compound template '{}'", parts.c_str(), templ_name);
         }
       }
       parents.push_back(it);
     }
     // compound templates have no components, only parents
-    return this->AddTemplate(std::move(Template{templ_name, {}, std::move(parents)}))  ;
+    {;
+      std::unique_lock lk(this->template_mtx);
+      template_t id = this->getTemplateIdByNameNoLock(templ_name);
+      if(DAGOR_UNLIKELY(id != INVALID_TEMPLATE_INDEX)) {
+        return id;
+
+      }
+      return this->AddTemplate(Template{templ_name, {}, std::move(parents)});
+    }
   }
 
 
   void TemplateDB::instantiateTemplate(template_t t) {
     G_ASSERT(t<this->templates.size());
-    this->inst_templates[t] = InstantiatedTemplate(t);
+    {
+      std::shared_lock lk(this->template_mtx);
+      if (this->inst_templates[t]) {
+        return; // already instantated
+      }
+    }
+    {
+      std::unique_lock lk(this->template_mtx);
+      if (this->inst_templates[t]) {;
+        return;
+      }
+      this->inst_templates[t] = new InstantiatedTemplate(t);
+    }
   }
 
   template_t TemplateDB::getTemplateIdByName(std::string_view name) {
+    std::shared_lock lk(this->template_mtx);
+    auto it = this->template_lookup.find(name);
+    if(it != this->template_lookup.end())
+      return it->second;
+    return INVALID_TEMPLATE_INDEX;
+  }
+
+
+  template_t TemplateDB::getTemplateIdByNameNoLock(std::string_view name) {
     auto it = this->template_lookup.find(name);
     if(it != this->template_lookup.end())
       return it->second;
@@ -121,13 +166,14 @@ namespace ecs {
   }
 
   void TemplateDB::applyFrom(TemplateDB &&db) {
+    //std::unique_lock lk(this->mtx); // lock not needed as only called during init
     for(auto &&templ : db.templates) {
       auto iter = this->template_lookup.find(templ.name);
       if (iter == this->template_lookup.end()) {
         this->AddTemplate(std::move(templ));
         continue;
       }
-      auto this_templ = this->getTemplate(iter->second);
+      auto this_templ = this->getTemplateNoLock(iter->second);
 
       for(auto &parent : templ.parents)
         this_templ->parents.push_back(parent);
@@ -205,7 +251,7 @@ namespace ecs {
 
   void InstantiatedTemplate::RecurseTemplates(template_t p, TemplateDB &db) {
 
-    auto tmpl = db.getTemplate(p);
+    auto tmpl = db.getTemplateNoLock(p);
     for(auto &comp : tmpl->components)
     {
       if(!this->activated.test(comp.comp_type_index, true))

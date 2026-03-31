@@ -3,7 +3,7 @@
 if(PYTHON_VERSION)
     find_package(Python ${PYTHON_VERSION} REQUIRED COMPONENTS Interpreter Development)
 else()
-    find_package(Python 3.12...3.12.9 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python 3.12...3.12.13 REQUIRED COMPONENTS Interpreter Development)
 endif()
 
 # Try to find pybind11 via find_package first
@@ -41,9 +41,9 @@ target_include_directories(PyReplayParser PRIVATE
         "${BASE_DIR}/python/include"
 )
 attach_signal_tracer(PyReplayParser)
-
-# target_link_options(PyReplayParser PRIVATE
-#         -static-libgcc
-#         -static-libstdc++
-#         -static
-# )
+target_compile_options(PyReplayParser PRIVATE -fPIC)
+target_link_options(PyReplayParser PRIVATE
+        -static-libgcc
+        -static-libstdc++
+        # -static
+)

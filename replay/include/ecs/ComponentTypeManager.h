@@ -8,7 +8,7 @@
 #include "utils.h"
 namespace ecs
 {
-  typedef eastl::string string; // would be std::string, but it doesnt like destruction for some reason
+  typedef std::string string; // would be std::string, but it doesnt like destruction for some reason
 }
 #include "ComponentPrinting.h"
 namespace ecs {
@@ -57,6 +57,10 @@ namespace ecs {
     // we don't support non memcpy moveable types
 
     virtual std::string toString(void *, int) const {return "";}
+
+    virtual size_t getMemSize() {
+      return sizeof(*this);
+    }
 
     //virtual void
     //clear() {} // this is called on each EntityManager::clear(), after all components were removed. That is used for
@@ -121,6 +125,9 @@ namespace ecs {
   class InplaceCreator : public ComponentTypeManager {
   public:
 
+    size_t getMemSize() override {
+      return sizeof(*this);
+    }
     void create(void *data, EntityManager & mgr, EntityId eid, component_index_t cidx) override {
       ConstructInplaceType<T>::constructInplaceCandidate(data, mgr, eid, cidx);
     } // allocate (inplace new).
@@ -163,6 +170,10 @@ namespace ecs {
   template<class T>
   class ReducedCreator : public ComponentTypeManager {
   public:
+
+    size_t getMemSize() override {
+      return sizeof(*this);
+    }
     void create(void *, EntityManager &, EntityId, component_index_t) override {
       EXCEPTION("Called CTM for %s", typeid(T).name());
     }

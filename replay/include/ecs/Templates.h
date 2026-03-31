@@ -2,12 +2,17 @@
 #ifndef MYEXTENSION_TEMPLATES_H
 #define MYEXTENSION_TEMPLATES_H
 
+#include <thread>
+#include <set>
+#include <mutex>
+
 #include "ecs/ComponentTypes.h"
 #include "ecs/typesAndLimits.h"
 #include "BitVector.h"
 #include "ecs/componentsMap.h"
 #include "ecs/archetypes.h"
 #include <algorithm>
+#include <shared_mutex>
 
 namespace ecs
 {
@@ -140,7 +145,6 @@ namespace ecs
       return *this;
     }
   protected:
-    friend EntityManager;
     friend TemplateDB;
     friend InstantiatedTemplate;
     std::string name;
@@ -157,7 +161,6 @@ namespace ecs
   ///
   struct InstantiatedTemplate {
   protected:
-    friend EntityManager; // this actually creates the entity
     enum Flags : uint8_t
     {
       WAS_INITIALIZED = 1 // data initialized by ComponentsInitializer or Replication
@@ -170,6 +173,8 @@ namespace ecs
     BitVector activated{false};
     archetype_t archetype_index = INVALID_ARCHETYPE;
     friend GState;
+    friend EntityManager;
+    friend TemplateDB; // for accurate size logging
 
     // recurse the template and template parents of template p
     // populates
@@ -190,12 +195,57 @@ namespace ecs
 
   };
 
+  class LoadContext;
 /// Represents a collection of templates
 
   class TemplateDB
   {
+    std::shared_mutex template_mtx{};
   public:
+    size_t printMemoryUsage(int indent=0) {
+      std::string indent_str{};
+      indent_str.resize(indent, ' ');
+      LOGE("{}TemplateDB memory usage:", indent_str);
+      indent_str.resize(indent+2, ' ');
+      size_t templates_size = this->templates.capacity() * sizeof(Template);
+      for(auto &t : templates) {
+        size_t template_size = 0;
+        template_size += t.name.size();
+        template_size += t.components.capacity() * sizeof(ComponentTemplInfo);
+        for(auto & c : t.components) {
+          template_size += c.default_component.getSize();
+        }
+        template_size += t.parents.size() * sizeof(template_t);
+        templates_size+=template_size;
+      }
+      LOGE("{}templates size: {} in {} templates", indent_str, templates_size, this->templates.size());
+
+      size_t inst_templates_arr_size = this->inst_templates.size() * sizeof(InstantiatedTemplate*);
+      size_t inst_templates_size = 0;
+      size_t actual_count = 0;
+      for(auto t : this->inst_templates) {
+        if(t) {
+          actual_count++;
+          size_t curr_t_size = 0;
+          curr_t_size += sizeof(InstantiatedTemplate);
+          curr_t_size += sizeof(ComponentRefTemplInfo)*sizeof(t->components);
+          for(auto &c : t->components) {
+            curr_t_size += c.default_component.getSize();
+          }
+          curr_t_size += t->component_indexes.size() * sizeof(component_index_t);
+          inst_templates_size += curr_t_size;
+        }
+      }
+      LOGE("{}inst_templates size: {}; actual data size: {} in {} instantiated templates", indent_str, inst_templates_arr_size, inst_templates_size, actual_count);
+      size_t template_lookup_size = estimateMemoryUsage(this->template_lookup);
+      for(auto & o : this->template_lookup) {
+        template_lookup_size += o.first.size();
+      }
+      LOGE("{}template_lookup size: {}", indent_str, template_lookup_size);
+      return templates_size+inst_templates_arr_size+inst_templates_size+template_lookup_size;
+    }
     Template * getTemplate(template_t t);
+    Template * getTemplateNoLock(template_t t);
     InstantiatedTemplate * getInstTemplate(template_t t);
     Template * getTemplate(const std::string_view &t);
     Template *operator[] (const template_t t) { return getTemplate(t);}
@@ -231,7 +281,7 @@ namespace ecs
       Template temp{"", {}, {}};
       auto idx = templates.size();
       templates.push_back(std::move(temp));
-      inst_templates.resize(templates.size());
+      inst_templates.resize(templates.size(), nullptr);
       template_lookup.emplace(p, (template_t)idx);
       return (template_t)idx;
     }
@@ -249,17 +299,26 @@ namespace ecs
     template_t buildTemplateIdByName(const char *templ_name);
     void instantiateTemplate(template_t t);
     template_t getTemplateIdByName(std::string_view name);
+    template_t getTemplateIdByNameNoLock(std::string_view name);
     std::vector<Template> &getTemplates();
 
     void applyFrom(TemplateDB &&db);
 
 
-  protected:
-
     void printTempl(const Template &t, int spacing, ComponentTypes &types, DataComponents &comps);
+    friend GState;
     friend EntityManager;
+    friend LoadContext; // so it can access dtor
+    ~TemplateDB() {
+      for(auto inst : inst_templates) {
+        delete inst;
+      }
+    }
+
+  private:
+
     std::vector<Template> templates;
-    std::vector<InstantiatedTemplate> inst_templates;
+    std::vector<InstantiatedTemplate*> inst_templates;
     // std::string is to ensure name always exists
     // the TransparentHash and TransparentEqual are done to allow for indexing with a std::string
     std::unordered_map<std::string, template_t, TransparentHash, TransparentEqual> template_lookup; // maps template names to template_t. template_t is index into templates

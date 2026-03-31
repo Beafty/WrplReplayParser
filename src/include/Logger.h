@@ -284,7 +284,8 @@ public:
   ~log_handler() {
     this->destructing = true;
     this->running = false;
-    logger_thread.join();
+    if(this->logger_thread.joinable())
+      logger_thread.join();
     this->thread_exists = false;
 
     action(); // do final cleanup, only allow because logger thread has been destroyed

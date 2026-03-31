@@ -71,96 +71,104 @@ namespace ecs {
   EntityId EntityManager::createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer) {
     this->wasInit.clear();
     validateInitializer(templId, initializer); // ensures the initializer has cIndex populated
-    InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
-    G_ASSERTF(instTempl, "Template {} not initialized", data_state->templates.getTemplate(templId)->name);
-    LOGD1("Creating new entity {:#x} of template '{}'", eid.handle,
-          data_state->templates.getTemplate(templId)->name.c_str());
     archetype_t archetype_id = data_state->EnsureArchetype(templId, &this->arch_data);
-    auto arches = &this->data_state->archetypes;
+    chunk_index_t chunk_id;
+    InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
+    {
+      auto comp_types = &g_ecs_data->componentTypes;
+      std::shared_lock arch_lock(this->data_state->archetypes.archetypes_mtx);
+      std::shared_lock templ_lock(this->data_state->templates.template_mtx);
+      G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
+      LOGD1("Creating new entity {:#x} of template '{}'", eid.handle,
+            data_state->templates.getTemplate(templId)->name.c_str());
+      auto arches = &this->data_state->archetypes;
 
-    auto arch_inst = this->arch_data.getArch(archetype_id);
-    auto info = &arches->archetypes[archetype_id];
-    auto chunk_id = arch_inst->getNextAvailableChunkId();
-    auto t = arch_inst->reserveChunkId(chunk_id);
-    G_ASSERT(t);
-    auto archInfo = &info->INFO;
-    auto ComponentInfo = &arches->archetypeComponents[info->COMPONENT_OFS];
-    // setup entity with initialized data
+      auto arch_inst = this->arch_data.getArch(archetype_id);
+      auto info = &arches->archetypes[archetype_id];
+      chunk_id = arch_inst->getNextAvailableChunkId();
+      auto t = arch_inst->reserveChunkId(chunk_id);
+      G_ASSERT(t);
+      auto archInfo = &info->INFO;
+      auto ComponentInfo = &arches->archetypeComponents[info->COMPONENT_OFS];
+      // setup entity with initialized data
 
-    for (auto &comp: initializer) {
-      //LOG("ComponentInit id %i\n", comp.cIndex);
-      archetype_component_id id = archInfo->getComponentId(comp.cIndex);
-      //LOG("%s(%s) data:", dataComponents.getName(comp.cIndex).data(), componentTypes.getName(comp.second.getTypeId()).data());
-      //comp.second.getComponentRef().print(&componentTypes);
-      G_ASSERT(id != INVALID_ARCHETYPE_COMPONENT_ID); // component exists for us
-      auto curr_info = ComponentInfo[id];
-      auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-      //LOG("Initializing component %s(%s) at address %p of size %i in chunk %i\n",
-      //    dataComponents.getName(comp.cIndex).data(),
-      //    componentTypes.getName(comp.second.componentTypeIndex).data(),
-      //    data, comp.second.getSize(), chunk_id);
-      //comp.second.getComponentRef().print(&componentTypes);
-      //LOG("\n");
-      //info->ARCHETYPE.printChunkBoundries(chunk_id);
-      //LOG("\nRaw Data before copy: 0x");
-      //auto charPtr = (const char *)data;
-      //for(int i = 0; i < comp.second.getSize(); i++)
-      //{
-      //  LOG("%02X", charPtr[i]);
-      //}
-      //LOG("\n");
-      //std::cout.flush();
-      memcpy(data, comp.second.getRawData(), comp.second.getSize());
-      //LOG("\nRaw Data after copy: 0x");
-      //charPtr = (const char *)data;
-      //for(int i = 0; i < comp.second.getSize(); i++)
-      //{
-      //  LOG("%02X", charPtr[i]);
-      //}
-      //LOG("\n");
-      //std::cout.flush();
-      free(comp.second.getRawData()); // we copied the data, so now we free the old shit
-      comp.second.reset(); // defaults without destructing the data.
-      this->wasInit.set(comp.cIndex, true);
-      //LOG("set %i\n", comp.cIndex);
-    }
-    //LOG("\n");
-
-    // now setup any remaining components with default data
-    for (auto &comp: instTempl->components) {
-
-      //LOG("instTempl trying id %i\n", comp.comp_type_index);
-      if (!this->wasInit.test(comp.comp_type_index, false)) {
-        //LOG("succeeded\n");
-        archetype_component_id id = archInfo->getComponentId(comp.comp_type_index);
-
-        // we dont have to test here as the archtype was derived from these components
+      for (auto &comp: initializer) {
+        //LOG("ComponentInit id %i\n", comp.cIndex);
+        archetype_component_id id = archInfo->getComponentId(comp.cIndex);
+        //LOG("%s(%s) data:", dataComponents.getName(comp.cIndex).data(), componentTypes.getName(comp.second.getTypeId()).data());
+        //comp.second.getComponentRef().print(&componentTypes);
+        G_ASSERT(id != INVALID_ARCHETYPE_COMPONENT_ID); // component exists for us
         auto curr_info = ComponentInfo[id];
-        G_ASSERT(curr_info.INDEX == comp.comp_type_index);
         auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-        //LOG("creating component %s(%s) at address %p in chunk %i\n",
-        //    dataComponents.getName(comp.comp_type_index).data(),
-        //    componentTypes.getName(comp.default_component.getTypeId()).data(),
-        //    data, chunk_id);
-
-        //comp.default_component.print(&componentTypes);
-        //LOG("\nRaw Data before copy; 0x");
+        //LOG("Initializing component %s(%s) at address %p of size %i in chunk %i\n",
+        //    dataComponents.getName(comp.cIndex).data(),
+        //    componentTypes.getName(comp.second.componentTypeIndex).data(),
+        //    data, comp.second.getSize(), chunk_id);
+        //comp.second.getComponentRef().print(&componentTypes);
+        //LOG("\n");
+        //info->ARCHETYPE.printChunkBoundries(chunk_id);
+        //LOG("\nRaw Data before copy: 0x");
         //auto charPtr = (const char *)data;
-        //for(int i = 0; i < comp.default_component.getSize(); i++)
+        //for(int i = 0; i < comp.second.getSize(); i++)
         //{
         //  LOG("%02X", charPtr[i]);
         //}
         //LOG("\n");
         //std::cout.flush();
-        comp.default_component.createCopy(data, &data_state->componentTypes, this, eid, comp.comp_type_index);
+        comp.second.getComponentRef().createCopy(data, comp_types, this, eid, comp.cIndex);
+        //memcpy(data, comp.second.getRawData(), comp.second.getSize());
         //LOG("\nRaw Data after copy: 0x");
         //charPtr = (const char *)data;
-        //for(int i = 0; i < comp.default_component.getSize(); i++)
+        //for(int i = 0; i < comp.second.getSize(); i++)
         //{
         //  LOG("%02X", charPtr[i]);
         //}
         //LOG("\n");
         //std::cout.flush();
+        //LOGE("Freeing Pointer: {}", fmt::ptr(comp.second.getRawData()));
+        //free(comp.second.getRawData()); // we copied the data, so now we free the old shit
+        //comp.second.reset(); // defaults without destructing the data.
+        this->wasInit.set(comp.cIndex, true);
+        //LOG("set %i\n", comp.cIndex);
+      }
+      //LOG("\n");
+
+      // now setup any remaining components with default data
+      for (auto &comp: instTempl->components) {
+
+        //LOG("instTempl trying id %i\n", comp.comp_type_index);
+        if (!this->wasInit.test(comp.comp_type_index, false)) {
+          //LOG("succeeded\n");
+          archetype_component_id id = archInfo->getComponentId(comp.comp_type_index);
+
+          // we dont have to test here as the archtype was derived from these components
+          auto curr_info = ComponentInfo[id];
+          G_ASSERT(curr_info.INDEX == comp.comp_type_index);
+          auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
+          //LOG("creating component %s(%s) at address %p in chunk %i\n",
+          //    dataComponents.getName(comp.comp_type_index).data(),
+          //    componentTypes.getName(comp.default_component.getTypeId()).data(),
+          //    data, chunk_id);
+
+          //comp.default_component.print(&componentTypes);
+          //LOG("\nRaw Data before copy; 0x");
+          //auto charPtr = (const char *)data;
+          //for(int i = 0; i < comp.default_component.getSize(); i++)
+          //{
+          //  LOG("%02X", charPtr[i]);
+          //}
+          //LOG("\n");
+          //std::cout.flush();
+          comp.default_component.createCopy(data, &data_state->componentTypes, this, eid, comp.comp_type_index);
+          //LOG("\nRaw Data after copy: 0x");
+          //charPtr = (const char *)data;
+          //for(int i = 0; i < comp.default_component.getSize(); i++)
+          //{
+          //  LOG("%02X", charPtr[i]);
+          //}
+          //LOG("\n");
+          //std::cout.flush();
+        }
       }
     }
 
@@ -329,6 +337,7 @@ namespace ecs {
     auto desc = this->entDescs[eid.index()];
     archetype = desc.archetype_id; // should always be valid
     G_ASSERT(archetype != INVALID_ARCHETYPE);
+    std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
     G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
   }
@@ -339,6 +348,7 @@ namespace ecs {
     archetype = desc.archetype_id; // should always be valid
     G_ASSERT(archetype != INVALID_ARCHETYPE);
     //G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
+    std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
     if(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)
       return nullptr;
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
@@ -357,6 +367,7 @@ namespace ecs {
     archetype_t archetype = INVALID_ARCHETYPE;
     if (!getEntityArchetype(eid, idx, archetype))
       return -1;
+    std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
     return data_state->archetypes.getComponentsCount(archetype) - 1; // first is eid
   }
 
@@ -365,6 +376,8 @@ namespace ecs {
     auto desc = this->entDescs.getEntityDesc(eid);
     if (!desc)
       return {};
+
+    std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
     auto data = data_state->archetypes.getComponentDataIdUnsafe(this->arch_data, desc->archetype_id, cid,
                                                                 desc->chunk_id);
     if (!data)
@@ -384,8 +397,12 @@ namespace ecs {
     auto desc = this->entDescs.getEntityDesc(eid);
     if (!desc)
       return {};
-    auto data = data_state->archetypes.getComponentDataUnsafe(this->arch_data, desc->archetype_id, cidx,
-                                                              desc->chunk_id);
+    void * data;
+    {
+      std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
+      data = data_state->archetypes.getComponentDataUnsafe(this->arch_data, desc->archetype_id, cidx,
+                                                                desc->chunk_id);
+    }
     if (!data)
       return {};
     //auto cidx = this->archetypes.getComponentUnsafe(desc->archetype_id, cid);
@@ -396,16 +413,6 @@ namespace ecs {
 
     return {data, datacomp_data->componentHash, datacomp_data->componentIndex,
             data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
-  }
-
-  void EntityManager::collectEntitiesWithComponent(std::vector<EntityId> &out, HashedConstString component) {
-    component_index_t initializerIndex = data_state->dataComponents.getIndex(component.hash);
-    G_ASSERTF(initializerIndex != INVALID_COMPONENT_INDEX, "Unable to find component {}<{:#x}>\n", component.str,
-              component.hash);
-    G_ASSERT(false);
-    for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
-
-    }
   }
 
   void EntityManager::collectEntitiesOfTemplate(std::vector<EntityId> &out, template_t template_id) {

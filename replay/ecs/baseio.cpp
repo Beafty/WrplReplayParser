@@ -83,6 +83,7 @@ namespace ecs
     //const bool allocatedMem = ChildComponent::is_child_comp_boxed_by_size(componentTypeInfo.size);
     //alignas(void *) char compData[8]; // actually, should be sizeof(ChildComponent::Value), but it is protected
     void *tempData;
+
     tempData = malloc(componentTypeInfo.size);
     if (typeIO)
     {
@@ -101,7 +102,7 @@ namespace ecs
         memset(tempData, 0, componentTypeInfo.size);
       if (typeIO->deserialize(deserializer, tempData, componentTypeInfo.size, userType, mgr))
         return Component(tempData,userType, typeId, componentTypeInfo.size);
-      else {return {};}
+      else {EXCEPTION("");}
     }
     else if (isPod) // pod data can be just readed as-is
     {
