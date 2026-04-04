@@ -144,7 +144,15 @@ int main() {
   //LOG("Aircraft Count: {}", AircraftCount);
   auto ended = std::chrono::high_resolution_clock::now();
   for (auto &plr: state_ptr->players) {
-    LOGE("Name: {}; team: {}", plr.uid.data.name, plr.team.data);
+    auto owned_eid = plr.ownedUnitRef.data;
+    std::string * vehicle = nullptr;
+    if (owned_eid != ecs::INVALID_ENTITY_ID) {
+      vehicle = state.g_entity_mgr.getNullable<ecs::string>(owned_eid, ECS_HASH("unit__className"));
+    }
+    if(vehicle)
+      LOGE("Name: {}; team: {}; vehicle: {}", plr.uid.data.name, plr.team.data, *vehicle);
+    else
+      LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data.name, plr.team.data);
   }
   delete state_ptr;
   delete rdr;
@@ -153,7 +161,7 @@ int main() {
   delete pkt;
   std::chrono::duration<double, std::milli> duration = ended - start;
   // Output the result
-  std::cout << "profile time " << duration.count() << " " << packet_count;
+  std::cout << "profile time " << duration.count() << " " << packet_count << std::endl;
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->debugPrintEntities();

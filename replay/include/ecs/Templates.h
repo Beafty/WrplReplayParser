@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <shared_mutex>
 
+class PyGState; // for easy inspection
 namespace ecs
 {
   struct TransparentHash : std::hash<std::string_view> {
@@ -77,6 +78,8 @@ namespace ecs
       return ref1.comp_type_index < ref2.comp_type_index;
     }
   };
+
+
   /// A Template represents all the components a particular Entity should have. it does not store a entity, simply describes one
   /// we are probably not going to include sanity checks cause that is what gaijin is for :)
   struct Template
@@ -147,6 +150,7 @@ namespace ecs
   protected:
     friend TemplateDB;
     friend InstantiatedTemplate;
+    friend PyGState;
     std::string name;
     std::vector<ComponentTemplInfo> components;
     std::vector<template_t> parents;

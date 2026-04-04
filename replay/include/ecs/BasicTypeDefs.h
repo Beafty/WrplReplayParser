@@ -376,6 +376,9 @@ namespace dm {
   struct DamagePartProps {
     char data[576] = {0};
   };
+  struct SplashWave {
+    char data[8] = {0};
+  };
 }
 struct AmmoStowageMassToSplashList {
   char data[24] = {0};

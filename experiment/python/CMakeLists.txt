@@ -33,6 +33,7 @@ target_link_libraries(PyReplayParser PRIVATE
         Python::Python
         PyReplay::PyReplay
         PyState::PyState
+        PyECS::PyECS
 )
 
 # Set include dirs for Python if needed

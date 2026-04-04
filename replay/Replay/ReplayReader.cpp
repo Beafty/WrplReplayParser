@@ -110,13 +110,14 @@ IReplayReader::~IReplayReader() = default;
 
 FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_data, double expected_multiply_size)  {
   ZoneScoped;
-  auto ptr = (uint8_t*)malloc((size_t)(((double)zlib_data.size())*expected_multiply_size));
+  size_t decomp_size = (size_t)(((double)zlib_data.size())*expected_multiply_size);
+  auto ptr = (uint8_t*)malloc(decomp_size);
   size_t dest_len;
   auto ctx = libdeflate_alloc_decompressor();
   libdeflate_result ret;
   {
     ZoneScopedN("Replay uncompress")
-    ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, zlib_data.size()*3, &dest_len);
+    ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, decomp_size, &dest_len);
     //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
   }
   G_ASSERT(ret == LIBDEFLATE_SUCCESS);

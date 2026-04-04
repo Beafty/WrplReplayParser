@@ -44,9 +44,7 @@ ECS_DECLARE_CREATABLE_TYPE(nm::list_name)
 POD_DEFS(dm, PartIdList, dm::PartId)
 POD_DEFS(props, PropsIdList, props::PropsId)
 CREATEABLE_DEFS(ecs, StringList, ecs::string)
-ECS_DECLARE_POD_TYPE(ecs::EntityId)
-namespace ecs { using EidList = ecs::List<ecs::EntityId>; }
-ECS_DECLARE_BASE_TYPE(ecs::EidList, "ecs::EidList", true);
+POD_DEFS(ecs, EidList, ecs::EntityId)
 POD_DEFS(ecs, UInt8List, uint8_t)
 POD_DEFS(ecs, UInt16List, uint16_t)
 POD_DEFS(ecs, UInt32List, uint32_t)
@@ -351,6 +349,7 @@ ECS_DECLARE_CREATABLE_TYPE(BehaviourTree)
 ECS_DECLARE_CREATABLE_TYPE(BufferedHudData)
 ECS_DECLARE_CREATABLE_TYPE(InvalidType)
 ECS_DECLARE_CREATABLE_TYPE(LaserDecalManager)
+ECS_DECLARE_CREATABLE_TYPE(dm::SplashWave)
 
 #include "ecs/ComponentPrintingImplementations.h"
 

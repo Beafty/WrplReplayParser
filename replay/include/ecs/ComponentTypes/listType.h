@@ -12,7 +12,7 @@ namespace ecs {
   type_index_t find_component_type_index(component_type_t, ecs::EntityManager * = nullptr);
 
   template<typename T>
-  class List : protected eastl::vector<T> { // std::vector overloads std::vector<bool> to bitpack, which causes issues here
+  class List : public eastl::vector<T> { // std::vector overloads std::vector<bool> to bitpack, which causes issues here
   public:
     typedef eastl::vector <T> base_type;
     typedef typename base_type::iterator iterator;
@@ -20,6 +20,7 @@ namespace ecs {
     typedef typename base_type::const_iterator const_iterator;
 
     typedef typename base_type::size_type size_type;
+    typedef typename base_type::difference_type           difference_type;
 
     using typename base_type::value_type;
     // Warn: only RO methods are allowed to be reused from vector, RW methods have to call changeGen()

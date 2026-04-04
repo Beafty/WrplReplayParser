@@ -4,6 +4,7 @@
 #include "network/message.h"
 #include "tracy/Tracy.hpp"
 
+
 namespace ecs {
   OnDemandInit<GState> g_ecs_data{};
 
@@ -16,7 +17,7 @@ namespace ecs {
 
   EntityManager::EntityManager() {
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
-    for(auto &eid : this->uid_lookup) {
+    for (auto &eid: this->uid_lookup) {
       eid = ecs::INVALID_ENTITY_ID;
     }
     wasInit.resize(10000,
@@ -349,9 +350,21 @@ namespace ecs {
     G_ASSERT(archetype != INVALID_ARCHETYPE);
     //G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
     std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
-    if(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)
+    if (data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)
       return nullptr;
     return data_state->archetypes.getComponentDataUnsafe(this->arch_data, archetype, index, desc.chunk_id);
+  }
+
+  bool EntityManager::entityHasComponent(EntityId eid, component_index_t index) const {
+    G_ASSERT(this->entDescs.doesEntityExist(eid)); // sanity check in dev only
+    auto desc = this->entDescs[eid.index()];
+    archetype_t archetype = desc.archetype_id; // should always be valid
+    G_ASSERT(archetype != INVALID_ARCHETYPE);
+    //G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
+    std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
+    if (data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)
+      return false;
+    return true;
   }
 
   __forceinline bool EntityManager::getEntityArchetype(EntityId eid, int &idx, archetype_t &archetype) const {
@@ -397,11 +410,11 @@ namespace ecs {
     auto desc = this->entDescs.getEntityDesc(eid);
     if (!desc)
       return {};
-    void * data;
+    void *data;
     {
       std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
       data = data_state->archetypes.getComponentDataUnsafe(this->arch_data, desc->archetype_id, cidx,
-                                                                desc->chunk_id);
+                                                           desc->chunk_id);
     }
     if (!data)
       return {};
@@ -427,7 +440,7 @@ namespace ecs {
 
   void EntityManager::sendEventImmediate(EntityId eid, Event &evt) {
     if (!this->entDescs.doesEntityExist(eid))
-      EXCEPTION("tried to send a query to an entity that doesnt exist");
+    EXCEPTION("tried to send a query to an entity that doesnt exist");
     this->data_state->sendEventImmediate(eid, evt, this);
   }
 
@@ -451,14 +464,33 @@ namespace ecs {
     return this->uid_lookup[uid];
   }
 
+  void
+  EntityManager::collectComponentInfo(EntityId eid, std::vector<std::pair<ComponentInfo *, DataComponent *>> &comps) {
+    int num_components = this->getNumComponents(eid);
+    if (num_components == -1) {
+      comps.resize(0);
+      return;
+    }
+    template_t t = this->getEntityTemplateId(eid);
+    G_ASSERT(t!=INVALID_TEMPLATE_INDEX);
+    std::shared_lock arch_lock(this->data_state->templates.template_mtx);
+    auto inst = this->data_state->templates.inst_templates[t];
+    for(auto &comp : inst->components) {
+      auto d = this->data_state->dataComponents.getDataComponent(comp.comp_type_index); // datacomponent
+      auto c = this->data_state->componentTypes.getComponentData(d->componentIndex); // component
+      comps.emplace_back(c, d);
+    }
+  }
+
 
   // THIS EVENT IS ACTUALLY USED
   static void
-  uid_handler_add_delete_entities(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
-    auto *eid = (ecs::EntityId*)components.componentData[0];
-    auto *uid = (int*)components.componentData[1];
-    if(evt.is<ecs::EventEntityCreated>()) {
-      if(*uid==-1) {
+  uid_handler_add_delete_entities(EntityManager *mgr, const ecs::Event &__restrict evt,
+                                  const ecs::QueryView &__restrict components) {
+    auto *eid = (ecs::EntityId *) components.componentData[0];
+    auto *uid = (int *) components.componentData[1];
+    if (evt.is<ecs::EventEntityCreated>()) {
+      if (*uid == -1) {
         LOGE("Entity {:#x} has no uid, normal?", eid->get_handle());
         return;
       }
@@ -474,7 +506,7 @@ namespace ecs {
 
   static constexpr ecs::ComponentDesc uid_lookup_add_remove_event[] =
       {
-          {ECS_HASH("eid"),      ecs::ComponentTypeInfo<ecs::EntityId>()},
+          {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
           {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
       };
 
@@ -492,7 +524,6 @@ namespace ecs {
       );
 
 
-
   static constexpr ecs::ComponentDesc msg_sink_es_event_handler_comps[] =
       {
 //start of 1 ro components at [0]
@@ -502,26 +533,30 @@ namespace ecs {
       };
 
   static void
-  msg_sink_es_event_handler_all_events(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  msg_sink_es_event_handler_all_events(EntityManager *mgr, const ecs::Event &__restrict evt,
+                                       const ecs::QueryView &__restrict components) {
     LOG("Created Message Sink wouw");
   }
 
   static void
-  log_any_entity_created_event(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  log_any_entity_created_event(EntityManager *mgr, const ecs::Event &__restrict evt,
+                               const ecs::QueryView &__restrict components) {
     LOG("Created any entity wouw");
   }
 
   static void
-  print_funny_data_hehe(EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components) {
+  print_funny_data_hehe(EntityManager *mgr, const ecs::Event &__restrict evt,
+                        const ecs::QueryView &__restrict components) {
     auto compBegin = components.begin(), compEnd = components.end();
     LOG("New chunk started ");
     G_ASSERT(compBegin != compEnd);
     do {
       auto eid = components.eid_refs[compBegin];
-      if(eid != ecs::INVALID_ENTITY_ID) {
-        auto unit__className = ((ecs::string*)components.componentData[0])[compBegin];
-        auto unit__missionName = ((ecs::string*)components.componentData[1])[compBegin];
-        LOG("Collected entity {:#x} with unit__className of value: {}; and unit__missionName of value: {}", eid.get_handle(), unit__className, unit__missionName);
+      if (eid != ecs::INVALID_ENTITY_ID) {
+        auto unit__className = ((ecs::string *) components.componentData[0])[compBegin];
+        auto unit__missionName = ((ecs::string *) components.componentData[1])[compBegin];
+        LOG("Collected entity {:#x} with unit__className of value: {}; and unit__missionName of value: {}",
+            eid.get_handle(), unit__className, unit__missionName);
       }
     } while (++compBegin != compEnd);
   }
@@ -553,8 +588,8 @@ namespace ecs {
       );
   static constexpr ecs::ComponentDesc look_for_players_query_comps[] =
       {
-          {ECS_HASH("unit__playerId"), ecs::ComponentTypeInfo<int>()},
-          {ECS_HASH("unit__className"), ecs::ComponentTypeInfo<ecs::string>()},
+          {ECS_HASH("unit__playerId"),    ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__className"),   ecs::ComponentTypeInfo<ecs::string>()},
           {ECS_HASH("unit__missionName"), ecs::ComponentTypeInfo<ecs::string>()},
       };
   static ecs::CompileTimeQueryDesc look_for_players_query_desc
@@ -572,10 +607,11 @@ namespace ecs {
           "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
           ecs::EntitySystemOps(print_funny_data_hehe),
           empty_span(),
-          make_span(look_for_players_query_comps+1, 2),/*ro*/
+          make_span(look_for_players_query_comps + 1, 2),/*ro*/
           empty_span(),
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntitySomething>::build(),
           0
       );
 }
+

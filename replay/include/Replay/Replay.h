@@ -83,7 +83,7 @@ class Replay {
   bool valid = false;
 public:
   uint32_t magic;
-  const uint32_t current_magic = 25951248;
+  const uint32_t current_magic = 0x18bfe10;
   std::string_view level_bin; // 128 bytes
   std::string_view level_blk; //260 bytes
   DataBlock HeaderBlk;
@@ -143,6 +143,7 @@ private:
   void parse() {
     magic = *data->getObj<uint32_t>(MAGIC_OFFS);
     valid = this->check_magic();
+    G_ASSERTF(valid, "Invalid magic, has {:#x} but expected {:#x}", this->magic, this->current_magic);
     if(!valid)
       return;
     level_bin = data->getStr(LEVEL_BIN_PATH_OFFS);

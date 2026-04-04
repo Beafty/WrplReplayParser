@@ -5,6 +5,7 @@
 #include <cmath>
 #include "Logger.h"
 #include <shared_mutex>
+#include "BitVector.h"
 
 
 
@@ -22,6 +23,7 @@ namespace ecs
   static constexpr uint32_t MAX_CHUNK_SIZE = 64*1024; // 64 kb
 
   struct MgrArchetypeStorage;
+  class GState;
   /// an archetype is the data holder for a specific template basically
 /// has no knowledge about an Entities real makeup
   class Archetype

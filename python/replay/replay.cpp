@@ -63,6 +63,8 @@ void PyReplay::include(py::module_ &m) {
 
   py::class_<ServerReplayReader, IReplayReader>(sub, "ServerReplayReader");
 
+  py::class_<MemoryEfficientServerReplayReader, IReplayReader>(sub, "MemoryEfficientServerReplayReader");
+
   py::class_<Replay>(sub, "Replay")
       .def(py::init<const std::string &>())
       .def_static("from_bytes", [](py::bytes bytes_data) {
@@ -83,6 +85,10 @@ void PyReplay::include(py::module_ &m) {
   py::class_<ServerReplay>(sub, "ServerReplay")
       .def(py::init<const std::string &>())
       .def("get_replay_reader", &ServerReplay::getRplReader, py::return_value_policy::take_ownership);
+
+  py::class_<MemoryEfficientServerReplay>(sub, "MemoryEfficientServerReplay")
+      .def(py::init<const std::string &>())
+      .def("get_replay_reader", &MemoryEfficientServerReplay::getRplReader, py::return_value_policy::take_ownership);
 }
 
 PyReplay py_replay{};

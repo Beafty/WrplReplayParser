@@ -677,6 +677,7 @@ namespace ecs {
   ECS_REGISTER_CTM_TYPE(BufferedHudData, &buffered_hud_data_serializer);
   ECS_REGISTER_CTM_TYPE(InvalidType, nullptr);
   ECS_REGISTER_CTM_TYPE(LaserDecalManager, nullptr);
+  ECS_REGISTER_CTM_TYPE(dm::SplashWave, nullptr);
 }
 
 class ErrorSerializer final : public ecs::ComponentSerializer {

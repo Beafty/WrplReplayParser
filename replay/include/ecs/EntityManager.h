@@ -24,6 +24,7 @@
 #include "ecs/internal/ecsQueryInternal.h"
 #include "ecs/internal/ArchetypesQuery.h"
 #include <shared_mutex>
+class PyGState; // for python bindings
 
 namespace ecs {
   static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
@@ -284,6 +285,7 @@ namespace ecs {
     void performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr);
 
     friend EntityManager;
+    friend PyGState;
   };
 
   extern OnDemandInit<GState> g_ecs_data;
@@ -313,8 +315,9 @@ namespace ecs {
 
     void *getNullableUnsafe(EntityId eid, component_index_t index, archetype_t &archetype) const;
 
-    template<class T>
-    T *getNullable(EntityId eid, HashedConstString component) {
+    bool entityHasComponent(EntityId eid, component_index_t index) const;
+
+    void *getNullable(EntityId eid, HashedConstString component) {
       if (!this->entDescs.doesEntityExist(eid))
         return nullptr;
       auto cidx = this->data_state->dataComponents.getIndex(component.hash);
@@ -322,7 +325,12 @@ namespace ecs {
         return nullptr;
       //auto comp = this->data_state->dataComponents.getDataComponent(cidx);
       archetype_t arch = INVALID_ARCHETYPE;
-      return (T *) this->getNullableUnsafe(eid, cidx, arch);
+      return this->getNullableUnsafe(eid, cidx, arch);
+    }
+
+    template<class T>
+    inline T *getNullable(EntityId eid, HashedConstString component) {
+      return (T*)this->getNullable(eid, component);
     }
 
     template_t buildTemplateIdByName(const char *templ_name);
@@ -342,6 +350,8 @@ namespace ecs {
     inline bool getEntityArchetype(EntityId eid, int &idx, archetype_t &archetype) const;
 
     int getNumComponents(EntityId eid) const;
+
+    void collectComponentInfo(EntityId eid, std::vector<std::pair<ComponentInfo*, DataComponent*>> &comps);
 
     std::string_view getEntityTemplateName(EntityId &eid) {
       template_t t = getEntityTemplateId(eid);

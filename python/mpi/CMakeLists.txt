@@ -9,7 +9,7 @@ target_link_libraries(PyMpi
         pybind11::module
         Python::Python
         MPI::MPI
-        pyECS::pyECS
+        PyECS::PyECS
 )
 
 add_library(PyMpi::PyMpi ALIAS PyMpi)

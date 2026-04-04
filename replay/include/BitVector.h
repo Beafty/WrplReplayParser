@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <initializer_list>
 
+// this honestly should be replaced with the eastl::bitvector or whatever it is because this is LITERALLY based on that
 class BitVector : public std::vector<bool> {
 public:
   explicit BitVector(bool default_value)

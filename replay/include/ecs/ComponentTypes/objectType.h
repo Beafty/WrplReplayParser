@@ -12,11 +12,14 @@
 #ifndef __forceinline
 #define __forceinline inline
 #endif
+struct objectIter;
+
 namespace ecs
 {
 
 class Object
 {
+  friend objectIter;
 public:
   // it is possible to optimize layout. our keys are immutable strings, i.e. we never change them
   // so we don't need capacity. actually, SimpleString (const char*) would be sufficient, but then there is no SSO

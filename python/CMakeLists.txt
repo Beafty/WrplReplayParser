@@ -3,7 +3,7 @@
 if(PYTHON_VERSION)
     find_package(Python ${PYTHON_VERSION} REQUIRED COMPONENTS Interpreter Development)
 else()
-    find_package(Python 3.12...3.12.9 REQUIRED COMPONENTS Interpreter Development)
+    find_package(Python 3.12...3.12.13 REQUIRED COMPONENTS Interpreter Development)
 endif()
 
 # Try to find pybind11 via find_package first
