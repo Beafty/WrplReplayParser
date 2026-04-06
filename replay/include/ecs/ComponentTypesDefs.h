@@ -92,18 +92,6 @@ void hello();
 struct FieldSerializerDict {
   std::unordered_map<uint16_t, std::vector<unsigned char>> data;
 
-  //FieldSerializerDict() {
-  //  data = new std::unordered_map<uint16_t, std::vector<unsigned char>>();
-  //}
-
-  //~FieldSerializerDict() {
-  //for (auto &s: *data) {
-  //  if (s.second.data()) {
-  //    free(s.second.data());
-  //  }
-  //}
-  //  delete data;
-  //}
   std::string toString() const {
     std::ostringstream oss;
     oss << fmt::format("({})", data.size());

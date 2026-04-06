@@ -6,6 +6,7 @@
 
 namespace mpi {
   void zstd_decompress(BitStream &in, BitStream &out) {
+
     uint32_t comp_size;
     uint32_t decomp_size;
     in.ReadCompressed(comp_size);

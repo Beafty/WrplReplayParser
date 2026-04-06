@@ -351,7 +351,70 @@ public:
       bitsAllocated = (uint32_t) bytes2bits(newBytesAllocated);
     }
   }
+  BitStream(const BitStream& other)
+      : bitsUsed(other.bitsUsed),
+        dataOwner(other.dataOwner),
+        bitsAllocated(other.bitsAllocated),
+        readOffset(other.readOffset)
+  {
+    if (other.data && other.dataOwner) {
+      data = (uint8_t*) malloc(bits2bytes(bitsAllocated));
+      memcpy(data, other.data, bits2bytes(bitsAllocated));
+      dataOwner = 1; // We own our copy
+    } else {
+      data = other.data; // Just pointer copy if no ownership
+      dataOwner = 0;
+    }
+  }
 
+  BitStream& operator=(const BitStream& other) {
+    if (this != &other) {
+      if (dataOwner && data) free(data);
+      bitsUsed = other.bitsUsed;
+      bitsAllocated = other.bitsAllocated;
+      readOffset = other.readOffset;
+      if (other.data && other.dataOwner) {
+        data = (uint8_t*) malloc(bits2bytes(bitsAllocated));
+        memcpy(data, other.data, bits2bytes(bitsAllocated));
+        dataOwner = 1;
+      } else {
+        data = other.data;
+        dataOwner = 0;
+      }
+    }
+    return *this;
+  }
+
+  BitStream(BitStream&& other) noexcept
+      : bitsUsed(other.bitsUsed),
+        dataOwner(other.dataOwner),
+        bitsAllocated(other.bitsAllocated),
+        readOffset(other.readOffset),
+        data(other.data)
+  {
+    other.bitsUsed = 0;
+    other.bitsAllocated = 0;
+    other.readOffset = 0;
+    other.data = nullptr;
+    other.dataOwner = 0;
+  }
+
+  BitStream& operator=(BitStream&& other) noexcept {
+    if (this != &other) {
+      if (dataOwner && data) free(data);
+      bitsUsed = other.bitsUsed;
+      bitsAllocated = other.bitsAllocated;
+      readOffset = other.readOffset;
+      dataOwner = other.dataOwner;
+      data = other.data;
+      other.bitsUsed = 0;
+      other.bitsAllocated = 0;
+      other.readOffset = 0;
+      other.data = nullptr;
+      other.dataOwner = 0;
+    }
+    return *this;
+  }
 protected:
   template<typename T>
   void writeCompressedUnsignedGeneric(T v) {

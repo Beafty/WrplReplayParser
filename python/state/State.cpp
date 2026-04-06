@@ -1,3 +1,4 @@
+#include <pybind11/functional.h>
 #include "modules/State.h"
 #include "state/ParserState.h"
 #include "init/initialize.h"
@@ -5,12 +6,58 @@
 #include "modules/replay/replay.h"
 #include "Replay/Replay.h"
 
+
+void ParseSinglePacket(ParserState &state, ReplayPacket &pkt, bool &end) {
+  switch (pkt.type) {
+    case ReplayPacketType::EndMarker: {
+      end = true;
+      break;
+    }
+    case ReplayPacketType::StartMarker: {
+      break;
+    }
+    case ReplayPacketType::AircraftSmall: {
+      break;
+    }
+    case ReplayPacketType::Chat:
+      break;
+    case ReplayPacketType::MPI: {
+      auto m = mpi::dispatch(pkt.stream, &state, false);
+      if (m != nullptr) {
+        mpi::send(m);
+        delete m;
+      }
+      break;
+    }
+    case ReplayPacketType::NextSegment: {
+      LOG("NextSegment");
+      break;
+    }
+    case ReplayPacketType::ECS: {
+      state.onPacket(&pkt);
+      break;
+    }
+    case ReplayPacketType::Snapshot: // useless
+      break;
+    case ReplayPacketType::ReplayHeaderInfo:
+      break;
+  }
+  //std::cout.flush();
+}
+
+void
+initialize_wrapper(const std::string &VromfsPath, const std::string &logfile_path, bool fonts = false, bool lang = true,
+                   bool mis = true) {
+  std::thread t(initialize, VromfsPath, logfile_path, fonts, lang, mis);
+  t.join();
+}
+
 void PyReplayState::include(py::module_ &m) {
   DO_INCLUDE()
   py_replay_state.include(m);
   py_codegen_objects.include(m);
 
-  m.def("initialize", &initialize,
+  m.def("initialize", &initialize_wrapper,
         py::arg("VromfsPath"),
         py::arg("logfile_path"),
         py::arg("fonts") = false,
@@ -32,54 +79,36 @@ void PyReplayState::include(py::module_ &m) {
       .def_readonly("gen_state", &ParserState::gen_state)
       .def_readonly("glob_elo", &ParserState::glob_elo)
       .def_readonly("zones", &ParserState::Zones)
-      .def("set_player_count", &ParserState::setPlayerCount)
+      .def("ParseSinglePacket", [](ParserState &state, ReplayPacket &pkt) {
+        bool temp;
+        ParseSinglePacket(state, pkt, temp);
+      })
       .def("LoadFromReader", [](ParserState &state,
-                                IReplayReader &rdr) { // the temporary exists for the entire call of this function, unlike __iter__
+                                IReplayReader &rdr, const std::function<void(
+          ReplayPacket *)> &func) { // the temporary exists for the entire call of this function, unlike __iter__
         //auto rdr = py_reader.cast<IReplayReader*>();
-        std::thread temp_t([&](){
-          ReplayPacket pkt{};
-          bool end = false;
-          while (!end && rdr.getNextPacket(&pkt)) {
-            switch (pkt.type) {
-              case ReplayPacketType::EndMarker: {
-                end = true;
-                break;
-              }
-              case ReplayPacketType::StartMarker: {
-                break;
-              }
-              case ReplayPacketType::AircraftSmall: {
-                break;
-              }
-              case ReplayPacketType::Chat:
-                break;
-              case ReplayPacketType::MPI: {
-                auto m = mpi::dispatch(pkt.stream, &state, false);
-                if (m != nullptr) {
-                  mpi::send(m);
-                  delete m;
+        py::gil_scoped_release release;
+        std::thread temp_t(
+            [&]() { // this is done purely so python signal handler doesnt come into play and so my signal handler dumps stacktrace
+              ReplayPacket pkt{};
+              bool end = false;
+              if (func) {
+                py::gil_scoped_acquire gil;
+                while (!end && rdr.getNextPacket(&pkt)) {
+                  BitSize_t start_offs = pkt.stream.GetReadOffset();
+                  ParseSinglePacket(state, pkt, end);
+                  pkt.stream.SetReadOffset(start_offs);
+                  func(&pkt);
                 }
-                break;
+              } else {
+                while (!end && rdr.getNextPacket(&pkt)) {
+                  ParseSinglePacket(state, pkt, end);
+                }
               }
-              case ReplayPacketType::NextSegment: {
-                LOG("NextSegment");
-                break;
-              }
-              case ReplayPacketType::ECS: {
-                state.onPacket(&pkt);
-                break;
-              }
-              case ReplayPacketType::Snapshot: // useless
-                break;
-              case ReplayPacketType::ReplayHeaderInfo:
-                break;
-            }
-            //std::cout.flush();
-          }
-        });
+            });
         temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
         // if its another thread, then my segfault handler will catch it and print the stacktrace
-      });
+      }, py::arg("reader"), py::arg("callback") = nullptr);
 }
 
 PyReplayState py_replay_state{};
