@@ -4,6 +4,7 @@
 class MPlayer : public danet::ReflectableObject {
 public:
   DECL_REFLECTION(MPlayer, danet::ReflectableObject)
+  std::unordered_set<ecs::EntityId> ownedUnits{};
   danet::ReflectionVar<danet::Uid> uid{"uid", &invitedNickName, 2};
   danet::ReflectionVar<std::string> invitedNickName{"invitedNickName", &nickLocKey, 3};
   danet::ReflectionVar<std::string> nickLocKey{"nickLocKey", &ClanTag, 4, danet::TranslatedCoder};

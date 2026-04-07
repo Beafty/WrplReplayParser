@@ -75,6 +75,15 @@ namespace ecs {
 
 }; // namespace ecs
 
+namespace std {
+  template <>
+  struct hash<ecs::EntityId> {
+    size_t operator()(const ecs::EntityId& v) const noexcept {
+      return static_cast<size_t>(static_cast<ecs::entity_id_t>(v));
+    }
+  };
+}
+
 template<typename T>
 struct DebugConverter;
 

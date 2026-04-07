@@ -220,7 +220,7 @@ public:
     return new ServerReplayReader(this->replay_files);
   }
 };
-class ParserState;
+struct ParserState;
 class MemoryEfficientServerReplay {
 public:
   explicit MemoryEfficientServerReplay(const std::string &path) {

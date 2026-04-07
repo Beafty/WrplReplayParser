@@ -1,7 +1,11 @@
 from .obj_base import ReflectableObject, ReplicatedObject
 from .obj_base import ReflectionVarMeta as Var
+from .obj_base import SimpleVar as SVar
 
 class MPlayer(ReflectableObject):
+    public = [
+        SVar("std::unordered_set<ecs::EntityId>", "ownedUnits")
+    ]
     uid = Var("danet::Uid", 2)
     invitedNickName = Var("std::string", 3)
     nickLocKey = Var("std::string", 4, "TranslatedCoder")

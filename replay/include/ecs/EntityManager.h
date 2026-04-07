@@ -25,6 +25,7 @@
 #include "ecs/internal/ArchetypesQuery.h"
 #include <shared_mutex>
 class PyGState; // for python bindings
+struct ParserState;
 
 namespace ecs {
   static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
@@ -290,15 +291,15 @@ namespace ecs {
 
   extern OnDemandInit<GState> g_ecs_data;
 
-
   class EntityManager {
 
   public:
 
+    ParserState * owned_by=nullptr;
     // for ease of access
     std::array<ecs::EntityId, 2048> uid_lookup;
 
-    EntityManager();
+    explicit EntityManager(ParserState*owned_by);
 
     ~EntityManager();
 

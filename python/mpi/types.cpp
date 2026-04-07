@@ -16,5 +16,11 @@ void PyMpiTypes::include(py::module_ &m) {
       .def_property_readonly("player_name", &danet::Uid::get_player_name);
   py::class_<danet::UnitId>(mpi, "UnitId")
       .def_readonly("val", &danet::UnitId::val);
+  py::class_<std::unordered_set<ecs::EntityId>>(m, "EntityIdSet")
+      .def("__contains__", [](const std::unordered_set<int> &self, int val) { return self.count(val); })
+      .def("__len__", [](const std::unordered_set<int> &self) { return self.size(); })
+      .def("__iter__", [](const std::unordered_set<int> &self) {
+        return py::make_iterator(self.begin(), self.end());
+      }, py::keep_alive<0, 1>());
   py_codegen_types.include(m);
 }

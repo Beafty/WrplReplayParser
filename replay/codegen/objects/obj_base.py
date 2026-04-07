@@ -5,6 +5,15 @@ if TYPE_CHECKING:
     from ..DataTypes import DataTypeManager
 
 
+# just a simple object to represent a var when handling manual vars of a ReflectableObject
+class SimpleVar:
+    def __init__(self, datatype: str, name: str):
+        self.datatype = datatype
+        self.name = name
+
+    def __str__(self):
+        return f"{self.datatype} {self.name}{'{}'};"
+
 class NullIndexList:
     def __init__(self, ls: list[tuple[str, 'ReflectionVarMeta']]):
         self.ls: list[tuple[str, 'ReflectionVarMeta']] = ls
@@ -67,8 +76,19 @@ class InstReflectable:
                 yield (attr_name, attr_val)
 
     def write_header(self):
-        self.oss.write(f"class {self.obj_name} : public {self.parent_name}")
-        self.oss.write(" {\npublic:\n"f"  DECL_REFLECTION({self.obj_name}, {self.parent_name})\n")
+        self.oss.write(f"class {self.obj_name} : public {self.parent_name} {'{'}\n")
+        if hasattr(self.obj, "protected"):
+            self.oss.write("protected:\n")
+            for v in self.obj.protected:
+                self.oss.write(f"  {str(v)}\n")
+        if hasattr(self.obj, "private"):
+            self.oss.write("private:\n")
+            for v in self.obj.private:
+                self.oss.write(f"  {str(v)}\n")
+        self.oss.write("public:\n"f"  DECL_REFLECTION({self.obj_name}, {self.parent_name})\n")
+        if hasattr(self.obj, "public"):
+            for v in self.obj.public:
+                self.oss.write(f"  {str(v)}\n")
 
     def write_header_bindings(self):
         self.oss.write(f"  py::class_<{self.obj_name}, {self.parent_name}, std::unique_ptr<{self.obj_name}, py::nodelete>>(mpi, \"{self.obj_name}\")\n")
@@ -108,9 +128,13 @@ class InstReflectable:
             else:
                 self.oss.write(f"  danet::ReflectionVar<{self.mgr.refractor_raw_name(curr_var[1].data_type)}> {curr_var[0]}" "{" f"\"{curr_var[0]}\", {next_var_ref}, {curr_var[1].var_id}" "};\n")
 
-    def serialize_bindings(self):
-        for v in self.vars.ls:
 
+    def serialize_bindings(self):
+        if hasattr(self.obj, "public"):
+            for v in self.obj.public:
+                self.oss.write(f"    .def_readonly(\"{v.name}\", &{self.obj_name}::{v.name})\n")
+
+        for v in self.vars.ls:
             self.oss.write(f"    .def_property_readonly(\"{v[0]}\", []({self.obj_name}*ths){'{'}return &ths->{v[0]}.data;{'}'})\n")
         self.oss.write("  ;\n")
 
@@ -141,8 +165,19 @@ class InstReplicated(InstReflectable):
 
 
     def write_header(self):
-        self.oss.write(f"class {self.obj_name} : public {self.parent_name}")
-        self.oss.write(" {\npublic:\n"f"  DECL_REPLICATION({self.obj_name}, {self.parent_name})\n")
+        self.oss.write(f"class {self.obj_name} : public {self.parent_name} {'{'}\n")
+        if hasattr(self.obj, "protected"):
+            self.oss.write("protected:\n")
+            for v in self.obj.protected:
+                self.oss.write(f"  {str(v)}\n")
+        if hasattr(self.obj, "private"):
+            self.oss.write("private:\n")
+            for v in self.obj.private:
+                self.oss.write(f"  {str(v)}\n")
+        self.oss.write("public:\n"f"  DECL_REPLICATION({self.obj_name}, {self.parent_name})\n")
+        if hasattr(self.obj, "public"):
+            for v in self.obj.public:
+                self.oss.write(f"  {str(v)}\n")
 
     def write_footer(self):
         self.oss.write("};\n\n")

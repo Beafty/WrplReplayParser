@@ -10,6 +10,7 @@ void PyCodegenObjects::include(py::module_ &m) {
   py_mpi.include(m);
   auto mpi = m.def_submodule("mpi");
   py::class_<MPlayer, danet::ReflectableObject, std::unique_ptr<MPlayer, py::nodelete>>(mpi, "MPlayer")
+    .def_readonly("ownedUnits", &MPlayer::ownedUnits)
     .def_property_readonly("uid", [](MPlayer*ths){return &ths->uid.data;})
     .def_property_readonly("invitedNickName", [](MPlayer*ths){return &ths->invitedNickName.data;})
     .def_property_readonly("nickLocKey", [](MPlayer*ths){return &ths->nickLocKey.data;})

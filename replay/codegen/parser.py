@@ -105,10 +105,6 @@ def generate_bindings(header_codegen_path: str, cpp_codegen_path: str, force_gen
     mgr.compile_bindings(header_codegen_path, cpp_codegen_path)
 
 
-
-
-
-
 if __name__ == "__main__":
     header_codegen_path = r"D:\ReplayParser\replay\include\mpi\codegen"
     cpp_codegen_path = r"D:\ReplayParser\replay\mpi\codegen"

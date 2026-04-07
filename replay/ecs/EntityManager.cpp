@@ -3,6 +3,7 @@
 #include "network/CNetwork.h"
 #include "network/message.h"
 #include "tracy/Tracy.hpp"
+#include "state/ParserState.h"
 
 
 namespace ecs {
@@ -15,7 +16,8 @@ namespace ecs {
       sd->query = createUnresolvedQuery(*sd);
   }
 
-  EntityManager::EntityManager() {
+  EntityManager::EntityManager(ParserState*owned_by) {
+    this->owned_by = owned_by;
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
     for (auto &eid: this->uid_lookup) {
       eid = ecs::INVALID_ENTITY_ID;
@@ -81,7 +83,7 @@ namespace ecs {
       std::shared_lock templ_lock(this->data_state->templates.template_mtx);
       G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
       LOGD1("Creating new entity {:#x} of template '{}'", eid.handle,
-            data_state->templates.getTemplate(templId)->name.c_str());
+            data_state->templates.getTemplate(templId)->getName());
       auto arches = &this->data_state->archetypes;
 
       auto arch_inst = this->arch_data.getArch(archetype_id);
@@ -210,7 +212,7 @@ namespace ecs {
       return false;
     auto desc = this->entDescs.getEntityDesc(eid);
     LOGD2("Destroying entity {:#x} of template {}", eid.handle,
-          data_state->templates.getTemplate(desc->templ_id)->name.c_str());
+          data_state->templates.getTemplate(desc->templ_id)->getName());
     //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
     archetype_t archetype_id = desc->archetype_id;
     auto ARCHETYPE = this->arch_data.getArch(archetype_id);
@@ -611,6 +613,45 @@ namespace ecs {
           empty_span(),
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntitySomething>::build(),
+          0
+      );
+  static constexpr ecs::ComponentDesc mplayer_add_comps[] =
+      {
+          {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+          {ECS_HASH("unit__playerId"),    ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("playerUnit"), ecs::ComponentTypeInfo<ecs::Tag>()}
+      };
+
+  static void
+  mplayer_add_entity(EntityManager *mgr, const ecs::Event &__restrict evt,
+                        const ecs::QueryView &__restrict components) {
+    auto *eid = (ecs::EntityId *) components.componentData[0];
+    auto *unit__playerId = (int *) components.componentData[1];
+    if (evt.is<ecs::EventEntityCreated>()) {
+      if(*unit__playerId == -1) { // not owned by a player
+        return;
+      }
+      G_ASSERT(*unit__playerId < mgr->owned_by->players.size());
+      mgr->owned_by->players[*unit__playerId].ownedUnits.emplace(*eid);
+    } else if(evt.is<ecs::EventEntityDestroyed>()) {
+      if(*unit__playerId == -1) { // not owned by a player
+        return;
+      }
+      G_ASSERT(*unit__playerId < mgr->owned_by->players.size());
+      mgr->owned_by->players[*unit__playerId].ownedUnits.erase(*eid);
+    }
+  }
+
+  static ecs::EntitySystemDesc mplayer_add_entity_es
+      (
+          "mplayer_add_entity_es",
+          "womp womp",
+          ecs::EntitySystemOps(mplayer_add_entity),
+          empty_span(),
+          make_span(mplayer_add_comps, 2),/*ro*/
+          make_span(mplayer_add_comps+2, 1),/*rq*/
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
           0
       );
 }
