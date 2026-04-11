@@ -484,13 +484,13 @@ namespace ecs {
     }
   }
 
-
-  // THIS EVENT IS ACTUALLY USED
+  // uid handling
   static void
   uid_handler_add_delete_entities(EntityManager *mgr, const ecs::Event &__restrict evt,
                                   const ecs::QueryView &__restrict components) {
     auto *eid = (ecs::EntityId *) components.componentData[0];
     auto *uid = (int *) components.componentData[1];
+    auto *unit__ref = (unit::UnitRef *)components.componentData[2];
     if (evt.is<ecs::EventEntityCreated>()) {
       if (*uid == -1) {
         LOGE("Entity {:#x} has no uid, normal?", eid->get_handle());
@@ -498,10 +498,12 @@ namespace ecs {
       }
       G_ASSERT(mgr->uid_lookup[*uid] == ecs::INVALID_ENTITY_ID);
       mgr->uid_lookup[*uid] = *eid;
+      mgr->uid_unit_ref_lookup[*uid] = unit__ref;
       //LOG("set uid {} to eid {}", *uid, eid->get_handle());
     } else if (evt.is<ecs::EventEntityDestroyed>()) {
       G_ASSERT(mgr->uid_lookup[*uid] != ecs::INVALID_ENTITY_ID);
       mgr->uid_lookup[*uid] = ecs::INVALID_ENTITY_ID;
+      mgr->uid_unit_ref_lookup[*uid] = nullptr;
       //LOG("removing entity at uid {}", *uid);
     }
   }
@@ -509,7 +511,8 @@ namespace ecs {
   static constexpr ecs::ComponentDesc uid_lookup_add_remove_event[] =
       {
           {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-          {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
+          {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
       };
 
   static ecs::EntitySystemDesc uid_handler_add_delete_entities_desc
@@ -518,103 +521,14 @@ namespace ecs {
           "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
           ecs::EntitySystemOps(uid_handler_add_delete_entities),
           empty_span(),
-          make_span(uid_lookup_add_remove_event, 2)/*ro*/,
+          make_span(uid_lookup_add_remove_event, 3)/*ro*/,
           empty_span(),
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
           0
       );
 
-
-  static constexpr ecs::ComponentDesc msg_sink_es_event_handler_comps[] =
-      {
-//start of 1 ro components at [0]
-          {ECS_HASH("eid"),      ecs::ComponentTypeInfo<ecs::EntityId>()},
-//start of 1 rq components at [1]
-          {ECS_HASH("msg_sink"), ecs::ComponentTypeInfo<ecs::Tag>()}
-      };
-
-  static void
-  msg_sink_es_event_handler_all_events(EntityManager *mgr, const ecs::Event &__restrict evt,
-                                       const ecs::QueryView &__restrict components) {
-    LOG("Created Message Sink wouw");
-  }
-
-  static void
-  log_any_entity_created_event(EntityManager *mgr, const ecs::Event &__restrict evt,
-                               const ecs::QueryView &__restrict components) {
-    LOG("Created any entity wouw");
-  }
-
-  static void
-  print_funny_data_hehe(EntityManager *mgr, const ecs::Event &__restrict evt,
-                        const ecs::QueryView &__restrict components) {
-    auto compBegin = components.begin(), compEnd = components.end();
-    LOG("New chunk started ");
-    G_ASSERT(compBegin != compEnd);
-    do {
-      auto eid = components.eid_refs[compBegin];
-      if (eid != ecs::INVALID_ENTITY_ID) {
-        auto unit__className = ((ecs::string *) components.componentData[0])[compBegin];
-        auto unit__missionName = ((ecs::string *) components.componentData[1])[compBegin];
-        LOG("Collected entity {:#x} with unit__className of value: {}; and unit__missionName of value: {}",
-            eid.get_handle(), unit__className, unit__missionName);
-      }
-    } while (++compBegin != compEnd);
-  }
-
-  static ecs::EntitySystemDesc msg_sink_es_event_handler_es_desc
-      (
-          "msg_sink_es",
-          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
-          ecs::EntitySystemOps(msg_sink_es_event_handler_all_events),
-          empty_span(),
-          make_span(msg_sink_es_event_handler_comps + 0, 1)/*ro*/,
-          make_span(msg_sink_es_event_handler_comps + 1, 1)/*rq*/,
-          empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
-          0
-      );
-
-  static ecs::EntitySystemDesc all_players_handler_es
-      (
-          "all_players_handler_es",
-          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
-          ecs::EntitySystemOps(log_any_entity_created_event),
-          empty_span(),
-          empty_span(),
-          empty_span(),
-          empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
-          0
-      );
-  static constexpr ecs::ComponentDesc look_for_players_query_comps[] =
-      {
-          {ECS_HASH("unit__playerId"),    ecs::ComponentTypeInfo<int>()},
-          {ECS_HASH("unit__className"),   ecs::ComponentTypeInfo<ecs::string>()},
-          {ECS_HASH("unit__missionName"), ecs::ComponentTypeInfo<ecs::string>()},
-      };
-  static ecs::CompileTimeQueryDesc look_for_players_query_desc
-      (
-          "look_for_players_query",
-          empty_span(),
-          make_span(look_for_players_query_comps, 1),/*ro*/
-          empty_span(),
-          empty_span()
-      );
-
-  static ecs::EntitySystemDesc act_on_all_tanks_es
-      (
-          "print_something_something",
-          "prog/gameLibs/daECS/net/msgSinkES.cpp.inl",
-          ecs::EntitySystemOps(print_funny_data_hehe),
-          empty_span(),
-          make_span(look_for_players_query_comps + 1, 2),/*ro*/
-          empty_span(),
-          empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntitySomething>::build(),
-          0
-      );
+  // handling adding new entities to a player's owned units list
   static constexpr ecs::ComponentDesc mplayer_add_comps[] =
       {
           {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
@@ -652,6 +566,38 @@ namespace ecs {
           make_span(mplayer_add_comps+2, 1),/*rq*/
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
+          0
+      );
+
+  static constexpr ecs::ComponentDesc unit_aircraft_create_comps[] =
+      {
+          {ECS_HASH("unit_storage__aircraft"), ecs::ComponentTypeInfo<FlightModelWrapStorageComponent>()},
+          {ECS_HASH("uid"),    ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
+      };
+
+  static void
+  unit_aircraft_create(EntityManager *mgr, const ecs::Event &__restrict evt,
+                     const ecs::QueryView &__restrict components) {
+    auto *unit_storage__aircraft = (FlightModelWrapStorageComponent *) components.componentData[1];
+    auto *uid = (int *) components.componentData[2];
+    auto *unit__ref = (unit::UnitRef*)components.componentData[0];
+    if (evt.is<ecs::EventEntityCreated>()) {
+      G_ASSERT(unit__ref->unit == nullptr);
+      unit__ref->unit = new unit::Aircraft(static_cast<uint16_t>(*uid));
+    }
+  }
+
+  static ecs::EntitySystemDesc unit_aircraft_create_es
+      (
+          "unit_aircraft_create_es",
+          "womp womp",
+          ecs::EntitySystemOps(unit_aircraft_create),
+          make_span(unit_aircraft_create_comps+2, 1),/*rw*/
+          make_span(unit_aircraft_create_comps, 2),/*ro*/
+          empty_span(),
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
           0
       );
 }

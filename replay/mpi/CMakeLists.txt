@@ -21,6 +21,7 @@ target_link_libraries(MPI
         NET::NET
         ZSTD::ZSTD
         DAG_MATH::DAG_MATH
+        NET_UTILS::NET_UTILS
 )
 add_library(MPI::MPI ALIAS MPI)
 

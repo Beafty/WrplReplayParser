@@ -4,6 +4,7 @@
 #define MYEXTENSION_BASICTYPEDEFS_H
 #include <cstdint>
 #include <cstring>
+#include "Unit.h"
 
 struct LootModelRes {
   char data[8]  = {0};
@@ -352,11 +353,7 @@ struct VehiclePhysActor {
 struct UnitByEid {
   char data[16] = {0};
 };
-namespace unit {
-  struct UnitRef {
-    char data[16] = {0};
-  };
-}
+
 
 namespace dm {
   namespace splash {

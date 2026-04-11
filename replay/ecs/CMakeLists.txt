@@ -13,6 +13,7 @@ add_library(dagECS
         LoadTemplatesBLK.cpp
         EventsDB.cpp
         EntityManagerQuery.cpp
+        Unit.cpp
 )
 
 

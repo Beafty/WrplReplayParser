@@ -8,6 +8,7 @@
 #include "mpi/GeneralObject.h"
 #include "tracy/Tracy.hpp"
 #include "Replay/Replay.h"
+#include "mpi/PositionSync.h"
 
 struct ParserState {
 
@@ -19,8 +20,8 @@ struct ParserState {
   ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
   std::vector<BaseZone*> Zones;
   std::array<TeamData, 3> teams; // team[0] is global data, teams[1] is first team, teams[2] is second team
-  GlobalElo glob_elo;
-  GeneralState gen_state;
+  GlobalElo glob_elo{};
+  GeneralState gen_state{};
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
   BattleMessageHandler battles_messages{this};
@@ -37,8 +38,45 @@ struct ParserState {
   void onPacket(ReplayPacket *pkt) {
     conn.onPacket(pkt, pkt->timestamp_ms);
   }
-};
 
+  inline bool ParsePacket(ReplayPacket &pkt) {
+    switch (pkt.type) {
+      case ReplayPacketType::EndMarker: {
+        return false;
+      }
+      case ReplayPacketType::StartMarker: {
+        break;
+      }
+      case ReplayPacketType::AircraftSmall: {
+        FMSync(this, &pkt.stream);
+        break;
+      }
+      case ReplayPacketType::Chat:
+        break;
+      case ReplayPacketType::MPI: {
+        auto m = mpi::dispatch(pkt.stream, this, false);
+        if (m != nullptr) {
+          mpi::send(m);
+          delete m;
+        }
+        break;
+      }
+      case ReplayPacketType::NextSegment: {
+        LOG("NextSegment");
+        break;
+      }
+      case ReplayPacketType::ECS: {
+        onPacket(&pkt);
+        break;
+      }
+      case ReplayPacketType::Snapshot: // useless
+        break;
+      case ReplayPacketType::ReplayHeaderInfo:
+        break;
+    }
+    return true;
+  }
+};
 
 
 #endif //MYEXTENSION_PARSERSTATE_H

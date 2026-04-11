@@ -23,6 +23,7 @@
 #include "ecs/query/eventsDB.h"
 #include "ecs/internal/ecsQueryInternal.h"
 #include "ecs/internal/ArchetypesQuery.h"
+#include "Unit.h"
 #include <shared_mutex>
 class PyGState; // for python bindings
 struct ParserState;
@@ -297,7 +298,8 @@ namespace ecs {
 
     ParserState * owned_by=nullptr;
     // for ease of access
-    std::array<ecs::EntityId, 2048> uid_lookup;
+    std::array<ecs::EntityId, 2048> uid_lookup{};
+    std::array<unit::UnitRef*, 2048> uid_unit_ref_lookup{};
 
     explicit EntityManager(ParserState*owned_by);
 

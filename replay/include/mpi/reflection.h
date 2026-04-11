@@ -258,12 +258,13 @@ namespace danet {
   // Primary template for detecting if a type has a valid encoder
   template<typename T, typename = void>
   struct HasValidEncoder : std::false_type {
+    static constexpr bool value = false;
   };
 
   // Specialization that checks if DefaultEncoderChooser<T>::coder exists and is not nullptr
   template<typename T>
   struct HasValidEncoder<T, std::void_t<decltype(DefaultEncoderChooser<T>::coder)>> {
-    static constexpr bool value = DefaultEncoderChooser<T>::coder != nullptr;
+    static constexpr bool value = true;
   };
 
 

@@ -59,11 +59,7 @@ namespace ecs
     friend MgrArchetypeStorage;
     friend GState;
   public:
-    void printChunkBoundries(chunk_index_t chunk_id)
-    {
-      uint32_t chunk_list_index = (chunk_id / EntityCount);
-      LOG("start: {}; end: {}\n", fmt::ptr(this->chunks[chunk_list_index].data), fmt::ptr(this->chunks[chunk_list_index].data+entity_size*EntityCount));
-    }
+    void printChunkBoundries(chunk_index_t chunk_id);
     /// allocates a new chunk
     void AllocateChunk()
     {

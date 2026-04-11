@@ -8,40 +8,7 @@
 
 
 void ParseSinglePacket(ParserState &state, ReplayPacket &pkt, bool &end) {
-  switch (pkt.type) {
-    case ReplayPacketType::EndMarker: {
-      end = true;
-      break;
-    }
-    case ReplayPacketType::StartMarker: {
-      break;
-    }
-    case ReplayPacketType::AircraftSmall: {
-      break;
-    }
-    case ReplayPacketType::Chat:
-      break;
-    case ReplayPacketType::MPI: {
-      auto m = mpi::dispatch(pkt.stream, &state, false);
-      if (m != nullptr) {
-        mpi::send(m);
-        delete m;
-      }
-      break;
-    }
-    case ReplayPacketType::NextSegment: {
-      LOG("NextSegment");
-      break;
-    }
-    case ReplayPacketType::ECS: {
-      state.onPacket(&pkt);
-      break;
-    }
-    case ReplayPacketType::Snapshot: // useless
-      break;
-    case ReplayPacketType::ReplayHeaderInfo:
-      break;
-  }
+
   //std::cout.flush();
 }
 

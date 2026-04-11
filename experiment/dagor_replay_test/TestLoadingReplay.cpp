@@ -74,7 +74,7 @@ int main() {
     state_ptr = new ParserState{srv_rpl};
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getFullDecompressReplayReader();
+    rdr = rpl->getRplReader();
     state_ptr = new ParserState{rpl};
   }
 
@@ -89,59 +89,9 @@ int main() {
   while (!end && rdr->getNextPacket(pkt)) {
     state.curr_time_ms = pkt->timestamp_ms;
     packet_count++;
-    if (packet_count == 1500) {
-      state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
-    }
-    switch (pkt->type) {
-      case ReplayPacketType::EndMarker: {
-        LOG("Replay Ending at time {}", ((float) pkt->timestamp_ms) / 1000);
-        end = true;
-        break;
-      }
-      case ReplayPacketType::StartMarker: {
-        LOGD("Replay StartMarker");
-        break;
-      }
-      case ReplayPacketType::AircraftSmall: {
-        AircraftCount++;
-        break;
-      }
-      case ReplayPacketType::Chat:
-        break;
-      case ReplayPacketType::MPI: {
-        auto m = mpi::dispatch(pkt->stream, &state, false);
-        if (m != nullptr) {
-          mpi::send(m);
-          delete m;
-        }
-        break;
-      }
-      case ReplayPacketType::NextSegment: {
-        LOG("NextSegment");
-        break;
-      }
-      case ReplayPacketType::ECS: {
-        state.onPacket(pkt);
-        break;
-      }
-      case ReplayPacketType::Snapshot: // useless
-        break;
-      case ReplayPacketType::ReplayHeaderInfo:
-        break;
-    }
-    //std::cout.flush();
+    if(!state.ParsePacket(*pkt)) break;
+
   }
-  //auto ptr = &mpi::players;
-  //for(auto &data : mpi::mpi_data)
-  //{
-  //  LOG("OID: {:#x}", data.first);
-  //  for(auto &data2: data.second)
-  //  {
-  //    LOG("    mid: {:#x}; count: {}", data2.first, data2.second);
-  //  }
-  //}
-  state.g_entity_mgr.broadcastEventImmediate(ecs::EventEntitySomething{});
-  //LOG("Aircraft Count: {}", AircraftCount);
   auto ended = std::chrono::high_resolution_clock::now();
   for (auto &plr: state_ptr->players) {
     auto owned_eid = plr.ownedUnitRef.data;
