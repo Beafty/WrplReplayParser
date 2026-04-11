@@ -89,8 +89,7 @@ int main() {
   while (!end && rdr->getNextPacket(pkt)) {
     state.curr_time_ms = pkt->timestamp_ms;
     packet_count++;
-    if(!state.ParsePacket(*pkt)) break;
-
+    end = state.ParsePacket(*pkt);
   }
   auto ended = std::chrono::high_resolution_clock::now();
   for (auto &plr: state_ptr->players) {

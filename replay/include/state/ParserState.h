@@ -40,9 +40,10 @@ struct ParserState {
   }
 
   inline bool ParsePacket(ReplayPacket &pkt) {
+    curr_time_ms = pkt.timestamp_ms;
     switch (pkt.type) {
       case ReplayPacketType::EndMarker: {
-        return false;
+        return true;
       }
       case ReplayPacketType::StartMarker: {
         break;
@@ -74,7 +75,7 @@ struct ParserState {
       case ReplayPacketType::ReplayHeaderInfo:
         break;
     }
-    return true;
+    return false;
   }
 };
 

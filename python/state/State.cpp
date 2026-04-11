@@ -6,12 +6,6 @@
 #include "modules/replay/replay.h"
 #include "Replay/Replay.h"
 
-
-void ParseSinglePacket(ParserState &state, ReplayPacket &pkt, bool &end) {
-
-  //std::cout.flush();
-}
-
 void
 initialize_wrapper(const std::string &VromfsPath, const std::string &logfile_path, bool fonts = false, bool lang = true,
                    bool mis = true) {
@@ -46,10 +40,6 @@ void PyReplayState::include(py::module_ &m) {
       .def_readonly("gen_state", &ParserState::gen_state)
       .def_readonly("glob_elo", &ParserState::glob_elo)
       .def_readonly("zones", &ParserState::Zones)
-      .def("ParseSinglePacket", [](ParserState &state, ReplayPacket &pkt) {
-        bool temp;
-        ParseSinglePacket(state, pkt, temp);
-      })
       .def("LoadFromReader", [](ParserState &state,
                                 IReplayReader &rdr, const std::function<void(
           ReplayPacket *)> &func) { // the temporary exists for the entire call of this function, unlike __iter__
@@ -64,14 +54,13 @@ void PyReplayState::include(py::module_ &m) {
                 py::gil_scoped_acquire gil;
                 while (!end && rdr.getNextPacket(&pkt)) {
                   BitSize_t start_offs = pkt.stream.GetReadOffset();
-                  ParseSinglePacket(state, pkt, end);
+                  end = state.ParsePacket(pkt);
                   pkt.stream.SetReadOffset(start_offs);
                   func(&pkt);
                 }
               } else {
-                LOGE("before while loop");
                 while (!end && rdr.getNextPacket(&pkt)) {
-                  ParseSinglePacket(state, pkt, end);
+                  end = state.ParsePacket(pkt);
                 }
               }
             });

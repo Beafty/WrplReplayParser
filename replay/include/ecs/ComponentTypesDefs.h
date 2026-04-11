@@ -90,19 +90,10 @@ void hello();
 
 
 struct FieldSerializerDict {
-  std::unordered_map<uint16_t, std::vector<unsigned char>> data;
-
+  std::vector<uint8_t> data{};
+  //std::unordered_map<uint16_t, std::vector<unsigned char>> data;
   std::string toString() const {
-    std::ostringstream oss;
-    oss << fmt::format("({})", data.size());
-    oss << "{";
-    for (const auto &pair: data) {
-      oss << fmt::format("{}: b'", pair.first);
-      FormatBytesToStream(oss, std::span<char>((char *) pair.second.data(), pair.second.size()));
-      oss << "', ";
-    }
-    oss << "}";
-    return oss.str();
+    return FormatHexToStream(std::span((char*)data.data(), data.size())).str();
   }
 };
 

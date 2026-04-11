@@ -445,27 +445,26 @@ namespace ecs {
     uint32_t blk_sz;
     if (!read_compressed(cb, blk_sz))
       return false;
+    actual->data.resize(BITS_TO_BYTES(blk_sz));
+    bool ok = cb.read(actual->data.data(), blk_sz, 0);
+    //BitStream bs{(unsigned char *) m_data, blk_sz, false};
+    //IdFieldSerializer255 IdFieldSerilizer;
+    //uint32_t end;
+    //uint32_t count = IdFieldSerilizer.readFieldsSizeAndCount(bs, end);
+    //if (!IdFieldSerilizer.readFieldsIndex(bs)) {
+    //  free(m_data);
+    //  return false;
+    //}
 
-    auto *m_data = malloc(blk_sz);
-    cb.read(m_data, blk_sz, 0);
-    BitStream bs{(unsigned char *) m_data, blk_sz, false};
-    IdFieldSerializer255 IdFieldSerilizer;
-    uint32_t end;
-    uint32_t count = IdFieldSerilizer.readFieldsSizeAndCount(bs, end);
-    if (!IdFieldSerilizer.readFieldsIndex(bs)) {
-      free(m_data);
-      return false;
-    }
+    //for (uint16_t i = 0; i < count; ++i) {
+    //  auto fieldId = IdFieldSerilizer.getFieldId(i);
+    //  auto f_size = IdFieldSerilizer.getFieldSize(i);
+    //  (actual->data)[fieldId] = std::vector<unsigned char>(BITS_TO_BYTES(f_size));
 
-    for (uint16_t i = 0; i < count; ++i) {
-      auto fieldId = IdFieldSerilizer.getFieldId(i);
-      auto f_size = IdFieldSerilizer.getFieldSize(i);
-      (actual->data)[fieldId] = std::vector<unsigned char>(BITS_TO_BYTES(f_size));
-
-      bs.ReadBits((actual->data)[fieldId].data(), f_size);
-    }
-    free(m_data);
-    return true;
+    //  bs.ReadBits((actual->data)[fieldId].data(), f_size);
+    //}
+    //free(m_data);
+    return ok;
   }
 
   void RocketSerializer::serialize(SerializerCb &cb, const void *data, size_t sz, component_type_t hint, ecs::EntityManager *mgr) {

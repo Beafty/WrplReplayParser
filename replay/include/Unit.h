@@ -13,6 +13,10 @@ struct CameraTime {
 struct SpaceTime {
   uint32_t time_ms=0;
   Point3 location{};
+
+  bool operator==(const SpaceTime& other) const {
+    return time_ms == other.time_ms && location == other.location;
+  }
 };
 
 
@@ -83,8 +87,8 @@ namespace unit {
     uint16_t uid;
     UnitType unitType; // make into an enum, maybe match with gaijin enum?
     std::vector<CameraTime> camera_pos;
-    Tank * isTank();
-    Aircraft * isAircraft();
+    Tank * AsTank();
+    Aircraft * AsAircraft();
   };
 
   class Aircraft : public Unit {
@@ -103,5 +107,8 @@ namespace unit {
   class UnitRef {
   public:
     Unit * unit= nullptr;
+    ~UnitRef() {
+      delete unit;
+    }
   };
 }

@@ -47,6 +47,7 @@ void PyECSTypes::include(py::module_ &m) {
   py_math.include(m);
   auto dm = m.def_submodule("dm");
   auto ecs = m.def_submodule("ecs");
+  auto unit = m.def_submodule("unit");
   py::class_<InvalidData>(ecs, "InvalidData")
       .def_readonly("componentName", &InvalidData::type_name)
       .def_property_readonly("data", [](const InvalidData &self){
@@ -70,6 +71,36 @@ void PyECSTypes::include(py::module_ &m) {
         return py::none{};
       });
 
+  py::class_<SpaceTime>(m, "SpaceTime")
+      .def_readonly("time_ms", &SpaceTime::time_ms)
+      .def_readonly("location", &SpaceTime::location)
+      .def("__str__", [](SpaceTime &st) {
+        return fmt::format("SpaceTime({}, [{}, {}, {}])", st.time_ms, st.location.x, st.location.y, st.location.z);
+      });
+
+  bind_readonly_vector<std::vector<SpaceTime>>(m, "SpaceTimeList");
+
+  py::enum_<UnitType>(unit, "UnitType")
+      .value("TankType", UnitType::TankType)
+      .value("AircraftType", UnitType::AircraftType);
+
+  py::class_<unit::Unit> un(unit, "Unit");
+
+  py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft")
+      .def_readonly("positions", & unit::Aircraft::positions);
+
+  py::class_<unit::Tank, unit::Unit> t(unit, "Tank");
+
+  un
+      .def_readonly("unitType", &unit::Unit::unitType)
+      .def_readonly("uid", &unit::Unit::uid)
+      .def("AsAircraft", &unit::Unit::AsAircraft)
+      .def("AsTank", &unit::Unit::AsTank);
+
+  py::class_<unit::UnitRef>(unit, "UnitRef")
+      .def_readonly("unit", &unit::UnitRef::unit);
+
+  REGISTER_TYPE(unit::UnitRef);
   REGISTER_TYPE(ecs::Object);
   REGISTER_TYPE(ecs::EntityId);
   REGISTER_TYPE(ecs::string);
@@ -81,7 +112,7 @@ void PyECSTypes::include(py::module_ &m) {
   REGISTER_TYPE(int16_t);
   REGISTER_TYPE(int);
   REGISTER_TYPE(int64_t);
-  //this->include_array(m);
+  this->include_array(m);
 }
 
 py::object castData(ecs::component_type_t hash, const void *data) {

@@ -182,7 +182,7 @@ bool FMSync(ParserState *state, BitStream *bs) {
         if (!(lVar30lessThan0 && cVar4NE0)) {
           auto unit_ref = state->g_entity_mgr.uid_unit_ref_lookup[uid];
           if(!unit_ref) return false;
-          auto unit = unit_ref->unit->isAircraft();
+          auto unit = unit_ref->unit->AsAircraft();
           if(!unit) return false;
           bool fVar41LessThan0p5 = bs->ReadBit();
           uint32_t some_uint;
