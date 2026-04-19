@@ -92,7 +92,7 @@ void hello();
 struct FieldSerializerDict {
   std::vector<uint8_t> data{};
   //std::unordered_map<uint16_t, std::vector<unsigned char>> data;
-  std::string toString() const {
+  std::string toString(int indent) const {
     return FormatHexToStream(std::span((char*)data.data(), data.size())).str();
   }
 };
@@ -119,30 +119,74 @@ struct FlightModelWrapStorageComponent : FieldSerializerDict {
 
 struct Rocket {
   uint32_t uleb_1;
-  ecs::EntityId eid;
+  ecs::EntityId ownerEid;
   ecs::EntityId eid2;
   uint8_t u1_1;
   uint32_t u4_1;
-  uint32_t u4_2;
-  char u12_1[12];
-  char u16_1[16];
-  char u12_2[12];
-  char u12_3[12];
+  uint32_t weapon_ref; // maybe some flags?
+  Point3 starting_pos;
+  Point4 u16_1;
+  Point3 u12_2;
+  Point3 u12_3;
   uint8_t u1_2;
-  uint8_t u1_3;
-  uint32_t u4_3;
+  uint8_t shell_type;
+  float creation_time;
   uint32_t u4_4;
-  char u12_4[12];
-  char u12_5[12];
+  Point3 u12_4;
+  Point3 u12_5;
   uint8_t u1_4;
-  uint32_t u4_5;
-  std::vector<char> v1;
-  std::vector<char> v2;
-  std::vector<char> v3;
+  float u4_5;
+  BitStream some_weap_type_info;
+  BitStream bomb_info; // only ever encodes a single 4 byte val
+  BitStream maybe_sensor_info; //from what I can tell, this is always encoded
   uint8_t u1_5;
   uint32_t u4_6;
   uint8_t u1_6;
-  uint64_t u8_1;
+  Point2 u8_1;
+  std::string toString(int indent) const {
+    std::ostringstream oss{};
+    oss << fmt::format("[Rocket, owner: {:#x};"
+                       " other_eid: {:#x};"
+                       " u1_1: {};"
+                       " u4_1: {};"
+                       " u4_2: {:#x};"
+                       " starting_pos: {};"
+                       " u16_1: {};"
+                       " u12_2: {};"
+                       " u12_3: {};"
+                       " u1_2: {};"
+                       " shell_type: {};"
+                       " u4_4: {};"
+                       " u12_4: {};"
+                       " u12_5: {};"
+                       " u1_4: {};"
+                       " u4_5: {};"
+                       " u1_5: {};"
+                       " u4_6: {};"
+                       " u1_6: {};"
+                       " u8_1: {};",
+                       ownerEid.get_handle(),
+                       eid2.get_handle(),
+                       u1_1,
+                       u4_1,
+                       weapon_ref,
+                       starting_pos.toString(0),
+                       u16_1.toString(0),
+                       u12_2.toString(0),
+                       u12_3.toString(0),
+                       u1_2,
+                       shell_type,
+                       u4_4,
+                       u12_4.toString(0),
+                       u12_5.toString(0),
+                       u1_4,
+                       u4_5,
+                       u1_5,
+                       u4_6,
+                       u1_6,
+                       u8_1.toString(0));
+    return oss.str();
+  }
 };
 
 struct Payload : Rocket {

@@ -6,6 +6,7 @@ target_link_libraries(PyBitStream;
         DAG_MATH::DAG_MATH # gives you access to blk path
         LZ4::LZ4
         LOGGER::LOGGER
+        BLK::BLK
 )
 
 add_library(PyBitStream::PyBitStream ALIAS PyBitStream)

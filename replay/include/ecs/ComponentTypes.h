@@ -314,7 +314,7 @@ namespace ecs {
       }
       return nullptr;
     }
-
+    // this is done to prevent any race conditions so that I dont need mutexes here.
     inline void createAllCTMs() {
       for(auto &info : this->types) {
         if(!info.ctm) {

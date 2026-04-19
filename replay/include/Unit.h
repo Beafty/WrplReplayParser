@@ -4,6 +4,9 @@
 #include "cstdint"
 #include "danet/BitStream.h"
 #include "math/dag_Point3.h"
+#include "DataBlock.h"
+//#include "mpi/mpi.h"
+//#include "mpi/codegen/ReflIncludes.h"
 
 struct CameraTime {
   uint32_t time_ms;
@@ -11,10 +14,10 @@ struct CameraTime {
 };
 
 struct SpaceTime {
-  uint32_t time_ms=0;
+  uint32_t time_ms = 0;
   Point3 location{};
 
-  bool operator==(const SpaceTime& other) const {
+  bool operator==(const SpaceTime &other) const {
     return time_ms == other.time_ms && location == other.location;
   }
 };
@@ -45,6 +48,7 @@ struct SensorsControlStates {
   char some_data_6[4]{};
   int some_data_7;
   float field147_0xa8;
+
   bool deserialize(BitStream *bs);
 };
 
@@ -69,7 +73,7 @@ struct TargetDesignationControlState {
   bool deserialize(BitStream *bs);
 };
 
-enum UnitType: uint8_t {
+enum UnitType : uint8_t {
   TankType = 1,
   AircraftType = 2,
 
@@ -78,41 +82,98 @@ enum UnitType: uint8_t {
 class FieldSerializerDict;
 
 namespace unit {
+  enum MessageEnum {
+    TankPosition = 0xf0a3,
+    CameraAngles = 0xf0cc,
+  };
+
+  /*class TankPositionMessage : public mpi::Message {
+    TankPositionMessage(mpi::IObject *o) : mpi::Message(o, TankPosition) {}
+    bool readPayload(ParserState *state) override;
+  };
+
+  class UnitCameraMessage : public mpi::Message {
+    UnitCameraMessage(mpi::IObject *o) : mpi::Message(o, CameraAngles) {}
+    bool readPayload(ParserState *state) override;
+  };
+
+  class UnitReflectable : public danet::ReflectableObject {
+    mpi::Message *dispatchMpiMessage(mpi::MessageID mid) override;
+
+    void applyMpiMessage(const mpi::Message *) override;
+  };*/
 
   class Aircraft;
+
   class Tank;
 
+  struct weapon_data {
+    std::string launcher{};
+    std::string bullet{};
+    uint16_t count;
+  };
+
+  struct Weapon {
+    int weapon_id = -1;
+    int weapon_index = -1;
+    const char * emitter{};
+    const char * blk_path{};
+    //std::string ammunition_count{};
+  };
 
   class Unit {
   public:
     virtual ~Unit() = default;
+    virtual void Load() {};
+
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
+
     uint16_t uid;
-    UnitType unitType; // make into an enum, maybe match with gaijin enum?
+    UnitType unitType; // make into an enum, maybe match with gaijin enum? I know they have one iirc
+    std::string unit_name{};
+    std::string player_internal_name{};
+    int owner_pid{};
+    TMatrix spawn_position{};
+    std::string loadout_name{};
+    std::string skin_name{};
+    DataBlock camo_info{};
+    DataBlock custom_weapons_blk{};
+    std::vector<weapon_data> storage_weapons{};
+    std::vector<std::string> weapon_mods{};
+    std::vector<std::string> fm_mods{};
     std::vector<CameraTime> camera_pos;
-    Tank * AsTank();
-    Aircraft * AsAircraft();
+    std::vector<Weapon> weapons{};
+
+    Tank *AsTank();
+
+    Aircraft *AsAircraft();
   };
 
 
-  bool LoadFromStorage(Unit * unit, FieldSerializerDict * data);
+  bool LoadFromStorage(Unit *unit, FieldSerializerDict *data);
 
   class Aircraft : public Unit {
   public:
     Aircraft(uint16_t uid) : Unit(uid, AircraftType) {}
+
     virtual ~Aircraft() = default;
+    void Load() override;
+
     std::vector<SpaceTime> positions{};
+    Weapon *getWeapon(uint32_t ref);
   };
 
-  class Tank: public Unit {
+  class Tank : public Unit {
   public:
+    Tank(uint16_t uid) : Unit(uid, TankType) {}
     virtual ~Tank() = default;
 
   };
 
   class UnitRef {
   public:
-    Unit * unit= nullptr;
+    Unit *unit = nullptr;
+
     ~UnitRef() {
       delete unit;
     }

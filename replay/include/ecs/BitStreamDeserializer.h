@@ -2,7 +2,7 @@
 
 #ifndef MYEXTENSION_BITSTREAMDESERIALIZER_H
 #define MYEXTENSION_BITSTREAMDESERIALIZER_H
-#include "BitStream.h"
+#include "danet/BitStream.h"
 #include "ComponentTypes.h"
 #include "DataComponents.h"
 

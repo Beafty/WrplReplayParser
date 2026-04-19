@@ -662,7 +662,7 @@ public:
           bool was_parsed = this->have_we_parsed(s);
           if(was_parsed)
             continue;
-          if(load(imp_blk, s.c_str()))
+          if(dblk::load(imp_blk, s.c_str()))
           {
             resolve_imports(&imp_blk, overrides);
           }
@@ -681,7 +681,7 @@ public:
       bool was_parsed = this->have_we_parsed(path_.string());
       if(was_parsed)
         return;
-      if (load(imp_blk, path_.string().c_str())) {
+      if (dblk::load(imp_blk, path_.string().c_str())) {
         resolve_imports(&imp_blk, overrides);
       } else if (!is_optional) {
         EXCEPTION("Failed to load {}", path_.string());
@@ -718,7 +718,7 @@ public:
   void parse_blk(const char *path) {
     DataBlock blk{};
     ecs::TemplateDB overrides{};
-    G_ASSERT(load(blk, path));
+    G_ASSERT(dblk::load(blk, path));
     resolve_imports(&blk, &overrides);
     ecs::g_ecs_data->getTemplateDB()->applyFrom(std::move(overrides));
     ecs::g_ecs_data->getComponentTypes()->createAllCTMs();

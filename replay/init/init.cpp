@@ -39,12 +39,14 @@ void initialize(const std::string &VromfsPath, const std::string &logfile_path, 
   std::string p2 = (basePath / "game.vromfs.bin").string();
   std::string p3 = (basePath / "mis.vromfs.bin").string();
   std::string p4 = (basePath / "lang.vromfs.bin").string();
+  std::string p5 = (basePath / "char.vromfs.bin").string();
   if(fonts) {
-    std::string p5 = (basePath / "ui/fonts.vromfs.bin").string();
-    EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p5), "{} does not exist", p5);
+    std::string p6 = (basePath / "ui/fonts.vromfs.bin").string();
+    EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p6), "{} does not exist", p6);
   }
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "{} does not exist", p1);
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "{} does not exist", p2);
+  EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p5), "{} does not exist", p2);
   if(mis)
     file_mgr.loadVromfs(p3); // optional
   if (lang)
@@ -54,5 +56,8 @@ void initialize(const std::string &VromfsPath, const std::string &logfile_path, 
   hello();
   force_link_replication();
   force_link_cnet();
+  auto wp_cost_f = file_mgr.getFile("config/wpcost.blk");
+  if(wp_cost_f)
+    wp_cost_f->loadBlk(ecs::g_ecs_data->wp_cost);
   //mpi::players.hello();
 }

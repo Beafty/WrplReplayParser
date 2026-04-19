@@ -60,7 +60,7 @@ namespace mpi {
     ecs::EntityId offended_entity; // case 3
     ecs::EntityId offender_entity; // case 4
     // DON'T USE THESE, LIKE AT ALL, THE PID VAL IS FUCKED
-    int DeathType; // ok so like I think its supposed to be the offended pid, but it really isnt, case 0xb
+    int DeathType; //case 0xb
     int offender_pid; // case 1
     int VictimPid; // some player index
     WeaponType some_enum;

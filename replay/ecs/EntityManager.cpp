@@ -18,6 +18,7 @@ namespace ecs {
 
   EntityManager::EntityManager(ParserState*owned_by) {
     this->owned_by = owned_by;
+    this->curr_time_ms = &owned_by->curr_time_ms;
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
     for (auto &eid: this->uid_lookup) {
       eid = ecs::INVALID_ENTITY_ID;
@@ -585,6 +586,7 @@ namespace ecs {
     if (evt.is<ecs::EventEntityCreated>()) {
       G_ASSERT(unit__ref->unit == nullptr);
       unit__ref->unit = new unit::Aircraft(static_cast<uint16_t>(*uid));
+      unit::LoadFromStorage(unit__ref->unit, unit_storage__aircraft);
     }
   }
 
@@ -595,6 +597,39 @@ namespace ecs {
           ecs::EntitySystemOps(unit_aircraft_create),
           make_span(unit_aircraft_create_comps+2, 1),/*rw*/
           make_span(unit_aircraft_create_comps, 2),/*ro*/
+          empty_span(),
+          empty_span(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),
+          0
+      );
+
+  static constexpr ecs::ComponentDesc unit_tank_create_comps[] =
+      {
+          {ECS_HASH("unit_storage__tank"), ecs::ComponentTypeInfo<HeavyVehicleModelStorageComponent>()},
+          {ECS_HASH("uid"),    ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
+      };
+
+  static void
+  unit_tank_create(EntityManager *mgr, const ecs::Event &__restrict evt,
+                       const ecs::QueryView &__restrict components) {
+    auto *unit_storage_tank = (HeavyVehicleModelStorageComponent *) components.componentData[1];
+    auto *uid = (int *) components.componentData[2];
+    auto *unit__ref = (unit::UnitRef*)components.componentData[0];
+    if (evt.is<ecs::EventEntityCreated>()) {
+      G_ASSERT(unit__ref->unit == nullptr);
+      unit__ref->unit = new unit::Tank(static_cast<uint16_t>(*uid));
+      unit::LoadFromStorage(unit__ref->unit, unit_storage_tank);
+    }
+  }
+
+  static ecs::EntitySystemDesc unit_tank_create_es
+      (
+          "unit_tank_create_es",
+          "womp womp",
+          ecs::EntitySystemOps(unit_tank_create),
+          make_span(unit_tank_create_comps+2, 1),/*rw*/
+          make_span(unit_tank_create_comps, 2),/*ro*/
           empty_span(),
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntityCreated>::build(),

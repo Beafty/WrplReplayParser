@@ -69,7 +69,6 @@ namespace ecs {
     friend DataComponents;
     DataComponents * owner;
     uint32_t name_index;
-
   };
 
   struct DataComponents {

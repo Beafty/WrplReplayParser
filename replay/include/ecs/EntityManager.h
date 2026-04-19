@@ -38,6 +38,7 @@ namespace ecs {
     TemplateDB templates{};
     Archetypes archetypes{};
   public:
+    DataBlock wp_cost{}; // I don't feel like implementing blk caching, and this is the most central object. loaded in init.cpp
     GState() { Init(); }
 
     void printCurrentMemoryUsage(int indent=0) {
@@ -297,6 +298,7 @@ namespace ecs {
   public:
 
     ParserState * owned_by=nullptr;
+    uint32_t * curr_time_ms;
     // for ease of access
     std::array<ecs::EntityId, 2048> uid_lookup{};
     std::array<unit::UnitRef*, 2048> uid_unit_ref_lookup{};

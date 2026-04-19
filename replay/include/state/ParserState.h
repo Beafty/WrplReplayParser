@@ -26,6 +26,7 @@ struct ParserState {
   mpi::GeneralObject main_dispatch{this};
   BattleMessageHandler battles_messages{this};
   uint32_t curr_time_ms = 0;
+  int current_packet_index=0;
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }
@@ -75,6 +76,7 @@ struct ParserState {
       case ReplayPacketType::ReplayHeaderInfo:
         break;
     }
+    current_packet_index++;
     return false;
   }
 };

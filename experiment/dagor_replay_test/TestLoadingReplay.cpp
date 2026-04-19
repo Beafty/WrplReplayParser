@@ -41,7 +41,7 @@ int main() {
   fs::path conf_dir = CONFIG_DIR;
   fs::path config_file = conf_dir / "dagor_replay_test.blk";
   DataBlock conf_blk;
-  G_ASSERT(load(conf_blk, config_file.string().c_str()));
+  G_ASSERT(dblk::load(conf_blk, config_file.string().c_str()));
   bool is_server_replay = conf_blk.getBool("is_server_replay", false);
   bool source_is_linux_path = conf_blk.getBool("source_is_linux_path", false);
   auto replay_path = conf_blk.getStr("source", nullptr);
@@ -74,7 +74,7 @@ int main() {
     state_ptr = new ParserState{srv_rpl};
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getRplReader();
+    rdr = rpl->getFullDecompressReplayReader();
     state_ptr = new ParserState{rpl};
   }
 

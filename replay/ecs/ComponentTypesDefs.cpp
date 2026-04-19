@@ -472,48 +472,74 @@ namespace ecs {
     EXCEPTION("Called serialize of RocketSerializer, not implemented");
   }
 
+  bool ReadBitStream(const DeserializerCb &cb, BitStream &to) {
+    uint16_t size;
+    if(cb.read(&size, sizeof(size)*8, 0)) {
+      to = BitStream();
+      to.reserveBits(size);
+      auto ok = cb.read(to.GetData(), (uint16_t)((size + 7) & 0xfffffff8), 0);
+      to.SetWriteOffset(size);
+      return ok;
+    }
+    return false;
+  }
+
   bool RocketSerializer::deserialize(const DeserializerCb &cb, void *data, size_t sz, component_type_t hint, ecs::EntityManager *mgr) {
     auto &Rocket_data = *(Rocket *) data;
-    read_compressed(cb, Rocket_data.uleb_1);
-    cb.read(&Rocket_data.eid, 4 * 8, ecs::ComponentTypeInfo<ecs::EntityId>::type); // 0x57fcec2a translates to EntityEid
-    cb.read(&Rocket_data.eid2, 4 * 8, ecs::ComponentTypeInfo<ecs::EntityId>::type); // 0x57fcec2a translates to EntityEid
-    cb.read(&Rocket_data.u1_1, sizeof(Rocket_data.u1_1) * 8, 0);
-    cb.read(&Rocket_data.u4_1, sizeof(Rocket_data.u4_1) * 8, 0);
-    cb.read(&Rocket_data.u4_2, sizeof(Rocket_data.u4_2) * 8, 0);
-    cb.read(&Rocket_data.u12_1, sizeof(Rocket_data.u12_1) * 8, 0);
-    cb.read(&Rocket_data.u16_1, sizeof(Rocket_data.u16_1) * 8, 0);
-    cb.read(&Rocket_data.u12_2, sizeof(Rocket_data.u12_2) * 8, 0);
-    cb.read(&Rocket_data.u12_3, sizeof(Rocket_data.u12_3) * 8, 0);
-    cb.read(&Rocket_data.u1_2, sizeof(Rocket_data.u1_2) * 8, 0);
-    cb.read(&Rocket_data.u1_3, sizeof(Rocket_data.u1_3) * 8, 0);
-    cb.read(&Rocket_data.u4_3, sizeof(Rocket_data.u4_3) * 8, 0);
-    cb.read(&Rocket_data.u4_4, sizeof(Rocket_data.u4_4) * 8, 0);
-    cb.read(&Rocket_data.u12_4, sizeof(Rocket_data.u12_4) * 8, 0);
-    cb.read(&Rocket_data.u12_5, sizeof(Rocket_data.u12_5) * 8, 0);
-    cb.read(&Rocket_data.u1_4, sizeof(Rocket_data.u1_4) * 8, 0);
-    cb.read(&Rocket_data.u4_5, sizeof(Rocket_data.u4_5) * 8, 0);
-    uint16_t size1;
-    cb.read(&size1, 2 * 8, 0);
-    size1 = (uint16_t)((size1 + 7) & 0xfffffff8);
-    Rocket_data.v1.resize(size1);
-    cb.read(Rocket_data.v1.data(), size1, 0);
-
-    uint16_t size2;
-    cb.read(&size2, 2 * 8, 0);
-    size2 = (uint16_t)((size2 + 7) & 0xfffffff8);
-    Rocket_data.v2.resize(size2);
-    cb.read(Rocket_data.v2.data(), size2, 0);
-
-    uint16_t size3;
-    cb.read(&size3, 2 * 8, 0);
-    size3 = (uint16_t)((size3 + 7) & 0xfffffff8);
-    Rocket_data.v3.resize(size3);
-    cb.read(Rocket_data.v3.data(), size3, 0);
-    cb.read(&Rocket_data.u1_5, sizeof(Rocket_data.u1_5) * 8, 0);
-    cb.read(&Rocket_data.u4_6, sizeof(Rocket_data.u4_6) * 8, 0);
-    cb.read(&Rocket_data.u1_6, sizeof(Rocket_data.u1_6) * 8, 0);
-    cb.read(&Rocket_data.u8_1, sizeof(Rocket_data.u8_1) * 8, 0);
-    return true;
+    uint32_t out;
+    bool ok = read_compressed(cb, out);
+    int payload = -1;
+    if(out != 0) {
+      payload = ((out-1) >> 7) + 1;
+      uint32_t iVar1 = 0x1f;
+      if(payload != 0) {
+        for(;payload >> iVar1 == 0;iVar1--) {}
+      }
+      payload = (iVar1 << 0x1b) | (out + (-0x80 << (iVar1 & 0x1f)) + 0x7f); // 120, 120, aim9m, aim9m, brimstone, aim120
+    }
+    Rocket_data.uleb_1 = payload;
+    ok &= cb.read(&Rocket_data.ownerEid, 4 * 8, ecs::ComponentTypeInfo<ecs::EntityId>::type);
+    ok &= cb.read(&Rocket_data.eid2, 4 * 8, ecs::ComponentTypeInfo<ecs::EntityId>::type);
+    ok &= cb.read(&Rocket_data.u1_1, sizeof(Rocket_data.u1_1) * 8, 0);
+    ok &= cb.read(&Rocket_data.u4_1, sizeof(Rocket_data.u4_1) * 8, 0); // 432
+    ok &= cb.read(&Rocket_data.weapon_ref, sizeof(Rocket_data.weapon_ref) * 8, 0);
+    ok &= cb.read(&Rocket_data.starting_pos, sizeof(Rocket_data.starting_pos) * 8, 0);
+    ok &= cb.read(&Rocket_data.u16_1, sizeof(Rocket_data.u16_1) * 8, 0); // 432
+    ok &= cb.read(&Rocket_data.u12_2, sizeof(Rocket_data.u12_2) * 8, 0);
+    ok &= cb.read(&Rocket_data.u12_3, sizeof(Rocket_data.u12_3) * 8, 0);
+    ok &= cb.read(&Rocket_data.u1_2, sizeof(Rocket_data.u1_2) * 8, 0);
+    ok &= cb.read(&Rocket_data.shell_type, sizeof(Rocket_data.shell_type) * 8, 0);
+    ok &= cb.read(&Rocket_data.creation_time, sizeof(Rocket_data.creation_time) * 8, 0);
+    ok &= cb.read(&Rocket_data.u4_4, sizeof(Rocket_data.u4_4) * 8, 0);
+    ok &= cb.read(&Rocket_data.u12_4, sizeof(Rocket_data.u12_4) * 8, 0);
+    ok &= cb.read(&Rocket_data.u12_5, sizeof(Rocket_data.u12_5) * 8, 0);
+    ok &= cb.read(&Rocket_data.u1_4, sizeof(Rocket_data.u1_4) * 8, 0);
+    ok &= cb.read(&Rocket_data.u4_5, sizeof(Rocket_data.u4_5) * 8, 0);
+    //uint16_t size1;
+    //cb.read(&size1, 2 * 8, 0);
+    //size1 = (uint16_t)((size1 + 7) & 0xfffffff8);
+    //Rocket_data.v1.resize(size1);
+    //cb.read(Rocket_data.v1.data(), size1, 0);
+    ok &= ReadBitStream(cb, Rocket_data.some_weap_type_info);
+    ok &= ReadBitStream(cb, Rocket_data.bomb_info);
+    ok &= ReadBitStream(cb, Rocket_data.maybe_sensor_info);
+    ok &= cb.read(&Rocket_data.u1_5, sizeof(Rocket_data.u1_5) * 8, 0);
+    ok &= cb.read(&Rocket_data.u4_6, sizeof(Rocket_data.u4_6) * 8, 0);
+    ok &= cb.read(&Rocket_data.u1_6, sizeof(Rocket_data.u1_6) * 8, 0);
+    ok &= cb.read(&Rocket_data.u8_1, sizeof(Rocket_data.u8_1) * 8, 0);
+    //LOGE("{} : {}", (*mgr->curr_time_ms)/1000.f, Rocket_data.toString(0));
+    auto ref = mgr->getNullable<unit::UnitRef>(Rocket_data.ownerEid, ECS_HASH("unit__ref"));
+    if(ref->unit) {
+      if(auto aircraft = ref->unit->AsAircraft()) {
+        auto weap = aircraft->getWeapon(Rocket_data.weapon_ref);
+        if(weap) {
+          LOGE("new Rocket created is of blk: {}", weap->blk_path);
+        } else {
+          LOGE("unable to find blk for rocket of id: {:#x}", Rocket_data.weapon_ref);
+        }
+      }
+    }
+    return ok;
   }
 
 

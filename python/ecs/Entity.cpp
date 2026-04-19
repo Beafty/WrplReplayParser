@@ -16,10 +16,10 @@ void PyEntity::include(py::module_ &m) {
         return &e.templ->getName();
       })
       .def_readonly("eid", &Entity::eid)
-      .def("getData", &Entity::getComponent)
-      .def("hasComponent", &Entity::hasComponent)
+      .def("getData", &Entity::getComponent, py::arg("data_component_name"))
+      .def("hasComponent", &Entity::hasComponent, py::arg("data_component_name"))
       .def("getComponentNames", &Entity::getComponentNames)
-      .def("__getattr__", &Entity::getComponent);
+      .def("__getitem__", &Entity::getComponent, py::arg("data_component_name"));
 }
 
 py::object Entity::getComponent(const std::string &data_component_name) {

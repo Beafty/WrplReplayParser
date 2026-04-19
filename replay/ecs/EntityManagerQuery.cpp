@@ -587,6 +587,7 @@ namespace ecs {
 
       // randomize list to avoid depending on native ES registration order
       // which might be different on different platforms, depend on hot-reload, etc...
+      // this is what gaijin says, but from what its visible here its actually done to make ES order the same on all platforms
       std::sort(esFullList.begin(), esFullList.end(),
                 [](auto a, auto b) { return ECS_HASH_SLOW(a->name).hash < ECS_HASH_SLOW(b->name).hash; });
 

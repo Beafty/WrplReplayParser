@@ -120,8 +120,16 @@ FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_d
     ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, decomp_size, &dest_len);
     //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
   }
+  if (ret == LIBDEFLATE_INSUFFICIENT_SPACE) { // double it
+    ZoneScopedN("Replay uncompress");
+    libdeflate_free_decompressor(ctx); // do I need to do this? dont know
+    ctx = libdeflate_alloc_decompressor();
+    decomp_size *=2;
+    free(ptr);
+    ptr = (uint8_t*)malloc(decomp_size);
+    ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, decomp_size, &dest_len);
+  }
   G_ASSERT(ret == LIBDEFLATE_SUCCESS);
-  //G_ASSERT(ret == Z_OK);
   libdeflate_free_decompressor(ctx);
   crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
 }

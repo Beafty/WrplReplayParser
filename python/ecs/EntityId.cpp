@@ -1,6 +1,9 @@
 #include <math/dag_Point2.h>
 #include "modules/ecs/EntityId.h"
 #include "ecs/entityId.h"
+#include "danet/BitStream.h"
+#include "network/eid.h"
+
 PyEntityId py_entity_id;
 
 void PyEntityId::include(py::module_ &m) {
@@ -12,4 +15,12 @@ void PyEntityId::include(py::module_ &m) {
       .def("index", &ecs::EntityId::index)
       .def("get_generation", &ecs::EntityId::get_generation)
       .def("__bool__", &ecs::EntityId::operator bool);
+
+  ecs.def("read_eid", [](BitStream &bs) -> ecs::EntityId{
+    ecs::EntityId eid;
+    if(net::read_eid(bs, eid)) {
+      return eid;
+    }
+    return ecs::INVALID_ENTITY_ID;
+  });
 }

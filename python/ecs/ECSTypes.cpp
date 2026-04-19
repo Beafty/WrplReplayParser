@@ -84,7 +84,25 @@ void PyECSTypes::include(py::module_ &m) {
       .value("TankType", UnitType::TankType)
       .value("AircraftType", UnitType::AircraftType);
 
+  /*
+    std::string unit_name{};
+    std::string player_internal_name{};
+    int owner_pid{};
+    TMatrix spawn_position{};
+    std::string loadout_name{};
+    std::string skin_name{};
+    DataBlock camo_info{};
+    DataBlock custom_weapons_blk{};
+    std::vector<weapon_data> weapons{};
+    std::vector<std::string> weapon_mods{};
+    std::vector<std::string> fm_mods{};
+   */
+  py::class_<unit::weapon_data>(unit, "WeaponData")
+      .def_readonly("launcher", &unit::weapon_data::launcher)
+      .def_readonly("bullet", &unit::weapon_data::bullet)
+      .def_readonly("count", &unit::weapon_data::count);
   py::class_<unit::Unit> un(unit, "Unit");
+
 
   py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft")
       .def_readonly("positions", & unit::Aircraft::positions);
@@ -95,7 +113,18 @@ void PyECSTypes::include(py::module_ &m) {
       .def_readonly("unitType", &unit::Unit::unitType)
       .def_readonly("uid", &unit::Unit::uid)
       .def("AsAircraft", &unit::Unit::AsAircraft)
-      .def("AsTank", &unit::Unit::AsTank);
+      .def("AsTank", &unit::Unit::AsTank)
+      .def_readonly("unit_name", &unit::Unit::unit_name)
+      .def_readonly("player_internal_name", &unit::Unit::player_internal_name)
+      .def_readonly("owner_pid", &unit::Unit::owner_pid)
+      .def_readonly("spawn_position", &unit::Unit::spawn_position)
+      .def_readonly("loadout_name", &unit::Unit::loadout_name)
+      .def_readonly("skin_name", &unit::Unit::skin_name)
+      .def_readonly("camo_info", &unit::Unit::camo_info)
+      .def_readonly("custom_weapons_blk", &unit::Unit::custom_weapons_blk)
+      .def_readonly("weapons", &unit::Unit::storage_weapons)
+      .def_readonly("weapon_mods", &unit::Unit::weapon_mods)
+      .def_readonly("fm_mods", &unit::Unit::fm_mods);
 
   py::class_<unit::UnitRef>(unit, "UnitRef")
       .def_readonly("unit", &unit::UnitRef::unit);

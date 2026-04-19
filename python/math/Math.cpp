@@ -33,7 +33,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](Point2 &p3){
         return py::make_tuple(p3.x, p3.y);
       })
-      .def("__getattr__", [](Point2 &p2, int index){
+      .def("__getitem__", [](Point2 &p2, int index){
         if(0 > index || index >= 2) {
           throw py::index_error();
         }
@@ -58,7 +58,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](Point3 &p3){
         return py::make_tuple(p3.x, p3.y, p3.z);
       })
-      .def("__getattr__", [](Point3 &p3, int index){
+      .def("__getitem__", [](Point3 &p3, int index){
         if(0 > index || index >= 3) {
           throw py::index_error();
         }
@@ -84,7 +84,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](Point4 &p4){
         return py::make_tuple(p4.x, p4.y, p4.z, p4.w);
       })
-      .def("__getattr__", [](Point4 &p4, int index){
+      .def("__getitem__", [](Point4 &p4, int index){
         if(0 > index || index >= 4) {
           throw py::index_error();
         }
@@ -108,7 +108,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](IPoint2 &p){
         return py::make_tuple(p.x, p.y);
       })
-      .def("__getattr__", [](IPoint2 &p2, int index){
+      .def("__getitem__", [](IPoint2 &p2, int index){
         if(0 > index || index >= 2) {
           throw py::index_error();
         }
@@ -133,7 +133,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](IPoint3 &p3){
         return py::make_tuple(p3.x, p3.y, p3.z);
       })
-      .def("__getattr__", [](IPoint3 &p3, int index){
+      .def("__getitem__", [](IPoint3 &p3, int index){
         if(0 > index || index >= 3) {
           throw py::index_error();
         }
@@ -159,7 +159,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](IPoint4 &p4){
         return py::make_tuple(p4.x, p4.y, p4.z, p4.w);
       })
-      .def("__getattr__", [](IPoint4 &p4, int index){
+      .def("__getitem__", [](IPoint4 &p4, int index){
         if(0 > index || index >= 4) {
           throw py::index_error();
         }
@@ -178,7 +178,7 @@ void PyMath::include(py::module_ &m) {
       .def("to_tuple", [](TMatrix &m){
         return py::make_tuple(m.col[0], m.col[1], m.col[2], m.col[3]);
       })
-      .def("__getattr__", [](TMatrix &m, int index){
+      .def("__getitem__", [](TMatrix &m, int index){
         if(0 > index || index >= 4) {
           throw py::index_error();
         }

@@ -7,6 +7,7 @@ extern "C" {
 #include "Logger.h"
 #include "span"
 #include "idFieldSerializer.h"
+#include "DataBlock.h"
 
 using ssize_t = Py_ssize_t;
 PyBitStream py_bitstream{};
@@ -21,8 +22,7 @@ std::optional<py::bytes> read_bits(BitStream &bs, uint32_t bits) {
   }
   return {};
 }
-///mnt/d/ReplayParser/cmake-build-wsldebugasan/experiment/python/PyReplayParser.cpython-312-x86_64-linux-gnu.so
-std::span<const char> bytes_to_span(const py::bytes& py_bytes) {
+inline std::span<const char> bytes_to_span(const py::bytes& py_bytes) {
   // Extract data pointer and size from py::bytes
   char* data;
   ssize_t size;
@@ -170,6 +170,11 @@ void PyBitStream::include(py::module_ &m) {
         }
         return {};
       }, py::arg("bits"))
+      .def("ReadBLK", [](BitStream &bs) {
+        DataBlock blk{};
+        G_ASSERT(bs.Read(blk));
+        return blk;
+      })
       .def("IgnoreBits", &BitStream::IgnoreBits)
       .def("IgnoreBytes", &BitStream::IgnoreBytes)
       .def("GetReadOffset", &BitStream::GetReadOffset)
@@ -201,6 +206,7 @@ void PyBitStream::include(py::module_ &m) {
   m.def("BITS_TO_BYTES", [](BitSize_t in) {
     return BITS_TO_BYTES(in);
   });
+
 
   py::class_<IdFieldSerializer255>(m, "IdFieldSerializer255")
       .def(py::init<>())
