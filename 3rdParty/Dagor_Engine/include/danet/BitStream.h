@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <string>
 
+class DataBlock;
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -287,6 +289,8 @@ public:
     SetReadOffset(GetReadOffset() + bytes2bits(bytesToCopy));
     return true;
   }
+
+  bool Read(DataBlock &blk) const;
 
 
   void Write(const BitStream &bs)
