@@ -4,6 +4,7 @@
 #include "state/ParserState.h"
 #include "mpi/GeneralObject.h"
 
+CREATE_HANDLE(handle_object_dispatcher, "ObjectDispatcher")
 namespace mpi {
   void zstd_decompress(BitStream &in, BitStream &out) {
 
@@ -32,21 +33,21 @@ namespace mpi {
         }
         case Kill: {
           return new KillMessage(this);
-          LOG("KILL");
+          DISPATCHER_LOGD1("KILL");
           break;
         }
         case Awards: {
-          LOG("Awards");
+          DISPATCHER_LOGD1("Awards");
           break;
 
         }
         case SevereDamage: {
-          LOG("SevereDamage");
+          DISPATCHER_LOGD1("SevereDamage");
           break;
 
         }
         case CriticalDamage: {
-          LOG("CriticalDamage");
+          DISPATCHER_LOGD1("CriticalDamage");
           break;
 
         }
@@ -142,7 +143,7 @@ namespace mpi {
           return state->Zones[count];
         }
         else {
-          LOGE("Warning, Zone with id {} doesn't exist in Zone array", count);
+          DISPATCHER_LOGE("Warning, Zone with id {} doesn't exist in Zone array", count);
         }
         break;
       }

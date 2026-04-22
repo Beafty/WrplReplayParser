@@ -5,6 +5,7 @@
 #include "consts.h"
 #include <cassert>
 
+CREATE_HANDLE(handle_cnet, "CNetwork")
 std::string packet_names[]{"End", "Start", "Aircraft", "Chat", "MPI", "NextSegment", "ECS", "Snapshot", "ECS_Msg_Sync"};
 namespace net
 {
@@ -59,7 +60,7 @@ namespace net
         }
         ecs::EntityId eid = ecs::EntityId(serverEid);
         auto name = this->state->g_entity_mgr.getEntityTemplateName(eid);
-        LOGD3("ID_ENTITY_MSG for entity {:#x} of template {}",  serverEid, name);
+        CNET_LOGD3("ID_ENTITY_MSG for entity {:#x} of template {}",  serverEid, name);
         // actual code
         break;
       }
@@ -88,7 +89,7 @@ namespace net
           conn.writeLastRecvdPacketAcks(acks);
           auto pkt = enet_packet_create(acks.GetData(), BITS_TO_BYTES(acks.GetWriteOffset()), ENET_PACKET_FLAG_UNSEQUENCED);
           enet_peer_send (peer, 0, pkt);
-          LOG("sending replication ACKS");
+          CNET_LOGD2("sending replication ACKS");
         }
         //std::cout << "ID_ENTITY_REPLICATION\n";
         break;

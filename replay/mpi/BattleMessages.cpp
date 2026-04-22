@@ -106,23 +106,24 @@ namespace mpi {
           }
       MESSAGE_SWITCH_FOOTER
     }
-    LOG("KillerPid: {}; KillerUid: {}; KillerVehicle: {}; KillerWeapon: {}", this->offender_pid, killer_uid, this->offender_vehicle, this->used_weapon);
-    LOG("VictimPid: {}; VictimUid: {}; DeathType: {}", this->VictimPid, victim_uid, this->DeathType);
-    LOG("some_enum: {}; some_weap_flags: {}; unitType: {}", (uint8_t)this->some_enum, this->some_weap_flags, this->unitType);
-    LOG("destroyed_weapon: {}", this->destroyed_weapon);
-    LOG("newStr1: {}; newStr2: {}; newVal3: {}; newStr4: {}", this->weird_str_1, this->weird_str_2, this->weird_val_3, this->weird_str_4);
-    ecs::string *killer_className, *killer_missionName, *victim_className, *victim_missionName;
-    if(this->offender_entity) {
-      killer_className = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__className"));
-      killer_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__missionName"));
-      LOG("killer_className: {}; killer_missionName: {}", *killer_className, *killer_missionName);
+    if(SINK_LOG_ALLOWED(handle_object_dispatcher, LOGLEVEL::DEBUG_L2)) {
+      DISPATCHER_LOGD2("KillerPid: {}; KillerUid: {}; KillerVehicle: {}; KillerWeapon: {}", this->offender_pid, killer_uid, this->offender_vehicle, this->used_weapon);
+      DISPATCHER_LOGD2("VictimPid: {}; VictimUid: {}; DeathType: {}", this->VictimPid, victim_uid, this->DeathType);
+      DISPATCHER_LOGD2("some_enum: {}; some_weap_flags: {}; unitType: {}", (uint8_t)this->some_enum, this->some_weap_flags, this->unitType);
+      DISPATCHER_LOGD2("destroyed_weapon: {}", this->destroyed_weapon);
+      DISPATCHER_LOGD2("newStr1: {}; newStr2: {}; newVal3: {}; newStr4: {}", this->weird_str_1, this->weird_str_2, this->weird_val_3, this->weird_str_4);
+      ecs::string *killer_className, *killer_missionName, *victim_className, *victim_missionName;
+      if(this->offender_entity) {
+        killer_className = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__className"));
+        killer_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__missionName"));
+        DISPATCHER_LOGD2("killer_className: {}; killer_missionName: {}", *killer_className, *killer_missionName);
+      }
+      if(this->offended_entity) {
+        victim_className = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__className"));
+        victim_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__missionName"));
+        DISPATCHER_LOGD2("victim_className: {}; victim_missionName: {}", *victim_className, *victim_missionName);
+      }
     }
-    if(this->offended_entity) {
-      victim_className = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__className"));
-      victim_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__missionName"));
-      LOG("victim_className: {}; victim_missionName: {}", *victim_className, *victim_missionName);
-    }
-
     return true;
   }
 }

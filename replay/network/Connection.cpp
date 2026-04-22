@@ -4,6 +4,8 @@
 #include "ecs/EntityManager.h"
 #include "network/Object.h"
 
+CREATE_HANDLE(handle_conn, "Connection")
+
 #define REPL_VER(x) \
   if (!(x))         \
     return failRet
@@ -209,7 +211,7 @@ namespace net
 
     if (!bs.Read(serverTemplates[templateId])) // ref to template
       return false;
-    LOGD2("Parsing new template: {}", serverTemplates[templateId].c_str());
+    CONN_LOGD2("Parsing new template: {}", serverTemplates[templateId].c_str());
 
     ecs::template_t templId = mgr->buildTemplateIdByName(serverTemplates[templateId].c_str());
     if (templId != ecs::INVALID_TEMPLATE_INDEX)
@@ -398,12 +400,6 @@ namespace net
 
       G_FAST_ASSERT(blockSizeBytes);
       G_UNUSED(blockSizeBytes);
-#if DAECS_EXTENSIVE_CHECKS
-      if (blockSizeBytes >= (1 << 14))
-      logwarn("Construction packet of entity %d(%s) is %dK!", (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid),
-        blockSizeBytes >> 10);
-#endif
-
 
 
       if (++written > UCHAR_MAX)
@@ -537,7 +533,7 @@ namespace net
 
     // Remove this check when we sure enough that it's not happens and use bitmap for storing info about count < 256 instead
     if (DAGOR_UNLIKELY(componentsInTemplate != serverTemplateComponentsCount[serverWrittenIdx]))
-      LOGE("Inconsistent replication components count %d (cur) != %d (initial) in template %d<%s>", componentsInTemplate,
+      CONN_LOGE("Inconsistent replication components count %d (cur) != %d (initial) in template %d<%s>", componentsInTemplate,
              serverTemplateComponentsCount[serverWrittenIdx], templateId, mgr->getEntityTemplateName(eid));
 
     if (lessThan256)
@@ -602,8 +598,6 @@ namespace net
 
     G_ASSERT(componentsSynced.test(serverCidx, false)); // should never happen, no need for sanity check in release
     const ecs::component_index_t clientCidx = serverToClientCidx[serverCidx];
-    if(eid.get_handle() == 0x1c00a65 && ecs::g_ecs_data->getDataComponents()->getDataComponent(clientCidx)->hash == 0x96B0BD40)
-      LOG("WOMP");
     if (clientCidx == ecs::INVALID_COMPONENT_INDEX) // we can't deserialize it, which means type was unknown!
       return false;
     auto datacomp = ecs::g_ecs_data->getDataComponents()->getDataComponent(clientCidx);
@@ -615,7 +609,7 @@ namespace net
 
     if (DAGOR_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds, *mgr)))
     {
-      LOGD3("Replicating Component {}({}) for entity {:#x} for template {}. data: {}",
+      CONN_LOGD2("Replicating Component {}({}) for entity {:#x} for template {}. data: {}",
           datacomp->getName(),
           ecs::g_ecs_data->getComponentTypes()->getName(cref.getTypeId()),
           eid.get_handle(),
@@ -634,7 +628,7 @@ namespace net
     }
     bs.SetReadOffset(beforeReadPos);
     auto comp = ecs::g_ecs_data->getComponentTypes()->getComponentData(datacomp->componentIndex);
-    LOGE("{} {}<{:#x}> of type {}<{:#x}> for entity {:#x}<{}>", warn_type,
+    CONN_LOGE("{} {}<{:#x}> of type {}<{:#x}> for entity {:#x}<{}>", warn_type,
          datacomp->getName(), datacomp->hash,
          comp->name, comp->hash,
          eid.get_handle(),
@@ -648,7 +642,7 @@ namespace net
     {
       G_UNUSED(eid);
       //EXCEPTION("");
-      LOGE("Attempt to serialize not-yet synced component <{}> of type <{}>",
+      CONN_LOGE("Attempt to serialize not-yet synced component <{}> of type <{}>",
            ecs::g_ecs_data->getDataComponents()->getName(comp.getComponentId()),
            ecs::g_ecs_data->getComponentTypes()->getName(comp.getTypeId()),
            eid.get_handle(),

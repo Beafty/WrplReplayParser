@@ -68,7 +68,7 @@ struct TextStream {
         return false;
       if(!spacing_allowed)
         if (isSpacingCharacter(c)) {
-          LOG("invalid string, space or newline found in variable name and spacing was not allowed");
+          LOGE("invalid string, space or newline found in variable name and spacing was not allowed");
           return false;
         }
       out.push_back(c);
@@ -102,17 +102,27 @@ struct TextStream {
 
 };
 
-bool readObjName(std::string &out, TextStream &strm) {
+bool readObjName(std::string &out, TextStream &strm, bool &is_comment) {
   bool fail = false;
   for (char c = strm.getNextCharacter(fail); c != '=' && c != '{'; c = strm.getNext(fail)) {
+
     if (fail)
       return false;
     if (isSpacingCharacter(c)) {
-      LOG("invalid text blk, space or newline found in variable name");
-      return false;
+      if(is_comment) {
+        if (c == '\n') return true;
+      } else {
+        LOG("invalid text blk, space or newline found in variable name");
+        return false;
+      }
     }
 
     out.push_back(c);
+    if(out.size() == 2) {
+      if (out.starts_with("//")) {
+        is_comment = true;
+      }
+    }
   }
   if (fail)
     return false;
@@ -239,27 +249,29 @@ bool LoadBlock(DataBlock *blk, TextStream &strm, int stack = 0) {
       break;
 
     std::string name{};
-    retFail(readObjName(name, strm));
-    switch (strm.getCurrent()) {
-      case '{': {
-        auto new_blk = blk->getBlock(blk->addBlock(name));
-        retFail(LoadBlock(new_blk.get(), strm, stack+1));
-        break;
-      }
-      case '=': {
-        size_t start_pos = strm.offset;
-        strm.reverseTillChar(':');
-        name.resize(name.size()-(start_pos-(strm.offset+1)));
+    bool is_comment = false;
+    retFail(readObjName(name, strm, is_comment));
+    if(!is_comment)
+      switch (strm.getCurrent()) {
+        case '{': {
+          auto new_blk = blk->getBlock(blk->addBlock(name));
+          retFail(LoadBlock(new_blk.get(), strm, stack+1));
+          break;
+        }
+        case '=': {
+          size_t start_pos = strm.offset;
+          strm.reverseTillChar(':');
+          name.resize(name.size()-(start_pos-(strm.offset+1)));
 
-        strm.offset++;
-        retFail(ReadParam(name, blk, strm));
-        break;
+          strm.offset++;
+          retFail(ReadParam(name, blk, strm));
+          break;
+        }
+        default: {
+          LOG("Invalid token after object name, expected {{ or :");
+          return false;
+        }
       }
-      default: {
-        LOG("Invalid token after object name, expected {{ or :");
-        return false;
-      }
-    }
   }
   if(stack == 0) // top level block
     return true;

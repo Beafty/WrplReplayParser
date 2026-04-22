@@ -15,6 +15,7 @@ target_link_libraries(LOGGER PUBLIC
         fmt::fmt
         cpptrace::cpptrace
         Tracy::TracyClient
+        BLK::BLK
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

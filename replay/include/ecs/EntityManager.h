@@ -25,6 +25,35 @@
 #include "ecs/internal/ArchetypesQuery.h"
 #include "Unit.h"
 #include <shared_mutex>
+
+DEFINE_HANDLE(handle_ecs)
+#define ECS_LOGI(format_, ...) ELOGI(handle_ecs, format_, __VA_ARGS__)
+#define ECS_LOGD1(format_, ...) ELOGD1(handle_ecs, format_, __VA_ARGS__)
+#define ECS_LOGD2(format_, ...) ELOGD2(handle_ecs, format_, __VA_ARGS__)
+#define ECS_LOGD3(format_, ...) ELOGD3(handle_ecs, format_, __VA_ARGS__)
+#define ECS_LOGE(format_, ...) ELOGE(handle_ecs, format_, __VA_ARGS__)
+
+DEFINE_HANDLE(handle_ecs_events)
+#define EVENT_LOGI(format_, ...) ELOGI(handle_ecs_events, format_, __VA_ARGS__)
+#define EVENT_LOGD1(format_, ...) ELOGD1(handle_ecs_events, format_, __VA_ARGS__)
+#define EVENT_LOGD2(format_, ...) ELOGD2(handle_ecs_events, format_, __VA_ARGS__)
+#define EVENT_LOGD3(format_, ...) ELOGD3(handle_ecs_events, format_, __VA_ARGS__)
+#define EVENT_LOGE(format_, ...) ELOGE(handle_ecs_events, format_, __VA_ARGS__)
+
+DEFINE_HANDLE(handle_ecs_query)
+#define QUERY_LOGI(format_, ...) ELOGI(handle_ecs_query, format_, __VA_ARGS__)
+#define QUERY_LOGD1(format_, ...) ELOGD1(handle_ecs_query, format_, __VA_ARGS__)
+#define QUERY_LOGD2(format_, ...) ELOGD2(handle_ecs_query, format_, __VA_ARGS__)
+#define QUERY_LOGD3(format_, ...) ELOGD3(handle_ecs_query, format_, __VA_ARGS__)
+#define QUERY_LOGE(format_, ...) ELOGE(handle_ecs_query, format_, __VA_ARGS__)
+
+DEFINE_HANDLE(handle_entity)
+#define ENTITY_LOGI(format_, ...) ELOGI(handle_entity, format_, __VA_ARGS__)
+#define ENTITY_LOGD1(format_, ...) ELOGD1(handle_entity, format_, __VA_ARGS__)
+#define ENTITY_LOGD2(format_, ...) ELOGD2(handle_entity, format_, __VA_ARGS__)
+#define ENTITY_LOGD3(format_, ...) ELOGD3(handle_entity, format_, __VA_ARGS__)
+#define ENTITY_LOGE(format_, ...) ELOGE(handle_entity, format_, __VA_ARGS__)
+
 class PyGState; // for python bindings
 struct ParserState;
 
@@ -45,15 +74,15 @@ namespace ecs {
       std::string indent_str{};
 
       indent_str.resize(indent, ' ');
-      LOGE("{}Global State (GState) Memory Usage", indent_str);
+      ECS_LOGI("{}Global State (GState) Memory Usage", indent_str);
       indent_str.resize(indent+2, ' ');
       auto component_types_size = this->componentTypes.printMemoryUsage(indent+2);
-      LOGE("{}Combined Size: {}", indent_str, component_types_size);
+      ECS_LOGI("{}Combined Size: {}", indent_str, component_types_size);
       auto datacomponent_types_size = this->dataComponents.printMemoryUsage(indent+2);
-      LOGE("{}Combined Size: {}", indent_str, datacomponent_types_size);
+      ECS_LOGI("{}Combined Size: {}", indent_str, datacomponent_types_size);
       auto templates_size = this->templates.printMemoryUsage(indent+2);
-      LOGE("{}Combined Size: {}", indent_str, templates_size);
-      LOGE("{}Overall Size: {}", indent_str, component_types_size+datacomponent_types_size+templates_size);
+      ECS_LOGI("{}Combined Size: {}", indent_str, templates_size);
+      ECS_LOGI("{}Overall Size: {}", indent_str, component_types_size+datacomponent_types_size+templates_size);
     }
 
     void Init() {
@@ -347,7 +376,7 @@ namespace ecs {
 
     EntityId createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer);
 
-    bool destroyEntity(EntityId eid);
+    bool destroyEntity(EntityId eid, bool is_dtor=false);
 
     ComponentRef getComponentRef(EntityId eid, archetype_component_id cid) const;   // cid is 0.. till getNumComponents
     ComponentRef getComponentRefCidx(EntityId eid, component_index_t cidx) const;

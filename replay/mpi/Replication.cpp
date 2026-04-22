@@ -1,6 +1,8 @@
 #include "mpi/codegen/ReflIncludes.h"
 #include "state/ParserState.h"
 
+CREATE_HANDLE(handle_replication, "Replication")
+
 void force_link_replication() {
   std::cout << "";
 }
@@ -120,7 +122,7 @@ danet::ReplicatedObject * BaseZone::createReplicatedObject(BitStream &bs, Parser
 }
 
 danet::ReplicatedObject * Airfield::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated Airfield");
+  REPLICATION_LOGD3("Parsing Replicated Airfield");
   return nullptr;
 }
 
@@ -157,108 +159,107 @@ danet::ReplicatedObject * CaptureZone::createReplicatedObject(BitStream &bs, Par
 }
 
 danet::ReplicatedObject * DMSquad::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated DMSquad");
+  REPLICATION_LOGD3("Parsing Replicated DMSquad");
   return nullptr;
 }
 
 danet::ReplicatedObject * ExitZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOGE("Parsing Replicated ExitZone");
+  REPLICATION_LOGD3("Parsing Replicated ExitZone");
   return create_zone(bs, 3, state);
 }
 
 danet::ReplicatedObject * FlightModelWrap::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated FlightModelWrap");
+  REPLICATION_LOGD3("Parsing Replicated FlightModelWrap");
   return nullptr;
 }
 
 danet::ReplicatedObject * IGroundModel::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated IGroundModel");
+  REPLICATION_LOGD3("Parsing Replicated IGroundModel");
   return nullptr;
 }
 
 danet::ReplicatedObject * InfantryTroop::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated InfantryTroop");
+  REPLICATION_LOGD3("Parsing Replicated InfantryTroop");
   return nullptr;
 }
 
 danet::ReplicatedObject * InteractiveObject::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated InteractiveObject");
+  REPLICATION_LOGD3("Parsing Replicated InteractiveObject");
   return nullptr;
 }
 
 danet::ReplicatedObject * InteractiveObjectProxy::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated InteractiveObjectProxy");
+  REPLICATION_LOGD3("Parsing Replicated InteractiveObjectProxy");
   return nullptr;
 }
 
 danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated MissionArea");
+  REPLICATION_LOGD3("Parsing Replicated MissionArea");
   return nullptr;
 }
 
 danet::ReplicatedObject * MissionDrawing::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated MissionDrawing");
+  REPLICATION_LOGD3("Parsing Replicated MissionDrawing");
   return nullptr;
 }
 
 danet::ReplicatedObject * MissionObjective::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated MissionObjective");
+  REPLICATION_LOGD3("Parsing Replicated MissionObjective");
   return nullptr;
 }
 
 danet::ReplicatedObject * MissionZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated MissionZone");
-
+  REPLICATION_LOGD3("Parsing Replicated MissionZone");
   return nullptr;
 }
 
 danet::ReplicatedObject * ObjectsGroup::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated ObjectsGroup");
+  REPLICATION_LOGD3("Parsing Replicated ObjectsGroup");
   return nullptr;
 }
 
 danet::ReplicatedObject * OrderPlayerProgress::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated OrderPlayerProgress");
+  REPLICATION_LOGD3("Parsing Replicated OrderPlayerProgress");
   return nullptr;
 }
 
 danet::ReplicatedObject * PickupZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOGE("Parsing Replicated PickupZone");
+  REPLICATION_LOGD3("Parsing Replicated PickupZone");
   return create_zone(bs, 4, state);
 }
 
 danet::ReplicatedObject * RaceMode::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated RaceMode");
+  REPLICATION_LOGD3("Parsing Replicated RaceMode");
   return nullptr;
 }
 
 danet::ReplicatedObject * RearmZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOGE("Parsing Replicated RearmZone");
+  REPLICATION_LOGD3("Parsing Replicated RearmZone");
   return create_zone(bs, 2, state);
 }
 
 danet::ReplicatedObject * RespawnBase::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated RespawnBase");
+  REPLICATION_LOGD3("Parsing Replicated RespawnBase");
   return nullptr;
 }
 
 danet::ReplicatedObject * Squadron::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated Squadron");
+  REPLICATION_LOGD3("Parsing Replicated Squadron");
   return nullptr;
 }
 
 danet::ReplicatedObject * UnitWinch::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated UnitWinch");
+  REPLICATION_LOGD3("Parsing Replicated UnitWinch");
   return nullptr;
 }
 
 danet::ReplicatedObject * Waypoint::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated Waypoint");
+  REPLICATION_LOGD3("Parsing Replicated Waypoint");
   return nullptr;
 }
 
 danet::ReplicatedObject * Wing::createReplicatedObject(BitStream &bs, ParserState *state) {
-  LOG("Parsing Replicated Wing");
+  REPLICATION_LOGD3("Parsing Replicated Wing");
   return nullptr;
 }
 

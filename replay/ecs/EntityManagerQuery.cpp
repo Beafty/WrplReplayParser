@@ -1,6 +1,7 @@
 #include "ecs/EntityManager.h"
 #include <EASTL/vector_set.h>
 
+CREATE_HANDLE(handle_ecs_query, "ECSQuery")
 namespace ecs {
   static constexpr int max_query_components_count = 256;
   EntitySystemDesc *EntitySystemDesc::tail = NULL;
@@ -317,7 +318,7 @@ namespace ecs {
     for(auto arch : queries) {
       t << fmt::format(" {}", this->templates.getTemplate(this->archetypes.getParentTemplate(arch))->getName());
     }
-    LOG("Query \"{}\" adding archetypes of templates: {}", this->queryDescs[index].getName(), t.str());
+    QUERY_LOGD3("Query \"{}\" adding archetypes of templates: {}", this->queryDescs[index].getName(), t.str());
 
     if (query.isInplaceOffsets(newOfsCount)) {
       // we still fit inside inplace array
@@ -386,7 +387,7 @@ namespace ecs {
         }
         auto &cd = *cdI;
         component_index_t id = this->dataComponents.getIndex(cd.name);
-        LOGD3("query <{}>, component {:#x}, type {:#x}", name, cd.name, cd.type);
+        QUERY_LOGD3("query <{}>, component {:#x}, type {:#x}", name, cd.name, cd.type);
 
         if (id == INVALID_COMPONENT_INDEX) {
           if ((req == REQUIRED_NOT) ||
@@ -479,14 +480,14 @@ namespace ecs {
     }
     if (!makeRange(desc.componentsNO, REQUIRED_NOT))
       return (ResolvedStatus) ret;
-    LOGD3("resolved query <{}>, resolve={}", name, (uint8_t) currentStatus);
+    QUERY_LOGD3("resolved query <{}>, resolve={}", name, (uint8_t) currentStatus);
     return (ResolvedStatus) ret;
   }
 
   bool GState::resolvePersistentQueryInternal(uint32_t index) {
     const ResolvedStatus ret = resolveQuery(index, getQueryStatus(index), resolvedQueries[index]);
     orQueryStatus(index, ret);
-    LOGD3("set resolved query <{}> to {}", queryDescs[index].getName(), isResolved(index));
+    QUERY_LOGD3("set resolved query <{}> to {}", queryDescs[index].getName(), isResolved(index));
     return ret != NOT_RESOLVED;
   }
 
@@ -505,7 +506,7 @@ namespace ecs {
     const ResolvedStatus status = getQueryStatus(index);
 
     if (DAGOR_UNLIKELY(!isFullyResolved(status))) {
-      LOGD3("updating = {} {}, as not fully resolved", queryDescs[index].getName(), index);
+      QUERY_LOGD3("updating = {} {}, as not fully resolved", queryDescs[index].getName(), index);
       if (should_re_resolve) {
         if (!resolvePersistentQueryInternal(index)) {
           EXCEPTION("update failed = {}", queryDescs[index].getName());
@@ -708,8 +709,7 @@ namespace ecs {
     auto esListIt = esEvents.find(eventType); // this is extremely slow, and should not be needed. We can register all events with flat
     // arrays, not search.
     if (esListIt == esEvents.end())
-      return; // nvm it can happen :(
-      //G_ASSERT(false); // shouldnt ever happen so lets make it a fail condition
+      return;
     auto &list = esListIt->second;
     if(list.empty()) // entirely possible for us to have events that have no valid archetypes
       return;

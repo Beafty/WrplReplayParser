@@ -1,6 +1,8 @@
 
 #include "ecs/DataComponents.h"
 #include "utils.h"
+#include "ecs/EntityManager.h"
+
 namespace ecs
 {
   CompileComponentRegister *CompileComponentRegister::tail = nullptr;
@@ -54,8 +56,7 @@ namespace ecs
     const uint32_t nameAddr = usedName ? names.addDataRaw(usedName, strlen(usedName) + 1) : 0;
     components.emplace_back(nameHash,component_type, component_type_name, io, this, nameAddr,
                             io ? DataComponent::HAS_SERIALIZER : 0);
-    return (component_index_t)components.size() - 1;
-    LOG("create {} ecs component <{}> hash<{:#x}> of component_type {}<{}|{:#x}>", components.size() - 1,
+    ECS_LOGD2("create {} ecs component <{}> hash<{:#x}> of component_type {}<{}|{:#x}>", components.size() - 1,
                 usedName,
                 nameHash, component_type, types.getName(component_type).data(), component_type_name);
     G_UNUSED(types);
@@ -64,7 +65,7 @@ namespace ecs
 
   void DataComponents::initialize(ComponentTypes &types) {
     //clear();
-    LOG("ecs: initialize DataComponents Types");
+    ECS_LOGD1("ecs: initialize DataComponents Types");
     this->names.addDataRaw("", 1); // ensures the zeroth index is not a valid name / is emtpy name
     createComponent(ECS_HASH("eid"), types.findType(ECS_HASH("ecs::EntityId").hash), nullptr, types);
     // initialize eid and tag first, for debugging purposes?

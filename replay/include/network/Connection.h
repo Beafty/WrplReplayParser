@@ -18,13 +18,20 @@ extern "C" {
 #include <EASTL/vector_set.h>
 #include <EASTL/vector_multiset.h>
 
+DEFINE_HANDLE(handle_conn)
+#define CONN_LOGI(format_, ...) ELOGI(handle_conn, format_, __VA_ARGS__)
+#define CONN_LOGD1(format_, ...) ELOGD1(handle_conn, format_, __VA_ARGS__)
+#define CONN_LOGD2(format_, ...) ELOGD2(handle_conn, format_, __VA_ARGS__)
+#define CONN_LOGD3(format_, ...) ELOGD3(handle_conn, format_, __VA_ARGS__)
+#define CONN_LOGE(format_, ...) ELOGE(handle_conn, format_, __VA_ARGS__)
+
 
 struct ParserState;
 
 namespace net
 {
 
-
+  // DONT ASK ABOUT THE RELIABILITY SYSTEM IM NOT TELLIN YOU NOTHIN
   typedef uint32_t ack_bits_t;
   typedef uint16_t sequence_t;
   typedef void (*packet_event_cb_t)(sequence_t seq, void *param);

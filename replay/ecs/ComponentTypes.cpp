@@ -60,8 +60,7 @@ namespace ecs {
 
     typesIndex.emplace(type, getTypeCount());
     types.push_back({io, data_size, type, std::string_view(name), nullptr, ctm, dtm, flags});
-    return (type_index_t)getTypeCount() - 1;
-    LOG("created component {} that is '{}{}' type <{}> hash<{:#x}> of size {}",
+    ECS_LOGD2("created component {} that is '{}{}' type <{}> hash<{:#x}> of size {}",
         getTypeCount()-1,
         need_constructor(flags) ? "creatable" : "pod",
         io ? " io" : "",
@@ -73,7 +72,7 @@ namespace ecs {
 
   void ComponentTypes::initialize() {
     //clear();
-    LOG("ecs: initialize component Types");
+    ECS_LOGD1("ecs: initialize component Types");
     // initialize eid and tag first, for debugging purposes?
     for (CompileComponentTypeRegister *start = CompileComponentTypeRegister::tail; start; start = start->next) {
       registerType(start->name, start->name_hash, start->size, start->io, start->ctm, start->dtm, start->flags);

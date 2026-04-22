@@ -19,6 +19,7 @@
 
 #include "fmt/base.h"
 #include "fmt/format.h"
+#include "onDemandInit.h"
 
 //internal handle for a specific sink, you get a sink handle when you create or query a sink
 typedef int16_t sink_handle_t;
@@ -163,6 +164,22 @@ class logger_sink {
   }
 };
 
+class LoggerSinkRegister {
+public:
+  LoggerSinkRegister(const char * name, sink_handle_t *ptr): name(name), ptr(ptr) {
+    next = tail;
+    tail = this;
+  }
+
+protected:
+  const char * name;
+  sink_handle_t * ptr;
+  LoggerSinkRegister *next;
+  static LoggerSinkRegister * tail;
+  friend log_handler;
+};
+
+class DataBlock;
 
 class log_handler {
 
@@ -184,6 +201,7 @@ class log_handler {
   bool thread_exists = false;
   bool destructing = false;
   //pthread_t handle; // handle for consumer thread
+
 
   logger_sink *get_sink(sink_handle_t s_handle) {
     switch (s_handle) {
@@ -250,7 +268,7 @@ class log_handler {
   }
 
 public:
-
+  void loadSinkFromDataBlock(DataBlock &blk);
   void start_thread() {
     if(!this->logger_thread.joinable()) {
       this->logger_thread = std::thread(&log_handler::consumer_loop, this);
@@ -324,6 +342,7 @@ public:
       case ERROR_:
         return true; // we always log error messages, if the sink doesnt exist, we log to default
     }
+    return false; // shouldnt happen, but keeps ide happy
   }
 
   void sink_flush(sink_handle_t s_handle) {
@@ -379,7 +398,9 @@ public:
   }
 };
 
-extern log_handler g_log_handler;
+extern OnDemandInit<log_handler> g_log_handler;
+
+sink_handle_t get_log_handle(const std::string &name);
 
 void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL level, std::string &&message);
 
@@ -387,41 +408,58 @@ void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL lev
     (log_ext(__FUNCTION__, __LINE__, sink, level, fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__)))
 
 #define LOG_FMT_EXT_CHECK(sink, level, format_, ...) \
-  if(g_log_handler.sink_dbg_lvl_allowed(sink, level)) {                                                 \
-    (log_ext(__FUNCTION__, __LINE__, sink, level, fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__)))     \
+  if(g_log_handler->sink_dbg_lvl_allowed(sink, level)) {                                                 \
+    (log_ext(__FUNCTION__, __LINE__, sink, level, fmt::format(format_ __VA_OPT__(, ) __VA_ARGS__)));     \
   }
-#define ONLY_ERROR_LOGGING 1
+
+#define SINK_LOG_ALLOWED(sink, level) (g_log_handler->sink_dbg_lvl_allowed(sink, level))
+//#define ONLY_ERROR_LOGGING 1
 #ifdef ONLY_ERROR_LOGGING
 #define LOGI(format_, ...)
-#define LOGD(format_, ...)
 #define LOGD1(format_, ...)
 #define LOGD2(format_, ...)
 #define LOGD3(format_, ...)
 #define LOGE(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
 
 #define ELOGI(sink, format_, ...)
-#define ELOGD(sink, format_, ...)
 #define ELOGD1(sink, format_, ...)
 #define ELOGD2(sink, format_, ...)
 #define ELOGD3(sink, format_, ...)
 #define ELOGE(sink, format_, ...) LOG_FMT_EXT(sink, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
 #else
 #define LOGI(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::INFO, format_, __VA_ARGS__)
-#define LOGD(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
 #define LOGD1(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
 #define LOGD2(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L2, format_, __VA_ARGS__)
 #define LOGD3(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::DEBUG_L3, format_, __VA_ARGS__)
 #define LOGE(format_, ...) LOG_FMT_EXT(DEFAULT_SINK_HANDLER, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
 
 #define ELOGI(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::INFO, format_, __VA_ARGS__)
-#define ELOGD(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
 #define ELOGD1(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L1, format_, __VA_ARGS__)
 #define ELOGD2(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L2, format_, __VA_ARGS__)
 #define ELOGD3(sink, format_, ...) LOG_FMT_EXT_CHECK(sink, LOGLEVEL::DEBUG_L3, format_, __VA_ARGS__)
 #define ELOGE(sink, format_, ...) LOG_FMT_EXT(sink, LOGLEVEL::ERROR_, format_, __VA_ARGS__)
 #endif
 
+#define CONCATENATE(x, y) x##y
+#define MAKE_UNIQUE(x, y) CONCATENATE(x, y)
 
+// name is the prefix for logging class in this file
+// handle is the logging handle the parser uses
+// because you cant define macros inside a macro, you have to manually expand the macro and add the # to all the 'define's
+
+#define DEFINE_HANDLE(var_name) extern sink_handle_t var_name;
+#define CREATE_HANDLE(var_name, handle) sink_handle_t var_name = INVALID_SINK_HANDLER; \
+static LoggerSinkRegister MAKE_UNIQUE(logger_reg_, __COUNTER__) (handle, &(var_name));
+/*
+#define _LOGI(format_, ...) ELOGI(HANDLE, format_, ...)
+#define _LOGD(format_, ...) ELOGD(HANDLE, format_, ...)
+#define _LOGD1(format_, ...) ELOGD1(HANDLE, format_, ...)
+#define _LOGD2(format_, ...) ELOGD2(HANDLE, format_, ...)
+#define _LOGD3(format_, ...) ELOGD3(HANDLE, format_, ...)
+#define _LOGE(format_, ...) ELOGE(HANDLE, format_, ...)
+ */
+
+//GENERATE_LOGGER(test, "test_handle")
 
 #define LOG LOGI
 

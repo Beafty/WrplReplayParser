@@ -5,7 +5,8 @@
 #include "tracy/Tracy.hpp"
 #include "state/ParserState.h"
 
-
+CREATE_HANDLE(handle_ecs, "EntityManager")
+CREATE_HANDLE(handle_entity, "EntityHandling")
 namespace ecs {
   OnDemandInit<GState> g_ecs_data{};
 
@@ -83,7 +84,7 @@ namespace ecs {
       std::shared_lock arch_lock(this->data_state->archetypes.archetypes_mtx);
       std::shared_lock templ_lock(this->data_state->templates.template_mtx);
       G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
-      LOGD1("Creating new entity {:#x} of template '{}'", eid.handle,
+      ENTITY_LOGD2("Creating new entity {:#x} of template '{}'", eid.handle,
             data_state->templates.getTemplate(templId)->getName());
       auto arches = &this->data_state->archetypes;
 
@@ -207,13 +208,18 @@ namespace ecs {
     this->data_state->templates.instantiateTemplate(t);
   }
 
-  bool EntityManager::destroyEntity(EntityId eid) {
+  bool EntityManager::destroyEntity(EntityId eid, bool is_dtor) {
     sendEventImmediate(eid, EventEntityDestroyed{});
     if (!this->doesEntityExist(eid))
       return false;
     auto desc = this->entDescs.getEntityDesc(eid);
-    LOGD2("Destroying entity {:#x} of template {}", eid.handle,
-          data_state->templates.getTemplate(desc->templ_id)->getName());
+    if(is_dtor) {
+      ENTITY_LOGD3("Destroying entity {:#x} of template {}", eid.handle,
+            data_state->templates.getTemplate(desc->templ_id)->getName());
+    } else {
+      ENTITY_LOGD2("Destroying entity {:#x} of template {}", eid.handle,
+                   data_state->templates.getTemplate(desc->templ_id)->getName());
+    }
     //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
     archetype_t archetype_id = desc->archetype_id;
     auto ARCHETYPE = this->arch_data.getArch(archetype_id);
@@ -286,13 +292,13 @@ namespace ecs {
 
   ecs::EntityManager::~EntityManager() {
     ZoneScoped;
-    LOGD("starting EntityManager Destruction");
+    ECS_LOGD3("starting EntityManager Destruction");
     for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
       if (!this->entDescs.doesEntityExist(i))
         continue;
-      destroyEntity(EntityId(i)); //
+      destroyEntity(EntityId(i), true); //
     }
-    LOGD("finished EntityManager Destruction");
+    ECS_LOGD3("finished EntityManager Destruction");
     //g_log_handler.wait_until_empty();
     //g_log_handler.flush_all();
   }
@@ -318,7 +324,7 @@ namespace ecs {
       auto ComponentInfo = &data_state->archetypes.archetypeComponents[info->COMPONENT_OFS];
       //auto archInfo = &info->INFO;
       LOG("DebugPrint of Entity {:#x} of template '{}' of archetype_id {}", eid.handle,
-          this->data_state->templates.getTemplate(desc->templ_id)->name.c_str(), archetype_id);
+          this->data_state->templates.getTemplate(desc->templ_id)->getName(), archetype_id);
       for (auto comp_info = ComponentInfo; comp_info != ComponentInfo + info->COMPONENT_COUNT; comp_info++) {
         //     ComponentRef(void *data, component_type_t type, type_index_t compIndex, uint16_t size);
         auto data = ARCHETYPE->getCompDataUnsafe(comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE);

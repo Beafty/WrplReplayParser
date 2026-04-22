@@ -16,6 +16,13 @@ extern "C" {
 //#include "network/message.h"
 #include "enet/enet.h"
 
+DEFINE_HANDLE(handle_cnet)
+#define CNET_LOGI(format_, ...) ELOGI(handle_cnet, format_, __VA_ARGS__)
+#define CNET_LOGD1(format_, ...) ELOGD1(handle_cnet, format_, __VA_ARGS__)
+#define CNET_LOGD2(format_, ...) ELOGD2(handle_cnet, format_, __VA_ARGS__)
+#define CNET_LOGD3(format_, ...) ELOGD3(handle_cnet, format_, __VA_ARGS__)
+#define CNET_LOGE(format_, ...) ELOGE(handle_cnet, format_, __VA_ARGS__)
+
 namespace net
 {
   enum

@@ -2,6 +2,7 @@
 // like 95% copied
 
 #include "ecs/EntityManager.h"
+CREATE_HANDLE(handle_ecs_events, "ECSEvents")
 namespace ecs {
 
   EventInfoLinkedList *EventInfoLinkedList::tail = nullptr;
@@ -19,7 +20,7 @@ namespace ecs {
   bool EventsDB::registerEvent(event_type_t type, event_size_t sz, event_flags_t flags, const char *name, destroy_event *d,
                                move_out_event *m)
   {
-    LOG("Registering Event of name {}", name);
+    EVENT_LOGD1("Registering Event of name {}", name);
     if (sz >= Event::max_event_size || sz < sizeof(Event))
     {
       EXCEPTION("Can't register Event <0x%X|%s> of size <%d>, size not in [%d,%d)", type, name, sz, sizeof(Event), +Event::max_event_size);
@@ -32,7 +33,7 @@ namespace ecs {
       //  return false;
     }
     if ((d || m) && !(flags & EVFLG_DESTROY))
-      LOGE("Event <0x%X|%s> provides destroy/move functions but is trivially destructible", type, name);
+      EVENT_LOGE("Event <0x%X|%s> provides destroy/move functions but is trivially destructible", type, name);
     int evCast = flags & EVFLG_CASTMASK;
     if (!(evCast == EVCAST_UNICAST || evCast == EVCAST_BROADCAST))
       EXCEPTION("Event <0x%X|%s> registered as %s instead of Unicast or Broadcast", type, name, EV_CAST_STR_TYPES[evCast]);
@@ -63,7 +64,7 @@ namespace ecs {
                eventsInfo.get<EVENT_FLAGS>()[id], flags);
       }
       else
-        LOGE("event (%s|0x%X) registered twice", name ? name : eventsInfo.get<EVENT_NAME>()[id].c_str(), type);
+        EVENT_LOGE("event (%s|0x%X) registered twice", name ? name : eventsInfo.get<EVENT_NAME>()[id].c_str(), type);
 
       eventsInfo.get<EVENT_SIZE>()[id] = sz;
       eventsInfo.get<EVENT_FLAGS>()[id] = flags;
@@ -80,7 +81,7 @@ namespace ecs {
     for (const auto &em: eventsMap) {
       const auto &e = eventsInfo[em.second];
       G_UNUSED(e);
-      LOGD("registered {} {}Event <{}|{:#x}> sz {}",
+      EVENT_LOGI("registered {} {}Event <{}|{:#x}> sz {}",
             eastl::get<EventsDB::EVENT_FLAGS>(e) & EVFLG_DESTROY ? "non-trivially-destructible" : "",
             EV_CAST_STR_TYPES[eastl::get<EventsDB::EVENT_FLAGS>(e) & EVFLG_CASTMASK],
             eastl::get<EventsDB::EVENT_NAME>(e).c_str(),

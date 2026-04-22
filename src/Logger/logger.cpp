@@ -1,13 +1,15 @@
 #include "fmt/base.h"
-#include "logger.h"
+#include "Logger.h"
 #include "thread"
+#include "DataBlock.h"
 #include <chrono>
-log_handler g_log_handler;
+OnDemandInit<log_handler> g_log_handler;
+LoggerSinkRegister* LoggerSinkRegister::tail = nullptr;
 
 file_sink::~file_sink() {
   out.close();
-  if(!g_log_handler.destructing)
-    g_log_handler.remove_file_sink(this->file_sink_path);
+  if(!g_log_handler->destructing)
+    g_log_handler->remove_file_sink(this->file_sink_path);
 }
 
 uint64_t get_current_time_ms() {
@@ -17,9 +19,23 @@ uint64_t get_current_time_ms() {
 }
 
 void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL level, std::string &&message) {
-  g_log_handler.add_logmessage(std::move(fmt::format("{}({}): {}", func, line, message)), level, sink);
+  g_log_handler->add_logmessage(std::move(fmt::format("{}({}): {}", func, line, message)), level, sink);
 }
 
+void log_handler::loadSinkFromDataBlock(DataBlock &blk) {
+  for(int i = 0; i < blk.paramCount(); i++) {
+    auto p = blk.getParam(i);
+    if(p->type == DataBlock::TYPE_INT) {
+      auto v = p->data.i;
+      auto n = std::string(p->getName());
+      this->add_sink(n, true, true, v);
+    }
+  }
+  for(auto next = LoggerSinkRegister::tail; next != nullptr; next = next->next) {
+    std::string n(next->name);
+    *next->ptr = this->get_sink(n);
+  }
+}
 
 #include <cpptrace/cpptrace.hpp>
 #ifdef WIN32

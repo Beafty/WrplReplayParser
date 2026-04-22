@@ -29,11 +29,10 @@ bool TranslationAllowed = false;
 void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
   ZoneScoped;
   if(!logfile_path.empty())
-    g_log_handler.set_default_sink_logfile(logfile_path);
+    g_log_handler->set_default_sink_logfile(logfile_path);
   register_default_sigsev_handler();
   register_listener(&mpi::base);
   mpi::register_object_dispatcher(&mpi::ObjectDispatcher);
-  ecs::g_ecs_data.Init();
   fs::path basePath = VromfsPath;
   std::string p1 = (basePath / "aces.vromfs.bin").string();
   std::string p2 = (basePath / "game.vromfs.bin").string();

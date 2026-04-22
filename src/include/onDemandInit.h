@@ -7,34 +7,28 @@ template <typename T>
 struct OnDemandInit {
 public:
   OnDemandInit() = default;
-  T *Init()
-  {
-    return getPtr();
-  }
-
   inline explicit operator T *() const { return getPtr(); }
   T &operator*() const { return *getPtr(); }
   T *operator->() const { return getPtr(); }
   T *get() const { return getPtr(); }
 
-
-
   ~OnDemandInit()
   {
     ZoneScoped;
-    delete obj;
+    if (initialized)
+      getPtr()->~T();
   }
 private:
-  T * getPtr() {
-    if (!obj)
-      obj = new T();
-    return obj;
-  }
-
   T * getPtr() const {
-    return obj;
+    if (!initialized) {
+      initialized = true;
+      return new(obj) T;
+    }
+    return (T*)&obj;
   }
-  T * obj = nullptr;
+  mutable uint8_t obj[sizeof(T)];
+  mutable bool initialized = false;
+  //T * obj = nullptr;
 };
 
 #endif //MYEXTENSION_ONDEMANDINIT_H
