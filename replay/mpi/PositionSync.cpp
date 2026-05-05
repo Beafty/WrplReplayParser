@@ -171,7 +171,6 @@ bool FMSync(ParserState *state, BitStream *bs) {
       ZoneScopedN("Parsing aircraft")
       auto str = fmt::format("uid: {:#x}", uid);
       TracyMessage(str.c_str(), str.size() + 1);
-      auto offs = bs->GetReadOffset();
       //LOG("yes to data");
       if (separateServerSideDetection_g == false) {
         G_ASSERT(false); // be ready for if this ever happens
@@ -234,7 +233,7 @@ bool FMSync(ParserState *state, BitStream *bs) {
             if (is_some_data_serialized) {
               int16_t temp_packed;
               bs->Read(temp_packed);
-              probably_engine_power = netutils::UNPACKS<int16_t>(temp_packed, 1.1);
+              probably_engine_power = netutils::UNPACKS<int16_t>(temp_packed, 1.1f);
             }
 
             auto is_some_packed_2 = bs->ReadBit();

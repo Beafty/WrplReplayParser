@@ -40,24 +40,31 @@ void PyReplayState::include(py::module_ &m) {
       .def_readonly("gen_state", &ParserState::gen_state)
       .def_readonly("glob_elo", &ParserState::glob_elo)
       .def_readonly("zones", &ParserState::Zones)
+      .def_readonly("curr_time_ms", &ParserState::curr_time_ms)
+      .def_readonly("current_packet_index", &ParserState::current_packet_index)
       .def("LoadFromReader", [](ParserState &state,
                                 IReplayReader &rdr, const std::function<void(
           ReplayPacket *)> &func) { // the temporary exists for the entire call of this function, unlike __iter__
         //auto rdr = py_reader.cast<IReplayReader*>();
         py::gil_scoped_release release;
-
+        std::exception_ptr eptr;
         std::thread temp_t(
             [&]() { // this is done purely so python signal handler doesnt come into play and so my signal handler dumps stacktrace
               ReplayPacket pkt{};
               bool end = false;
               if (func) {
                 py::gil_scoped_acquire gil;
-                while (!end && rdr.getNextPacket(&pkt)) {
-                  BitSize_t start_offs = pkt.stream.GetReadOffset();
-                  end = state.ParsePacket(pkt);
-                  pkt.stream.SetReadOffset(start_offs);
-                  func(&pkt);
+                try {
+                  while (!end && rdr.getNextPacket(&pkt)) {
+                    BitSize_t start_offs = pkt.stream.GetReadOffset();
+                    end = state.ParsePacket(pkt);
+                    pkt.stream.SetReadOffset(start_offs);
+                    func(&pkt);
+                  }
+                } catch (py::error_already_set &e) {
+                  eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
                 }
+
               } else {
                 while (!end && rdr.getNextPacket(&pkt)) {
                   end = state.ParsePacket(pkt);
@@ -65,6 +72,9 @@ void PyReplayState::include(py::module_ &m) {
               }
             });
         temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
+        if (eptr) {
+          std::rethrow_exception(eptr);
+        }
         // if its another thread, then my segfault handler will catch it and print the stacktrace
       }, py::arg("reader"), py::arg("callback") = nullptr);
 }

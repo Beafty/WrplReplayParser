@@ -9,6 +9,8 @@
 // on mingw the array definitions adds to many section to the .cpp.obj file the compiler generations, so I had to move them to their own file
 void PyECSTypes::include_array(py::module_ &m) {
   auto ecs = m.def_submodule("ecs");
+  bind_readonly_vector<ecs::StringList>(ecs, "StringList");
+  REGISTER_TYPE(ecs::StringList);
   bind_readonly_vector<ecs::EidList>(ecs, "EntityIdList");
   REGISTER_TYPE(ecs::EidList);
   bind_readonly_vector<ecs::UInt8List>(ecs, "UInt8List");

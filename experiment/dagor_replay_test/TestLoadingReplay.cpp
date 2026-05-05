@@ -75,7 +75,7 @@ int main() {
     state_ptr = new ParserState{srv_rpl};
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getFullDecompressReplayReader();
+    rdr = rpl->getRplReader();
     state_ptr = new ParserState{rpl};
   }
 

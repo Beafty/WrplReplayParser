@@ -297,7 +297,7 @@ namespace unit {
           }
         }
       }
-      std::sort(launchers.begin(), launchers.end(), [](const LauncherInfo &f, const LauncherInfo &s) {
+      std::stable_sort(launchers.begin(), launchers.end(), [](const LauncherInfo &f, const LauncherInfo &s) {
         return f.order < s.order;
       });
       this->weapons.reserve(launchers.size());
@@ -346,6 +346,8 @@ namespace unit {
       }
     }
     std::sort(this->weapons.begin(), this->weapons.end(), [](const Weapon &f, const Weapon &s) {
+      if(f.weapon_id == s.weapon_id)
+        return f.weapon_index < s.weapon_index;
       return f.weapon_id < s.weapon_id;
     });
   }

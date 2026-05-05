@@ -82,6 +82,10 @@ void PyReplay::include(py::module_ &m) {
       .def_readonly("header_blk", &Replay::HeaderBlk)
       .def_readonly("footer_blk", &Replay::FooterBlk)
       .def_readonly("player_count", &Replay::PlayerCount)
+      .def_readonly("session_id", &Replay::session_id)
+      .def("get_streaming_replay_reader", [](Replay &rpl){
+        return rpl.getRplReader();
+      }, py::return_value_policy::take_ownership)
       .def("get_replay_reader", [](Replay &rpl){
         return rpl.getFullDecompressReplayReader();
         }, py::return_value_policy::take_ownership);

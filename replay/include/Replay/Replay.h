@@ -158,6 +158,8 @@ private:
       HeaderBlk.loadFromStream(rdr, nullptr, nullptr);
       zlib_start += rdr.readOffset();
     }
+    //needed for reasons
+    while(*data->getObj<uint8_t>(zlib_start) == 0x0) {zlib_start++;}
     if (footerBlkOffset) {
       zlib_size = footerBlkOffset - zlib_start;
       auto span = data->getData(footerBlkOffset);

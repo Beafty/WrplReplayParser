@@ -14,7 +14,10 @@ void PyEntityId::include(py::module_ &m) {
       .def("get_handle", &ecs::EntityId::get_handle)
       .def("index", &ecs::EntityId::index)
       .def("get_generation", &ecs::EntityId::get_generation)
-      .def("__bool__", &ecs::EntityId::operator bool);
+      .def("__bool__", &ecs::EntityId::operator bool)
+      .def("__str__", [](ecs::EntityId &eid) -> std::string {
+        return fmt::format("{:#08x}", eid.get_handle());
+      });
 
   ecs.def("read_eid", [](BitStream &bs) -> ecs::EntityId{
     ecs::EntityId eid;

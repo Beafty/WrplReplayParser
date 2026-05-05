@@ -97,8 +97,8 @@ namespace net
         if (!eid)
           EXCEPTION("Construction of entity of eid {:#x} failed", serverEid);
       }
-      else
-        EXCEPTION("Attempt to create already existing network entity {}<{}>", serverEid, mgr->getEntityTemplateName(resolvedEid));
+      else // if you make a replay of the hangar (dont ask) then this cam
+        CONN_LOGE("Attempt to create already existing network entity {}<{}>", serverEid, mgr->getEntityTemplateName(resolvedEid));
       bs.SetReadOffset(startPos + BYTES_TO_BITS(blockSizeBytes)); // generally this isnt actually needed
     }
     return true;

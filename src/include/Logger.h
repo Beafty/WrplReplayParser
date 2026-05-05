@@ -294,8 +294,8 @@ public:
   void flush_all() {
     for (auto sink: sinks) {
       sink->flush();
-      delete sink;
     }
+    std::cerr.flush();
     std::cout.flush();
   }
 

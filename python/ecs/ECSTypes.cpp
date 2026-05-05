@@ -109,6 +109,19 @@ void PyECSTypes::include(py::module_ &m) {
 
   py::class_<unit::Tank, unit::Unit> t(unit, "Tank");
 
+  //    int weapon_id = -1;
+  //    int weapon_index = -1;
+  //    std::string emitter{};
+  //    std::string blk_path{};
+  //    std::string weapon_name{};
+  py::class_<unit::Weapon>(unit, "Weapon")
+      .def_readonly("weapon_id", &unit::Weapon::weapon_id)
+      .def_readonly("weapon_index", &unit::Weapon::weapon_index)
+      .def_readonly("emitter", &unit::Weapon::emitter)
+      .def_readonly("blk_path", &unit::Weapon::blk_path)
+      .def_readonly("weapon_name", &unit::Weapon::weapon_name);
+
+
   un
       .def_readonly("unitType", &unit::Unit::unitType)
       .def_readonly("uid", &unit::Unit::uid)
@@ -124,6 +137,7 @@ void PyECSTypes::include(py::module_ &m) {
       .def_readonly("custom_weapons_blk", &unit::Unit::custom_weapons_blk)
       .def_readonly("weapons", &unit::Unit::storage_weapons)
       .def_readonly("weapon_mods", &unit::Unit::weapon_mods)
+      .def_readonly("actual_weapons", &unit::Unit::weapons)
       .def_readonly("fm_mods", &unit::Unit::fm_mods);
 
   py::class_<unit::UnitRef>(unit, "UnitRef")
