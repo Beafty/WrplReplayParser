@@ -150,6 +150,7 @@ namespace unit {
     std::vector<std::string> fm_mods{};
     std::vector<CameraTime> camera_pos;
     std::vector<Weapon> weapons{};
+    std::vector<SpaceTime> positions{};
 
     Tank *AsTank();
 
@@ -166,7 +167,6 @@ namespace unit {
     virtual ~Aircraft() = default;
     void Load() override;
 
-    std::vector<SpaceTime> positions{};
     Weapon *getWeapon(uint32_t ref);
   };
 

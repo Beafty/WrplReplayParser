@@ -23,3 +23,20 @@ bool BitStream::Read(DataBlock &blk) const
   }
   return ret;
 }
+
+// gaijins idea not mine
+void BitStream::swap(BitStream &bs)
+{
+#define _SWAP(type, l, r) \
+  {                       \
+    type t = l;           \
+    l = r;                \
+    r = t;                \
+  }
+  _SWAP(uint32_t, this->bitsUsed, bs.bitsUsed)
+  _SWAP(uint32_t, this->dataOwner, bs.dataOwner)
+  _SWAP(uint32_t, this->bitsAllocated, bs.bitsAllocated)
+  _SWAP(uint32_t, this->readOffset, bs.readOffset)
+  _SWAP(uint8_t *, this->data, bs.data)
+#undef _SWAP
+}

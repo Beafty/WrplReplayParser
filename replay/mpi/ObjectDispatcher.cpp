@@ -49,7 +49,11 @@ namespace mpi {
         case CriticalDamage: {
           DISPATCHER_LOGD1("CriticalDamage");
           break;
-
+        }
+        case Tank1:
+        case Tank2: {
+          DISPATCHER_LOGD1("Tank");
+          return new TankMessage(this, mid);
         }
 
       }
@@ -103,8 +107,13 @@ namespace mpi {
             BitStream t{};
             zstd_decompress(*bs, t);
             danet::ReplicatedObject::onRecvReplicationEvent(t, this->state);
-
           }
+          break;
+        }
+        case Tank1:
+        case Tank2: {
+          auto tankM = (TankMessage*)m;
+          GMSync(state, &tankM->data);
         }
       }
     }
@@ -181,6 +190,14 @@ namespace mpi {
     }
     //LOG("unable to dispatch to oid: {:#x}; type: {}; index: {}", oid, obj, count);
     return nullptr;
+  }
+
+  bool TankMessage::readPayload(ParserState *state) {
+    return this->payload.Read(this->data);
+  }
+
+  void TankMessage::writePayload() {
+    this->payload.Write(this->data);
   }
 }
 

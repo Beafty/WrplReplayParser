@@ -20,11 +20,20 @@ namespace mpi {
       Reflection1 = 0xf02d,
       Reflection2 = 0xd136,
       ACTUALLY_NOT_REFLECTION = 0xd137,
-
+      Tank1 = 0xf073,
+      Tank2 = 0xf074,
     };
     Message *dispatchMpiMessage(MessageID mid) override;
     void applyMpiMessage(const Message *m) override;
     ~GeneralObject() override = default;
+  };
+
+  class TankMessage: public Message {
+  public:
+    BitStream data{};
+    TankMessage(IObject *o, MessageID mid) : Message(o, mid) {}
+    bool readPayload(ParserState *state) override;
+    void writePayload() override;
   };
 
   class IBattleMessage: public Message {

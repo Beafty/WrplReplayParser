@@ -9,6 +9,23 @@
 #include "tracy/Tracy.hpp"
 #include "Replay/Replay.h"
 #include "mpi/PositionSync.h"
+#include "danet/delta/deltaCompression.h"
+
+struct NetDelta {
+  net::DeltaComp netDelta{5, 0xd};
+  std::vector<net::DeltaComp::History> histories{};
+  net::DeltaComp::History& getHistory(uint16_t uid) {
+    if(uid >= histories.size()) {
+      histories.resize(uid+1);
+    }
+    auto &hist = histories[uid];
+    if(!hist.isInited()) {
+      // use_cache only ever matters in a network context
+      netDelta.initHistory(hist, true, false);
+    }
+    return hist;
+  }
+};
 
 struct ParserState {
 
@@ -16,14 +33,19 @@ struct ParserState {
   explicit ParserState(Replay *replay): players(replay->PlayerCount) {}
   explicit ParserState(ServerReplay *replay): players(replay->replay_files[0].PlayerCount) {}
   explicit ParserState(MemoryEfficientServerReplay *replay): players(replay->base_replay->PlayerCount) {}
+private:
+
+  //friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);
+public:
+  net::CNetwork conn{this};
+  mpi::GeneralObject main_dispatch{this};
+  NetDelta NetDelta;
   std::vector<MPlayer> players;
   ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
   std::vector<BaseZone*> Zones;
   std::array<TeamData, 3> teams; // team[0] is global data, teams[1] is first team, teams[2] is second team
   GlobalElo glob_elo{};
   GeneralState gen_state{};
-  net::CNetwork conn{this};
-  mpi::GeneralObject main_dispatch{this};
   BattleMessageHandler battles_messages{this};
   uint32_t curr_time_ms = 0;
   int current_packet_index=0;

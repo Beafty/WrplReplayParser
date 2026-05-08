@@ -2,6 +2,7 @@
 #ifndef WTFILEUTILS_BITSTREAM_H
 #define WTFILEUTILS_BITSTREAM_H
 
+#include <span>
 #include <cstring>
 #include <cstddef>
 #include <cstdint>
@@ -73,6 +74,7 @@ public:
   uint8_t *GetData() { return data; }
 
   const uint8_t *GetData() const { return data; }
+  std::span<uint8_t> getSlice() const { return std::span<uint8_t>(data, GetNumberOfBytesUsed()); }
 
   const uint8_t *GetDataOffset() { return data + bits2bytes(readOffset); }
 
@@ -358,6 +360,9 @@ public:
       bitsAllocated = (uint32_t) bytes2bits(newBytesAllocated);
     }
   }
+
+  void swap(BitStream &bs);
+
   BitStream(const BitStream& other)
       : bitsUsed(other.bitsUsed),
         dataOwner(other.dataOwner),
