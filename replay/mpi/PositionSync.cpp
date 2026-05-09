@@ -94,7 +94,6 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
 }
 
 
-
 bool TargetDesignationControlState::deserialize(BitStream *bs) {
   ZoneScoped;
   bs->Read(v1);
@@ -181,9 +180,9 @@ bool FMSync(ParserState *state, BitStream *bs) {
         // if both true, then we do nothing
         if (!(lVar30lessThan0 && cVar4NE0)) {
           auto unit_ref = state->g_entity_mgr.uid_unit_ref_lookup[uid];
-          if(!unit_ref) return false;
+          if (!unit_ref) return false;
           auto unit = unit_ref->unit->AsAircraft();
-          if(!unit) return false;
+          if (!unit) return false;
           bool fVar41LessThan0p5 = bs->ReadBit();
           uint32_t some_uint;
           bs->Read(some_uint);
@@ -203,7 +202,7 @@ bool FMSync(ParserState *state, BitStream *bs) {
           }
           int zig_val;
           bs->ReadZigZag(zig_val);
-          if(zig_val < 0) { // no negatives
+          if (zig_val < 0) { // no negatives
             return false;
           }
           std::vector<int16_t> vals;
@@ -297,12 +296,12 @@ bool FMSync(ParserState *state, BitStream *bs) {
 }
 
 struct TankRef {
-  unit::UnitRef *ref_1=nullptr; // + 0.0 always matches
-  unit::UnitRef *ref_2=nullptr; // + 0x8 needs to not match flags 0x10 and 0x1800
-  bool val1=false;
-  bool val2=false;
-  bool val3=false;
-  uint8_t turret_count=0;
+  unit::UnitRef *ref_1 = nullptr; // + 0.0 always matches
+  unit::UnitRef *ref_2 = nullptr; // + 0x8 needs to not match flags 0x10 and 0x1800
+  bool val1 = false;
+  bool val2 = false;
+  bool val3 = false;
+  uint8_t turret_count = 0;
 };
 #define RET_FAIL(op) G_ASSERT((op));
 
@@ -312,31 +311,59 @@ struct SubVehicleDynData {
   float f5;
   float f6;
   Point3 some_position_maybe;
+
   bool deserialize(BitStream &bs) {
     Point3 euler;
     std::array<int16_t, 3> euler_bits;
-    bs.Read(euler_bits);
+    bool ok = true;
+    ok &= bs.Read(euler_bits);
     netutils::unpack_euler_16(euler_bits, euler);
     euler_to_quat(euler.y, euler.z, euler.x, quat);
     quat = normalize(quat);
     int8_t pi_vals[3];
-    bs.Read(pi_vals);
+    ok &= bs.Read(pi_vals);
     f4 = netutils::UNPACKS(pi_vals[0], PI);
     f5 = netutils::UNPACKS(pi_vals[0], PI);
     f6 = netutils::UNPACKS(pi_vals[0], PI);
-    bs.Read(some_position_maybe);
+    ok &= bs.Read(some_position_maybe);
+    return ok;
   }
 };
 
 
-bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
+bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref, bool is_from_compress) {
+  if (!ref->ref_1) {
+    G_ASSERT(is_from_compress);
+    return true;
+  }
+  static int hit_count{};
+  hit_count++;
   uint8_t v1;
   RET_FAIL(bs.Read(v1));
   bool b1;
   RET_FAIL(bs.Read(b1));
-  if(b1) {
+  if (b1) {
     Point3 direction{};
-    if(ref->val1) {
+    if (ref->val1) {
+      float floats[4];
+      RET_FAIL(bs.Read(floats)); // 4 float reads, then 1 later (usePositionHistoryForSlaves is true
+      if (true) {
+        if(bs.ReadBit()) {
+          float f1;
+          float f2[6];
+          float f3[4];
+          float f4[6];
+          float f5[4];
+          RET_FAIL(bs.Read(f1));
+          RET_FAIL(bs.Read(f2));
+          RET_FAIL(bs.Read(f3));
+          RET_FAIL(bs.Read(f4));
+          RET_FAIL(bs.Read(f5));
+        }
+      } else {
+        float f6;
+        bs.Read(f6);
+      }
     } else {
       std::array<int16_t, 3> vals;
       RET_FAIL(bs.Read(vals));
@@ -346,36 +373,37 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
     bs.Read(bool2);
     bs.Read(bool3);
     Point3 unit_position{};
-    if(bool3) {
+    if (bool3) {
       bs.Read(unit_position);
     } else {
       uint32_t tv1, tv2;
       RET_FAIL(bs.Read(tv1));
       RET_FAIL(bs.Read(tv2));
-      auto fVar31 = (float)(tv1>>10)* 4.7683727E-7f + -1.0f;
+      auto fVar31 = (float) (tv1 >> 10) * 4.7683727E-7f + -1.0f;
       auto fv1 = -1.0f;
-      if(-1.0f <= fVar31)
+      if (-1.0f <= fVar31)
         fv1 = fVar31;
-      if(1.0f <= fv1)
+      if (1.0f <= fv1)
         fv1 = 1.0;
       fv1 = fv1 * 36000.0f;
-      unit_position.y = (float)((tv1 & 0x3ff) << 10 | tv2 >> 0x16) * 0.007629402f + -100.f; // gets added with some altitude???
-      fVar31 = (float)(tv2 & 0x3fffff) * 4.7683727E-7f + -1.0f;
+      unit_position.y =
+          (float) ((tv1 & 0x3ff) << 10 | tv2 >> 0x16) * 0.007629402f + -100.f; // gets added with some altitude???
+      fVar31 = (float) (tv2 & 0x3fffff) * 4.7683727E-7f + -1.0f;
       auto fv3 = -1.0f;
-      if(-1.0f <= fVar31)
+      if (-1.0f <= fVar31)
         fv3 = fVar31;
-      if(1.0f <= fv3)
+      if (1.0f <= fv3)
         fv3 = 1.0;
       fv3 *= 36000.0f;
       unit_position.x = fv1;
       unit_position.z = fv3;
     }
-    if(ref->ref_1 && ref->ref_1->unit && ref->ref_1->unit->AsTank()) {
+    if (ref->ref_1 && ref->ref_1->unit && ref->ref_1->unit->AsTank()) {
       auto tank = ref->ref_1->unit->AsTank();
       tank->positions.push_back({state->curr_time_ms, unit_position});
     }
     Point3 out_2;
-    if(ref->val1) {
+    if (ref->val1) {
       RET_FAIL(bs.Read(out_2));
     } else {
       int16_t temp[3];
@@ -393,7 +421,7 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
     bool bool4;
     RET_FAIL(bs.Read(bool4));
     uint8_t temp_vals_womp[4];
-    if(bool4) {
+    if (bool4) {
       bs.Read(temp_vals_womp);
     } else {
       // some mathy logic here
@@ -403,42 +431,57 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
     float local_584_val = netutils::UNPACKS(local_584, 0.5);
     bool bool5;
     RET_FAIL(bs.Read(bool5));
-    if(bool5) {
-      RET_FAIL(false);
-    } else {
-      bool bool6, bool7, bool8;
-      RET_FAIL(bs.Read(bool6));
-      RET_FAIL(bs.Read(bool7));
-      RET_FAIL(bs.Read(bool8));
-      if(bool8) {
-        uint8_t some_vals[9];
-        bool many_bools[7];
-        RET_FAIL(bs.Read(some_vals[0]));
-        RET_FAIL(bs.Read(many_bools[0]));
-        RET_FAIL(bs.Read(many_bools[1]));
-        RET_FAIL(bs.Read(many_bools[2]));
-        RET_FAIL(bs.Read(many_bools[3]));
-        RET_FAIL(bs.Read(many_bools[4]));
-        RET_FAIL(bs.Read(many_bools[5]));
-        RET_FAIL(bs.Read(many_bools[6]));
-
-        RET_FAIL(bs.Read(some_vals[1]));
-        RET_FAIL(bs.Read(some_vals[2]));
-        RET_FAIL(bs.ReadBits(&(some_vals[3]), 5));
-        RET_FAIL(bs.ReadBits(&(some_vals[4]), 4));
-        RET_FAIL(bs.ReadBits(&(some_vals[5]), 4));
-        RET_FAIL(bs.ReadBits(&(some_vals[6]), 2));
-        RET_FAIL(bs.ReadBits(&(some_vals[7]), 3));
-        RET_FAIL(bs.ReadBits(&(some_vals[8]), 4));
+    if (bool5) {
+      uint8_t some_vals[6]; // 7 u8 reads
+      uint8_t some_vals_2[2]; // 2 u8 reads
+      bool some_val_3;
+      uint8_t some_val_4[4];
+      RET_FAIL(bs.Read(some_vals));
+      if (bs.ReadBit()) {
+        RET_FAIL(bs.Read(some_vals_2));
+      }
+      RET_FAIL(bs.Read(some_val_3));
+      RET_FAIL(bs.Read(some_val_4));
+      G_ASSERT(some_val_4[3] <= 9);
+      std::vector<uint8_t> some_vals_5{};
+      some_vals_5.resize(some_val_4[3]);
+      for (auto &b: some_val_4) {
+        RET_FAIL(bs.Read(b));
       }
     }
-    if(bs.ReadBit()) {
+    bool bool6, bool7, bool8;
+    RET_FAIL(bs.Read(bool6));
+    RET_FAIL(bs.Read(bool7));
+    RET_FAIL(bs.Read(bool8));
+    if (bool8) {
+      uint8_t some_vals[9];
+      bool many_bools[7];
+      RET_FAIL(bs.Read(some_vals[0]));
+      RET_FAIL(bs.Read(many_bools[0]));
+      RET_FAIL(bs.Read(many_bools[1]));
+      RET_FAIL(bs.Read(many_bools[2]));
+      RET_FAIL(bs.Read(many_bools[3]));
+      RET_FAIL(bs.Read(many_bools[4]));
+      RET_FAIL(bs.Read(many_bools[5]));
+      RET_FAIL(bs.Read(many_bools[6]));
+
+      RET_FAIL(bs.Read(some_vals[1]));
+      RET_FAIL(bs.Read(some_vals[2]));
+      RET_FAIL(bs.ReadBits(&(some_vals[3]), 5));
+      RET_FAIL(bs.ReadBits(&(some_vals[4]), 4));
+      RET_FAIL(bs.ReadBits(&(some_vals[5]), 4));
+      RET_FAIL(bs.ReadBits(&(some_vals[6]), 2));
+      RET_FAIL(bs.ReadBits(&(some_vals[7]), 3));
+      RET_FAIL(bs.ReadBits(&(some_vals[8]), 4));
+    }
+
+    if (bs.ReadBit()) {
       uint8_t sub_vehicle_count{};
       RET_FAIL(bs.Read(sub_vehicle_count));
-      G_ASSERT(sub_vehicle_count<=4);
+      G_ASSERT(sub_vehicle_count <= 4);
       std::vector<SubVehicleDynData> dyn_data{};
       dyn_data.resize(sub_vehicle_count);
-      for(auto & dyn : dyn_data) {
+      for (auto &dyn: dyn_data) {
         dyn.deserialize(bs);
       }
     }
@@ -447,20 +490,20 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
   bool b3;
   RET_FAIL(bs.Read(b2));
   RET_FAIL(bs.Read(b3));
-  for(int i = 0; i < ref->turret_count; i++) {
+  for (int i = 0; i < ref->turret_count; i++) {
     bool bool1, bool2, bool3, bool4;
     uint8_t val1, val2;
     RET_FAIL(bs.Read(bool1));
     RET_FAIL(bs.Read(val1));
     RET_FAIL(bs.Read(bool2));
-    if(bool2) {
+    if (bool2) {
       RET_FAIL(bs.Read(val2));
       double val = netutils::UNPACK(val2, 1.0);
     }
     RET_FAIL(bs.Read(bool3));
     RET_FAIL(bs.Read(bool4));
-    if(b2) {
-      if(bs.ReadBit()) {
+    if (b2) {
+      if (bs.ReadBit()) {
         uint16_t tv1, tv2;
         uint8_t tv18, tv28;
         RET_FAIL(bs.Read(tv1));
@@ -472,13 +515,13 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
   }
   uint8_t sensorsCount{};
   RET_FAIL(bs.Read(sensorsCount));
-  G_ASSERT(sensorsCount<=4);
+  G_ASSERT(sensorsCount <= 4);
   std::vector<SensorsControlStates> states{};
   states.resize(sensorsCount);
-  for(auto & sensor : states) {
+  for (auto &sensor: states) {
     RET_FAIL(sensor.deserialize(&bs));
   }
-  if(sensorsCount>0) {
+  if (sensorsCount > 0) {
     uint8_t some_weird_val;
     RET_FAIL(bs.Read(some_weird_val));
   }
@@ -487,7 +530,7 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
   G_ASSERT(some_count < 3);
   std::vector<uint16_t> data{};
   data.resize(some_count);
-  for(auto & d : data) {
+  for (auto &d: data) {
     RET_FAIL(bs.Read(d));
   }
   uint8_t targetsNum = 0;
@@ -501,8 +544,9 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref) {
 }
 
 
-
 bool GMSync(ParserState *state, BitStream *bs) {
+  static int total_parsed_count{};
+  total_parsed_count++;
   uint16_t uid_lower;
   uint16_t uid_upper;
   float time_at;
@@ -512,15 +556,15 @@ bool GMSync(ParserState *state, BitStream *bs) {
   uint16_t uid_lower_base = uid_lower;
   bs->Read(time_at);
   bs->Read(packet_reliability_order);
-  for(;uid_lower<uid_upper; uid_lower++) {
+  for (; uid_lower < uid_upper; uid_lower++) {
     TankRef ref{};
     bool bool1;
     RET_FAIL(bs->Read(bool1));
-    if(bool1) {
+    if (bool1) {
       auto curr_unit = state->g_entity_mgr.uid_lookup[uid_lower];
-      G_ASSERT(curr_unit);
+      //G_ASSERT(curr_unit); // this can apparently fucking happen
       ref.ref_1 = ref.ref_2 = state->g_entity_mgr.uid_unit_ref_lookup[uid_lower];
-      std::string_view name = *state->g_entity_mgr.getNullable<ecs::string>(curr_unit, ECS_HASH("unit__className"));
+      //std::string_view name = *state->g_entity_mgr.getNullable<ecs::string>(curr_unit, ECS_HASH("unit__className"));
       bool bool2;
       uint8_t some_val_idk;
       bool bool4;
@@ -530,37 +574,37 @@ bool GMSync(ParserState *state, BitStream *bs) {
       }
       RET_FAIL(bs->Read(ref.val2));
       RET_FAIL(bs->Read(ref.val3));
-      if(!ref.val2) {
+      if (!ref.val2 || !ref.val3) {
         bool bool5;
         bool isCompressed;
         RET_FAIL(bs->Read(bool5));
         RET_FAIL(bs->Read(ref.val1));
         RET_FAIL(bs->Read(ref.turret_count));
         RET_FAIL(bs->Read(isCompressed));
-        if(isCompressed) {
-          auto& hist = state->NetDelta.getHistory(uid_lower);
+        if (isCompressed) {
+          auto &hist = state->NetDelta.getHistory(uid_lower);
           auto res = state->NetDelta.netDelta.readDelta(*bs, &hist);
-          if(res.ok) {
-            ParseVehicleInfo(state, res.bs, &ref);
+          if (res.ok) {
+            ParseVehicleInfo(state, res.bs, &ref, true);
           }
         } else {
           bs->AlignReadToByteBoundary();
-          ParseVehicleInfo(state, *bs, &ref);
+          ParseVehicleInfo(state, *bs, &ref, false);
           G_ASSERT(false);
         }
         bool bool7;
         RET_FAIL(bs->Read(bool7));
-        if(bool7) {
+        if (bool7) {
           Point4 tp4; // actually 4 float reads, but meght
           bs->Read(tp4);
         }
         bool bool8;
         RET_FAIL(bs->Read(bool8));
-        if(bool8 && ref.turret_count > 0) { // maybe has_shot_gun???
-          for(int i = 0; i < ref.turret_count; i++) {
+        if (bool8 && ref.turret_count > 0) { // maybe has_shot_gun???
+          for (int i = 0; i < ref.turret_count; i++) {
             bool t1;
             RET_FAIL(bs->Read(t1));
-            if(t1) {
+            if (t1) {
               uint8_t v1;
               float v2;
               float v3;
@@ -571,7 +615,7 @@ bool GMSync(ParserState *state, BitStream *bs) {
               RET_FAIL(bs->Read(v4));
               // new ammunition counts!!!!
               // first val is ammo 0, second is ammo 1, ...
-              for(int j = 0; j < v4;j++) {
+              for (int j = 0; j < v4; j++) {
                 uint16_t vv;
                 bs->Read(vv);
               }
@@ -581,9 +625,9 @@ bool GMSync(ParserState *state, BitStream *bs) {
         bool has_sensor_info;
         bool has_sensor_info_2;
         bs->Read(has_sensor_info);
-        if(has_sensor_info) {
+        if (has_sensor_info) {
           bs->Read(has_sensor_info_2);
-          if(has_sensor_info_2) {
+          if (has_sensor_info_2) {
             DeserializeSeekerData(bs);
           }
         }

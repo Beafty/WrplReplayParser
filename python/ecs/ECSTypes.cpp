@@ -104,8 +104,7 @@ void PyECSTypes::include(py::module_ &m) {
   py::class_<unit::Unit> un(unit, "Unit");
 
 
-  py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft")
-      .def_readonly("positions", & unit::Aircraft::positions);
+  py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft");
 
   py::class_<unit::Tank, unit::Unit> t(unit, "Tank");
 
@@ -138,7 +137,8 @@ void PyECSTypes::include(py::module_ &m) {
       .def_readonly("weapons", &unit::Unit::storage_weapons)
       .def_readonly("weapon_mods", &unit::Unit::weapon_mods)
       .def_readonly("actual_weapons", &unit::Unit::weapons)
-      .def_readonly("fm_mods", &unit::Unit::fm_mods);
+      .def_readonly("fm_mods", &unit::Unit::fm_mods)
+      .def_readonly("positions", & unit::Unit::positions);
 
   py::class_<unit::UnitRef>(unit, "UnitRef")
       .def_readonly("unit", &unit::UnitRef::unit);

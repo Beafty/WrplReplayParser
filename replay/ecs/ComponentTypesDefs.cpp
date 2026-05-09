@@ -533,9 +533,9 @@ namespace ecs {
       if(auto aircraft = ref->unit->AsAircraft()) {
         auto weap = aircraft->getWeapon(Rocket_data.weapon_ref);
         if(weap) {
-          LOGE("new Rocket created is of blk: {}", weap->blk_path);
+          ENTITY_LOGD1("new Rocket created is of blk: {}", weap->blk_path);
         } else {
-          LOGE("unable to find blk for rocket of id: {:#x}; unit name: {}", Rocket_data.weapon_ref, aircraft->unit_name);
+          ENTITY_LOGE("unable to find blk for rocket of id: {:#x}; unit name: {}", Rocket_data.weapon_ref, aircraft->unit_name);
         }
       }
     }
