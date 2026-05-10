@@ -194,7 +194,10 @@ namespace unit {
   };
 
   void Aircraft::Load() {
-    auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlock(this->unit_name, 0);
+    DataBlock empty_blk{};
+    auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlock(this->unit_name, 0).get();
+    if(!wp_cost_blk)
+      wp_cost_blk = &empty_blk;
     if(this->unit_name == "dummy_plane") // fuck the bitch
       return;
     auto vehicle_blk = fmt::format("gamedata/flightmodels/{}.blk", this->unit_name);

@@ -27,6 +27,32 @@ struct NetDelta {
   }
 };
 
+enum ChatType: uint8_t {
+  Team = 0,
+  All = 1,
+  Squad = 2,
+  Direct = 3, // exists, but is currently unused from what I can tell
+};
+
+struct ChatMessage {
+  std::string s1;
+  std::string s2;
+  ChatType channel;
+  bool b1;
+  bool b2;
+  std::string something;
+  inline bool FromBS(BitStream &bs) {
+    bool ok = true;
+    bs.Read(s1);
+    bs.Read(s2);
+    bs.Read(channel);
+    bs.Read(b1);
+    bs.Read(b2);
+    bs.Read(something);
+  }
+};
+
+
 struct ParserState {
 
   explicit ParserState(int player_count=32) : players(player_count) {}
@@ -66,7 +92,7 @@ public:
     curr_time_ms = pkt.timestamp_ms;
     switch (pkt.type) {
       case ReplayPacketType::EndMarker: {
-        return true;
+        return false;
       }
       case ReplayPacketType::StartMarker: {
         break;
@@ -75,8 +101,9 @@ public:
         FMSync(this, &pkt.stream);
         break;
       }
-      case ReplayPacketType::Chat:
-        break;
+      case ReplayPacketType::Chat: {
+
+      }
       case ReplayPacketType::MPI: {
         auto m = mpi::dispatch(pkt.stream, this, false);
         if (m != nullptr) {
@@ -99,7 +126,7 @@ public:
         break;
     }
     current_packet_index++;
-    return false;
+    return true;
   }
 };
 

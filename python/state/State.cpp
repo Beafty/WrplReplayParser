@@ -51,13 +51,13 @@ void PyReplayState::include(py::module_ &m) {
         std::thread temp_t(
             [&]() { // this is done purely so python signal handler doesnt come into play and so my signal handler dumps stacktrace
               ReplayPacket pkt{};
-              bool end = false;
+              bool cont = true;
               if (func) {
                 py::gil_scoped_acquire gil;
                 try {
-                  while (!end && rdr.getNextPacket(&pkt)) {
+                  while (cont && rdr.getNextPacket(&pkt)) {
                     BitSize_t start_offs = pkt.stream.GetReadOffset();
-                    end = state.ParsePacket(pkt);
+                    cont = state.ParsePacket(pkt);
                     pkt.stream.SetReadOffset(start_offs);
                     func(&pkt);
                   }
@@ -66,9 +66,7 @@ void PyReplayState::include(py::module_ &m) {
                 }
 
               } else {
-                while (!end && rdr.getNextPacket(&pkt)) {
-                  end = state.ParsePacket(pkt);
-                }
+                while (rdr.getNextPacket(&pkt) && state.ParsePacket(pkt));
               }
             });
         temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread

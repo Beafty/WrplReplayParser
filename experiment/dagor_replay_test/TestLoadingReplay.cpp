@@ -84,13 +84,13 @@ int main() {
   auto start = std::chrono::high_resolution_clock::now();
   ParserState &state = *state_ptr;
   //std::exit(0);
-  bool end = false;
   int AircraftCount = 0;
   uint32_t packet_count = 0;
-  while (!end && rdr->getNextPacket(pkt)) {
+  while (rdr->getNextPacket(pkt)) {
     state.curr_time_ms = pkt->timestamp_ms;
     packet_count++;
-    end = state.ParsePacket(*pkt);
+    if(!state.ParsePacket(*pkt))
+      break;
   }
   auto ended = std::chrono::high_resolution_clock::now();
   for (auto &plr: state_ptr->players) {

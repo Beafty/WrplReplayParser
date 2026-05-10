@@ -99,6 +99,11 @@ std::shared_ptr<File> FileManager::loadRealFsFile(const fs::path &path) {
       return std::make_shared<HostFile>(p);
     }
   }
+  // final check, check bin directory
+  if(fs::exists(path))
+  {
+    return std::make_shared<HostFile>(path);
+  }
   return nullptr;
 }
 
