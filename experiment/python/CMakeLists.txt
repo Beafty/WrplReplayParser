@@ -48,3 +48,9 @@ target_link_options(PyReplayParser PRIVATE
         -static-libstdc++
         # -static
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    add_custom_command(TARGET PyReplayParser POST_BUILD
+            COMMAND ${CMAKE_STRIP} --strip-debug $<TARGET_FILE:PyReplayParser>
+    )
+endif ()
