@@ -186,6 +186,8 @@ class ServerReplay {
     std::vector<std::string> repl_paths;
     if (auto p = file_exists("0000.wrpl", files); !p.empty()) {
       repl_paths.emplace_back(p);
+    } else {
+      EXCEPTION("Invalid ServerReplay, unable to find 0000.wprl");
     }
     for (int i = 1; i > 0; i += 2) {
       if (auto p = file_exists(fmt::format("{:0>4}.wrpl", i), files); !p.empty()) {
@@ -231,6 +233,8 @@ public:
     if (auto p = file_exists_fs("0000.wrpl", temp_files); !p.empty()) {
       file_paths.emplace_back(p);
       this->base_replay = new Replay(p.string());
+    } else {
+      EXCEPTION("Invalid MemoryEfficientServerReplay, unable to find 0000.wprl");
     }
     for (int i = 1; i > 0; i += 2) {
       if (auto p = file_exists_fs(fmt::format("{:0>4}.wrpl", i), temp_files); !p.empty()) {
