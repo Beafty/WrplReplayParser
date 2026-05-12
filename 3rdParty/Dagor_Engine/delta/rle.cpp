@@ -210,9 +210,9 @@
     int rle0ki_decompress(std::span<uint8_t> dstSlice, std::span<uint8_t> srcSlice)
     {
       uint8_t *dst = dstSlice.data();
-      int maxOriginalSize = dstSlice.size();
+      size_t maxOriginalSize = dstSlice.size();
       const uint8_t *src = srcSlice.data();
-      int compressedSize = srcSlice.size();
+      size_t compressedSize = srcSlice.size();
 
       if (compressedSize == 0)
         return 0;

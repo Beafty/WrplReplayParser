@@ -113,9 +113,6 @@ while(fields != 0) {                \
 
     void setFieldSize(BitSize_t sz) { idFieldSerializer.setFieldSize(sz); }
 
-#if DAGOR_DBGLEVEL > 0
-    void checkFieldSize(int index, BitSize_t sz) const { return idFieldSerializer.checkFieldSize(index, sz); }
-#endif
   protected:
     void writeFieldsSize() { idFieldSerializer.writeFieldsSize(payload); }
 

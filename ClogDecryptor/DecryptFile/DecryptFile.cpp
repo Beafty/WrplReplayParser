@@ -66,7 +66,8 @@ void decrypt(Args * args)
   Decryptor decrypt{args->opath, args->print};
   std::ifstream infile = open_clog_file(args->path);
   std::streampos last_pos = 0;
-  while (true)
+  bool cont = true;
+  while (cont)
   {
     infile.clear(); // Clear any error flags
     infile.seekg(0, std::ios::end);
@@ -77,16 +78,16 @@ void decrypt(Args * args)
       std::vector<unsigned char> buffer(read_size);
       infile.read(reinterpret_cast<char*>(buffer.data()), read_size);
       if (infile) {
-        decrypt.decrypt(buffer);
+        cont = decrypt.decrypt(buffer);
         last_pos = file_size;
       } else {
         std::cerr << "Read error.\n";
         infile.clear();
       }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
-
+  std::exit(0);
 }
 
 void print_usage() {

@@ -32,7 +32,7 @@ public:
   ~Decryptor();
 
 
-  void decrypt(const std::span<unsigned char> &data);
+  bool decrypt(const std::span<unsigned char> &data);
 };
 
 #endif //MYEXTENSION_CLOGDECRYPTOR_H

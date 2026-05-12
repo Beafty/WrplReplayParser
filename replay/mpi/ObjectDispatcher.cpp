@@ -37,16 +37,19 @@ namespace mpi {
           break;
         }
         case Awards: {
+          return new AwardMessage(this);
           DISPATCHER_LOGD1("Awards");
           break;
 
         }
         case SevereDamage: {
+          return new SevereDamageMessage(this);
           DISPATCHER_LOGD1("SevereDamage");
           break;
 
         }
         case CriticalDamage: {
+          return new CriticalDamageMessage(this);
           DISPATCHER_LOGD1("CriticalDamage");
           break;
         }
@@ -66,11 +69,7 @@ namespace mpi {
       //LOG("Deserialzing for Reflection type: %0x\n", mid);
       switch(mid) {
         case Kill: {
-          const KillMessage* kill_m = dynamic_cast<const KillMessage*>(m);
-          DeathType deathType = DeathType::Normal;
-          if(kill_m->offender_pid < 0 && kill_m->offender_vehicle.empty()) {
-            deathType = (DeathType)kill_m->offender_pid;
-          }
+          const IBattleMessage* kill_m = dynamic_cast<const IBattleMessage*>(m);
           break;
         }
         case ReflectionNoDecompress: {
@@ -199,6 +198,7 @@ namespace mpi {
   void TankMessage::writePayload() {
     this->payload.Write(this->data);
   }
+
 }
 
 ECS_REGISTER_CTM_TYPE(MPlayer, nullptr);

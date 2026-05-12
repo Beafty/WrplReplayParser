@@ -16,7 +16,8 @@ namespace mpi {
   IObject *dispatch_object(ObjectID oid, ObjectExtUID ext, ParserState *state) {
     return static_cast<IObject *>((oid != INVALID_OBJECT_ID && obj_dispatcher) ? obj_dispatcher(oid, ext, state) : nullptr);
   }
-  //std::unordered_map<int, std::unordered_map<int, int>> mpi_data{};
+
+
   Message *dispatch(const BitStream &bs, ParserState *state, bool copy_payload) {
     ObjectID oid;
     ObjectExtUID extUid;

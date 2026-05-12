@@ -24,7 +24,7 @@ constexpr std::size_t CHUNK_SIZE = 1<<15;
   }
 }*/
 
-void print_in_chunks(const std::vector<unsigned char>& data, std::ostream *buff) {
+void print_in_chunks(const std::string& data, std::ostream *buff) {
   //constexpr size_t CHUNK_SIZE = 1 << 15; // 32 KiB,
   const char* p = reinterpret_cast<const char*>(data.data());
   size_t total = data.size();
@@ -38,8 +38,8 @@ void print_in_chunks(const std::vector<unsigned char>& data, std::ostream *buff)
   buff->flush(); // single flush at the end
 }
 
-void Decryptor::decrypt(const std::span<unsigned char> &data) {
-  std::vector<unsigned char> out{};
+bool Decryptor::decrypt(const std::span<unsigned char> &data) {
+  std::string out{};
   out.resize(data.size());
   for (std::size_t i = 0; i < data.size(); i++)
   {
@@ -53,6 +53,7 @@ void Decryptor::decrypt(const std::span<unsigned char> &data) {
     if (write)
       print_in_chunks(out, write);
   }
+  return !out.contains("flush_all_std_and_debug");
 }
 
 Decryptor::~Decryptor() {

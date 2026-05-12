@@ -42,7 +42,6 @@ public:
     uint32_t pkt_sz = getPacketSize(*crd);
     if(pkt_sz == 0)
       return false;
-    packet->stream.~BitStream();
     packet->stream = BitStream();
     packet->stream.reserveBits(BYTES_TO_BITS(pkt_sz));
     if(crd->tryRead(packet->stream.GetData(), (int)pkt_sz) != pkt_sz)

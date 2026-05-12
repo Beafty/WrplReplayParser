@@ -141,8 +141,8 @@ namespace unit {
     return -1;
   }
 
-  void blkPrint(DataBlock *blk) {
-    blk->printBlock(0, std::cout);
+  void blkPrint(DataBlock &blk) {
+    blk.printBlock(0, std::cout);
     std::cout.flush();
   }
 
@@ -194,6 +194,7 @@ namespace unit {
   };
 
   void Aircraft::Load() {
+    blkPrint(this->custom_weapons_blk);
     DataBlock empty_blk{};
     auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlock(this->unit_name, 0).get();
     if(!wp_cost_blk)
@@ -233,9 +234,10 @@ namespace unit {
       return;
     }
     DataBlock modules_data{};
-    auto modifications_block = blk.getBlock("modifications", 0);
+    DataBlock default_modules{};
+    auto modifications_block = blk.getBlock("modifications", 0).get();
     if(!modifications_block) {
-      LOGE("modifications block missing for unit {}", this->unit_name);
+      modifications_block = &default_modules;
       return;
     }
     for(auto &mod : this->weapon_mods) {

@@ -11,7 +11,7 @@
 #include "mpi/PositionSync.h"
 #include "danet/delta/deltaCompression.h"
 
-struct NetDelta {
+struct net_delta_t {
   net::DeltaComp netDelta{5, 0xd};
   std::vector<net::DeltaComp::History> histories{};
   net::DeltaComp::History& getHistory(uint16_t uid) {
@@ -35,20 +35,21 @@ enum ChatType: uint8_t {
 };
 
 struct ChatMessage {
-  std::string s1;
-  std::string s2;
-  ChatType channel;
-  bool b1;
-  bool b2;
-  std::string something;
+  std::string player_name; // player name
+  std::string message; // message text
+  ChatType channel = All; // what channel this message was sent on
+  bool is_local_message{}; // a message that only ur client sees (ex: chat spamming message)
+  bool is_quick_message{}; // is a message created through the quick message menu
+  std::string complaints; // this is basically useless information
   inline bool FromBS(BitStream &bs) {
     bool ok = true;
-    bs.Read(s1);
-    bs.Read(s2);
-    bs.Read(channel);
-    bs.Read(b1);
-    bs.Read(b2);
-    bs.Read(something);
+    ok &= bs.Read(player_name);
+    ok &=bs.Read(message);
+    ok &=bs.Read(channel);
+    ok &=bs.Read(is_local_message);
+    ok &=bs.Read(is_quick_message);
+    ok &=bs.Read(complaints);
+    return ok;
   }
 };
 
@@ -65,14 +66,15 @@ private:
 public:
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
-  NetDelta NetDelta;
+  net_delta_t NetDelta;
   std::vector<MPlayer> players;
   ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
-  std::vector<BaseZone*> Zones;
-  std::array<TeamData, 3> teams; // team[0] is global data, teams[1] is first team, teams[2] is second team
+  std::vector<BaseZone*> Zones{};
+  std::array<TeamData, 3> teams{}; // team[0] is global data, teams[1] is first team, teams[2] is second team
+  std::vector<ChatMessage> chatMessages{};
   GlobalElo glob_elo{};
   GeneralState gen_state{};
-  BattleMessageHandler battles_messages{this};
+  std::vector<mpi::IBattleMessage> BattleMessages{};
   uint32_t curr_time_ms = 0;
   int current_packet_index=0;
   void setPlayerCount(int player_count) {
@@ -102,7 +104,8 @@ public:
         break;
       }
       case ReplayPacketType::Chat: {
-
+        this->chatMessages.resize(this->chatMessages.size()+1);
+        this->chatMessages[this->chatMessages.size()-1].FromBS(pkt.stream);
       }
       case ReplayPacketType::MPI: {
         auto m = mpi::dispatch(pkt.stream, this, false);
@@ -120,7 +123,7 @@ public:
         onPacket(&pkt);
         break;
       }
-      case ReplayPacketType::Snapshot: // useless
+      case ReplayPacketType::Snapshot:
         break;
       case ReplayPacketType::ReplayHeaderInfo:
         break;

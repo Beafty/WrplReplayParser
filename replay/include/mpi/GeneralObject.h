@@ -37,7 +37,11 @@ namespace mpi {
   };
 
   class IBattleMessage: public Message {
+  protected:
+    bool readPayload(ParserState *state) override;
+
   public:
+    uint32_t time_ms{};
     IBattleMessage(IObject *o, MessageID mid) : Message(o, mid) {}
     //virtual std::string read_basic_message() = 0;
     //virtual std::string read_extended_message() = 0;
@@ -62,13 +66,14 @@ namespace mpi {
   };
 
   class KillMessage : public IBattleMessage {
+    bool readPayload(ParserState *state) override;
   public:
+    KillMessage(IObject *o): IBattleMessage(o, GeneralObject::Kill) {}
     std::string offender_vehicle; // case 2
     std::string used_weapon; // case 0xa
     std::string destroyed_weapon; // case 0xc
     ecs::EntityId offended_entity; // case 3
     ecs::EntityId offender_entity; // case 4
-    // DON'T USE THESE, LIKE AT ALL, THE PID VAL IS FUCKED
     int DeathType; //case 0xb
     int offender_pid; // case 1
     int VictimPid; // some player index
@@ -81,18 +86,45 @@ namespace mpi {
     uint32_t weird_val_3{};
     std::string weird_str_4{};
 
-    KillMessage(IObject *o): IBattleMessage(o, GeneralObject::Kill) {}
+  };
+
+  class CriticalDamageMessage : public IBattleMessage {
     bool readPayload(ParserState *state) override;
+  public:
+    CriticalDamageMessage(IObject *o) : IBattleMessage(o, GeneralObject::CriticalDamage) {}
+
+    ecs::EntityId offended_eid;
+    int player_pid;
+    std::string vehicle;
+    ecs::EntityId player_eid;
+    uint8_t is_fire{}; // when doesn't equal 0, still an u8 for whatever reason
+    uint8_t unitType; // enum value
+
+  };
+
+  class SevereDamageMessage : public IBattleMessage {
+    bool readPayload(ParserState *state) override;
+  public:
+    SevereDamageMessage(IObject *o) : IBattleMessage(o, GeneralObject::SevereDamage) {}
+    ecs::EntityId offended_eid;
+    int player_pid;
+    std::string vehicle;
+    ecs::EntityId player_eid;
+    uint8_t unitType; // enum value
+  };
+
+  class AwardMessage : public IBattleMessage {
+    bool readPayload(ParserState *state) override;
+  public:
+    AwardMessage(IObject *o) : IBattleMessage(o, GeneralObject::Awards) {}
+
+    int player_pid;
+    std::string award{};
+    uint32_t stage;
+    uint32_t wp;
+    uint32_t exp;
   };
 }
-
-struct BattleMessageHandler {
-  std::vector<std::string> simple_messages;
-  std::vector<std::string> long_messages;
-  ParserState *state;
-  explicit BattleMessageHandler(ParserState *s): state(s) {}
-  void parse_kill_message(mpi::KillMessage *msg);
-};
 
 
 #endif //WTFILEUTILS_GENERALOBJECT_H

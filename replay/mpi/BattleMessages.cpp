@@ -14,7 +14,7 @@ for(uint8_t curr_field_index = 0; fields != 0; curr_field_index++) { \
   fields &= ~(1 << (curr_field & 0x1f)); /*this is done to remove previous (and maybe current????) field index*/ \
   /* dont ask me how it works, its probably compiler black magic that created this, or Gaijin did*/                                   \
   BitSize_t start_index = this->payload.GetReadOffset();                            \
-  switch(curr_field) {
+  switch(curr_field) { {
 
 
 #define MESSAGE_SWITCH_FOOTER \
@@ -30,10 +30,10 @@ for(uint8_t curr_field_index = 0; fields != 0; curr_field_index++) { \
 // if only offended uid exists, then they killed themselves
 namespace mpi {
   bool KillMessage::readPayload(ParserState *state) {
+    IBattleMessage::readPayload(state);
     auto bs = &this->payload;
     uint16_t killer_uid, victim_uid;
     MESSAGE_SWITCH_HEADER
-        {
           case 1: {
             RET_FAIL(bs->Read(this->offender_pid));
             break;
@@ -126,4 +126,109 @@ namespace mpi {
     }
     return true;
   }
+
+  bool CriticalDamageMessage::readPayload(ParserState *state) {
+    IBattleMessage::readPayload(state);
+    auto bs = &this->payload;
+    MESSAGE_SWITCH_HEADER
+          case 1: {
+            uint16_t uid;
+            RET_FAIL(bs->Read(uid));
+            this->offended_eid = state->g_entity_mgr.getUnit(uid);
+            break;
+          }
+          case 2: {
+            RET_FAIL(bs->Read(this->player_pid));
+            break;
+          }
+          case 3: {
+            RET_FAIL(bs->Read(this->vehicle));
+            break;
+          }
+          case 4: {
+            uint16_t uid;
+            RET_FAIL(bs->Read(uid));
+            this->player_eid = state->g_entity_mgr.getUnit(uid);
+            break;
+          }
+          case 5: {
+            RET_FAIL(bs->Read(this->is_fire));
+            break;
+          }
+          case 6: {
+            RET_FAIL(bs->Read(this->unitType));
+            break;
+          }
+      MESSAGE_SWITCH_FOOTER
+    }
+    return true;
+  }
+
+  bool SevereDamageMessage::readPayload(ParserState *state) {
+    IBattleMessage::readPayload(state);
+    auto bs = &this->payload;
+    MESSAGE_SWITCH_HEADER
+          case 1: {
+            uint16_t uid;
+            RET_FAIL(bs->Read(uid));
+            this->offended_eid = state->g_entity_mgr.getUnit(uid);
+            break;
+          }
+          case 2: {
+            RET_FAIL(bs->Read(this->player_pid));
+            break;
+          }
+          case 3: {
+            RET_FAIL(bs->Read(this->vehicle));
+            break;
+          }
+          case 4: {
+            uint16_t uid;
+            RET_FAIL(bs->Read(uid));
+            this->player_eid = state->g_entity_mgr.getUnit(uid);
+            break;
+          }
+          case 5: {
+            RET_FAIL(bs->Read(this->unitType));
+            break;
+          }
+      MESSAGE_SWITCH_FOOTER
+    }
+    return true;
+  }
+  bool AwardMessage::readPayload(ParserState *state) {
+    IBattleMessage::readPayload(state);
+    auto bs = &this->payload;
+    MESSAGE_SWITCH_HEADER
+          case 1: {
+            bs->Read(this->player_pid);
+            break;
+          }
+          case 2: {
+            bs->Read(this->award);
+            break;
+          }
+          case 3: {
+            bs->Read(this->stage);
+            break;
+          }
+          case 4: {
+            bs->Read(this->wp);
+            break;
+          }
+          case 5: {
+            bs->Read(this->exp);
+            break;
+          }
+      MESSAGE_SWITCH_FOOTER
+    }
+    return true;
+  }
+
+
+  bool IBattleMessage::readPayload(ParserState *state) {
+    this->time_ms = state->curr_time_ms;
+    return true;
+  }
 }
+

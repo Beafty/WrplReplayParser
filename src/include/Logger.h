@@ -299,6 +299,12 @@ public:
     std::cout.flush();
   }
 
+  void destroy_all() {
+    for(auto sink : sinks) {
+      delete sink;
+    }
+  }
+
   ~log_handler() {
     this->destructing = true;
     this->running = false;
@@ -308,6 +314,7 @@ public:
 
     action(); // do final cleanup, only allow because logger thread has been destroyed
     flush_all();
+    destroy_all();
   }
 
   sink_handle_t get_sink(const std::string &name) {
