@@ -322,23 +322,22 @@ int main() {
   bool disableAirSsawn = false;
   bool disableBomberSpawn = false;
   std::string vromfs_mission_path = "gamedata/missions/cta/tanks/port_novorossiysk/port_novorossiysk_aslt_dom.blk";
-  vromfs_mission_path = "gamedata/missions/cta/humans/granitograd_test_infdom.blk";
+  vromfs_mission_path = "gamedata/missions/cta/tanks/tunisia/tunisia_dom.blk";
   //std::string vromfs_mission_path = "gamedata/missions/cta/tanks/mozdok/mozdok_dom.blk";
   // AN ERROR HAS OCCURED
 #ifdef Linux
   std::string dump_path = R"(/mnt/d/GoogleDriveWtMission/dumpTest2.blk)";
   std::string p1 = R"(/mnt/d/SteamLibrary/steamapps/common/War Thunder/cache/binary.2.49.0/mis.vromfs.bin)";
-#endif
-#ifdef Windows
+#else
   std::string dump_path = R"(D:/GoogleDriveWtMission/dumpLow.blk)";
-  dump_path = "D:/GoogleDriveWtMission/dumpInf.blk";
+  dump_path = "D:/GoogleDriveWtMission/dumpTesting.blk";
   //std::string p1 = R"(D:\SteamLibrary\steamapps\common\War Thunder\mis.vromfs.bin)";
-  std::string p1 = R"(D:\WarThunderDev\cache\binary.2.53.0\mis.vromfs.bin)";
+  std::string p1 = R"(D:\SteamLibrary\steamapps\common\War Thunder\mis.vromfs.bin)";
   std::string p2 = "D:\\WarThunderDev\\cache\\binary.2.52.0\\game-dev.vromfs.bin";
 #endif
   //EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "Ah shit");
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "Ah shit");
-  SharedPtr<DataBlock> outBlk = CreateFlatBlk(vromfs_mission_path, 10, true, false, true, false);
+  SharedPtr<DataBlock> outBlk = CreateFlatBlk(vromfs_mission_path, 10, false, false, false, false);
   EXCEPTION_IF_FALSE(outBlk, "failed to create flat blk");
   //outBlk->getBlock("triggers", 0)->getBlock("aslt_check_capture", 0)->getBlock("actions", 0)->getBlock("triggerEnable", 0)->addStr("target", "on_capture_respawn");
   //outBlk->getBlock("triggers", 0)->getBlock("aslt_spawn_captured", 0)->getBlock("actions", 0)->getBlock("triggerEnable", 0)->addStr("target", "on_capture_respawn");
