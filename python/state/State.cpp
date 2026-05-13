@@ -50,7 +50,7 @@ void PyReplayState::include(py::module_ &m) {
       .def_readonly("complaints", &ChatMessage::complaints);
 
   bind_readonly_vector_no_contain<std::vector<ChatMessage>>(m, "ChatMessageList");
-  bind_readonly_vector_no_contain<std::vector<mpi::IBattleMessage>>(m, "IBattleMessageList");
+  bind_readonly_vector_no_contain<std::vector<const mpi::IBattleMessage*>>(m, "IBattleMessageList");
 
   py::class_<ParserState>(m, "ParserState")
       .def(py::init<>())

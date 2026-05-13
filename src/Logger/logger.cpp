@@ -19,7 +19,7 @@ uint64_t get_current_time_ms() {
 }
 
 void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL level, std::string &&message) {
-  g_log_handler->add_logmessage(std::move(fmt::format("{}({}): {}", func, line, message)), level, sink);
+  g_log_handler->add_logmessage(fmt::format("{}({}): {}", func, line, message), level, sink);
 }
 
 void log_handler::loadSinkFromDataBlock(DataBlock &blk) {

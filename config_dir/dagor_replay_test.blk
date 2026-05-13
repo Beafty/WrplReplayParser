@@ -1,6 +1,6 @@
 is_server_replay:b=yes
 source_is_linux_path:b=no
-source:t="D:\Python\TestPyReplayParser\grb"
+source:t="D:\Python\TestPyReplayParser\air_sim"
 bin_is_linux_path:b=no
 bin_path:t="D:\SteamLibrary\steamapps\common\War Thunder"
 logging{

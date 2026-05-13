@@ -74,7 +74,7 @@ public:
   std::vector<ChatMessage> chatMessages{};
   GlobalElo glob_elo{};
   GeneralState gen_state{};
-  std::vector<mpi::IBattleMessage> BattleMessages{};
+  std::vector<const mpi::IBattleMessage*> BattleMessages{};
   uint32_t curr_time_ms = 0;
   int current_packet_index=0;
   void setPlayerCount(int player_count) {
@@ -83,6 +83,9 @@ public:
   ~ParserState() {
     ZoneScoped;
     for(auto v : Zones) {
+      delete v;
+    }
+    for(auto v : BattleMessages) {
       delete v;
     }
   }
@@ -111,7 +114,8 @@ public:
         auto m = mpi::dispatch(pkt.stream, this, false);
         if (m != nullptr) {
           mpi::send(m);
-          delete m;
+          if(m->delete_message)
+            delete m;
         }
         break;
       }
