@@ -72,6 +72,7 @@ namespace mpi {
         case SevereDamage:
         case CriticalDamage:
         case Awards: {
+          m->delete_message = false;
           const IBattleMessage* battle_m = dynamic_cast<const IBattleMessage*>(m);
           this->state->BattleMessages.push_back(battle_m);
           break;

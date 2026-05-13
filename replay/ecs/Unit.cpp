@@ -194,7 +194,7 @@ namespace unit {
   };
 
   void Aircraft::Load() {
-    blkPrint(this->custom_weapons_blk);
+    //blkPrint(this->custom_weapons_blk);
     DataBlock empty_blk{};
     auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlock(this->unit_name, 0).get();
     if(!wp_cost_blk)

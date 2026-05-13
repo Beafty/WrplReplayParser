@@ -109,6 +109,7 @@ while(fields != 0) {                \
     mpi::IObject *obj; // recipient of this message, can't be NULL
     uint32_t extUID = ~0u;
     MessageID id;             // identification of this message
+    mutable bool delete_message = true; // do we delete message after dispatch + sendto? only to be used if the message now has another object managing its lifetime
     BitStream payload; // serialized parameters for this message
 
     void setFieldSize(BitSize_t sz) { idFieldSerializer.setFieldSize(sz); }

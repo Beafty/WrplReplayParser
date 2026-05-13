@@ -101,6 +101,7 @@ int main() {
     else
       LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data.name, plr.team.data);
   }
+  auto idx = state.current_packet_index;
   delete state_ptr;
   delete rdr;
   delete srv_rpl;
@@ -108,7 +109,7 @@ int main() {
   delete pkt;
   std::chrono::duration<double, std::milli> duration = ended - start;
   // Output the result
-  std::cout << "profile time " << duration.count() << " " << state.current_packet_index << std::endl;
+  std::cout << "profile time " << duration.count() << " " << idx << std::endl;
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->debugPrintEntities();

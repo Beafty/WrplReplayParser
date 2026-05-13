@@ -85,6 +85,9 @@ public:
     for(auto v : Zones) {
       delete v;
     }
+    for(auto v : BattleMessages) {
+      delete v;
+    }
   }
   void onPacket(ReplayPacket *pkt) {
     conn.onPacket(pkt, pkt->timestamp_ms);
@@ -111,7 +114,8 @@ public:
         auto m = mpi::dispatch(pkt.stream, this, false);
         if (m != nullptr) {
           mpi::send(m);
-          delete m;
+          if(m->delete_message)
+            delete m;
         }
         break;
       }
