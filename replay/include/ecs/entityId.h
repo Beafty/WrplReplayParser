@@ -49,7 +49,7 @@ namespace ecs {
 
     unsigned index() const { return handle & ENTITY_INDEX_MASK; }
 
-    inline unsigned get_generation() { return generation(); }
+    inline uint32_t get_generation() { return (uint32_t)generation(); }
 
     inline uint32_t get_handle() const { return handle; }
 

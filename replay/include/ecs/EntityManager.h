@@ -59,7 +59,6 @@ struct ParserState;
 
 namespace ecs {
   class GState;
-  static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
 
   typedef void (*after_components_cb)(GState * state);
   extern OnDemandInit<std::vector<after_components_cb>> after_comps_callbacks;
@@ -329,7 +328,14 @@ namespace ecs {
   extern OnDemandInit<GState> g_ecs_data;
 
   class EntityManager {
+    // max of range reserved for replicated entities
+    // all ids below this (basically 0 to USHRT_MAX) are for server to do stuff
+    bool eidsReservationMode = false; // do we use reserved eid range?
 
+    // our deque of freed indices
+    // if we are client, we do not push freed indices that are in RESERVED_EID_RANGE
+    std::deque<ecs::entity_id_t> freeIndices, freeIndicesReserved;
+    ecs::entity_id_t nextReservedIndex=0;
   public:
 
     ParserState * owned_by=nullptr;
@@ -373,6 +379,12 @@ namespace ecs {
       return (T*)this->getNullable(eid, component);
     }
 
+    // only to be used if your using the mgr for other projects. replay parsing must be set to false (default)
+    inline void setEidsReservationMode(bool on) {
+      G_ASSERTF(nextReservedIndex==0, "{} must be called before entity creation", __FUNCTION__);
+      eidsReservationMode = on;
+    }
+
     template_t buildTemplateIdByName(const char *templ_name);
 
     void instantiateTemplate(template_t t);
@@ -404,17 +416,7 @@ namespace ecs {
 
     void debugPrintEntities();
 
-    void collectEntitiesWithComponent(std::vector<EntityId> &out, HashedConstString component);
-
-    void collectEntitiesOfTemplate(std::vector<EntityId> &out, template_t template_id);
-
-    void collectEntitiesOfTemplate(std::vector<EntityId> &out,
-                                   std::string_view templ_name) { return collectEntitiesOfTemplate(out,
-                                                                                                   this->data_state->getTemplateIdByName(
-                                                                                                       templ_name));
-    }
-
-    EntityId getNext() { return this->entDescs.GetNextEid(); }
+    EntityId allocateOneEid();
 
     void sendEventImmediate(EntityId eid, Event &evt);
 
@@ -427,6 +429,8 @@ namespace ecs {
     ecs::EntityId getUnit(uint16_t uid);
 
   protected:
+
+
 
     friend Component;
     friend InstantiatedTemplate;

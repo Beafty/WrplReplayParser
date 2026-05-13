@@ -179,7 +179,7 @@ namespace ecs {
     }
 
     this->entDescs.Allocate(eid);
-    this->entDescs[eid.index()] = {eid, templId, archetype_id, chunk_id};
+    this->entDescs[eid.index()] = {templId, archetype_id, chunk_id, eid.generation()};
     this->wasInit.clear();
     this->sendEventImmediate(eid, ecs::EventEntityCreated{});
     return eid;
@@ -221,6 +221,7 @@ namespace ecs {
       ENTITY_LOGD2("Destroying entity {:#x} of template {}", eid.handle,
                    data_state->templates.getTemplate(desc->templ_id)->getName());
     }
+
     //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
     archetype_t archetype_id = desc->archetype_id;
     auto ARCHETYPE = this->arch_data.getArch(archetype_id);
@@ -288,6 +289,14 @@ namespace ecs {
     desc->templ_id = INVALID_TEMPLATE_INDEX;
     desc->archetype_id = INVALID_ARCHETYPE;
     desc->chunk_id = INVALID_CHUNK_INDEX_T;
+    desc->generation++;
+    if(!is_dtor) {
+      auto findices = (eid.index() <= RESERVED_EID_RANGE) ? ((eid.index() < nextReservedIndex) ? &freeIndicesReserved : nullptr)
+                                                                  : &freeIndices;
+      if(findices)
+        findices->push_back((entity_id_t)eid);
+    }
+
     return true;
   }
 
@@ -295,9 +304,10 @@ namespace ecs {
     ZoneScoped;
     ECS_LOGD3("starting EntityManager Destruction");
     for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
-      if (!this->entDescs.doesEntityExist(i))
+      if (!this->entDescs.doesEntityExistInternal(i))
         continue;
-      destroyEntity(EntityId(i), true); //
+      auto &desc = this->entDescs[i];
+      destroyEntity(EntityId(make_eid(i, desc.generation)), true); //
     }
     ECS_LOGD3("finished EntityManager Destruction");
     //g_log_handler.wait_until_empty();
@@ -306,8 +316,9 @@ namespace ecs {
 
   void EntityManager::debugPrintEntities() {
     for (entity_id_t i = 0; i < this->entDescs.entDescs.size(); i++) {
-      EntityId eid{i};
-      if (this->doesEntityExist(eid)) {
+
+      if (this->entDescs.doesEntityExistInternal(i)) {
+        EntityId eid{make_eid(i, this->entDescs[i].generation)};
         this->debugPrintEntity(eid);
       }
     }
@@ -316,7 +327,6 @@ namespace ecs {
   void EntityManager::debugPrintEntity(EntityId eid) {
     if (this->doesEntityExist(eid)) {
       auto desc = this->entDescs.getEntityDesc(eid);
-      eid = desc->eid;
       //const InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(desc->templ_id);
 
       archetype_t archetype_id = desc->archetype_id;
@@ -438,16 +448,6 @@ namespace ecs {
             data_state->componentTypes.types[datacomp_data->componentIndex].size, cidx};
   }
 
-  void EntityManager::collectEntitiesOfTemplate(std::vector<EntityId> &out, template_t template_id) {
-    for (int i = 1; i < this->entDescs.entDescs.size(); i++) {
-      template_t tid;
-      G_ASSERT(this->entDescs.getEntityTemplateId(ecs::EntityId(i), tid));
-      if (tid == template_id) {
-        out.push_back(this->entDescs[i].eid);
-      }
-    }
-  }
-
   void EntityManager::sendEventImmediate(EntityId eid, Event &evt) {
     if (!this->entDescs.doesEntityExist(eid))
     EXCEPTION("tried to send a query to an entity that doesnt exist");
@@ -490,6 +490,30 @@ namespace ecs {
       auto c = this->data_state->componentTypes.getComponentData(d->componentIndex); // component
       comps.emplace_back(c, d);
     }
+  }
+
+  EntityId EntityManager::allocateOneEid() {
+
+    bool reserved = eidsReservationMode;
+    auto &freed_deque = reserved ? freeIndicesReserved : freeIndices;
+    unsigned idx;
+    if(!freed_deque.empty()) {
+      alloc_idx:
+      idx = freed_deque.front();
+      G_ASSERT(idx < entDescs.size());
+      freed_deque.pop_front();
+    } {
+      if(!reserved) {
+        idx = entDescs.push_back();
+      }
+      else if(DAGOR_LIKELY(nextReservedIndex <= RESERVED_EID_RANGE))
+        idx = nextReservedIndex++;
+      else {
+        goto alloc_idx;
+      }
+    }
+
+    return EntityId(make_eid(idx, entDescs[idx].generation));
   }
 
   // uid handling

@@ -68,8 +68,12 @@ namespace mpi {
       auto bs = (BitStream *)&m->payload;
       //LOG("Deserialzing for Reflection type: %0x\n", mid);
       switch(mid) {
-        case Kill: {
-          const IBattleMessage* kill_m = dynamic_cast<const IBattleMessage*>(m);
+        case Kill:
+        case SevereDamage:
+        case CriticalDamage:
+        case Awards: {
+          const IBattleMessage* battle_m = dynamic_cast<const IBattleMessage*>(m);
+          this->state->BattleMessages.push_back(battle_m);
           break;
         }
         case ReflectionNoDecompress: {

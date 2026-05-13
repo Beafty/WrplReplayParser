@@ -59,7 +59,6 @@ namespace ecs {
   inline dag::ConstSpan<ecs::ComponentDesc> empty_span(const ecs::ComponentDesc *) { return {}; }
   inline dag::ConstSpan<ecs::ComponentDesc> empty_span() { return {}; }
 
-  // The query system  has been HEAVILY optimized so I am still having issue understanding it
 
   struct BaseQueryDesc {
     dag::ConstSpan<ComponentDesc> componentsRW; // the components the action of this query will read from / write to (RW; ReadWrite)
@@ -111,14 +110,17 @@ namespace ecs {
 
 #define ECS_QUERY_COMP_RO_INDEX(carr, name) ((uint16_t)(ECS_QUERY_COMP_INDEX(carr, name)))
 #define ECS_QUERY_COMP_RW_INDEX(carr, name) ((uint16_t)(ECS_QUERY_COMP_INDEX(carr, name)))
+
+  //
   struct NamedQueryDesc : public BaseQueryDesc {
-    const char *name = nullptr; // name of this entity system, must be unique (dunno why it needs to be yet)
+    const char *name = nullptr; // name of this entity system, is used for csv event before / after. must be unique
     NamedQueryDesc(const char *n, dag::ConstSpan<ComponentDesc> comps_rw, dag::ConstSpan<ComponentDesc> comps_ro,
                    dag::ConstSpan<ComponentDesc> comps_rq, dag::ConstSpan<ComponentDesc> comps_no) :
         BaseQueryDesc(comps_rw, comps_ro, comps_rq, comps_no), name(n)
     {}
   };
 
+  // extends name query to allow for query registration. iterated on GState creation
   struct CompileTimeQueryDesc : public NamedQueryDesc
   {
     CompileTimeQueryDesc(const char *n, dag::ConstSpan<ComponentDesc> comps_rw, dag::ConstSpan<ComponentDesc> comps_ro,

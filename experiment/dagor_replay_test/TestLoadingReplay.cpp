@@ -85,10 +85,7 @@ int main() {
   ParserState &state = *state_ptr;
   //std::exit(0);
   int AircraftCount = 0;
-  uint32_t packet_count = 0;
   while (rdr->getNextPacket(pkt)) {
-    state.curr_time_ms = pkt->timestamp_ms;
-    packet_count++;
     if(!state.ParsePacket(*pkt))
       break;
   }
@@ -111,7 +108,7 @@ int main() {
   delete pkt;
   std::chrono::duration<double, std::milli> duration = ended - start;
   // Output the result
-  std::cout << "profile time " << duration.count() << " " << packet_count << std::endl;
+  std::cout << "profile time " << duration.count() << " " << state.current_packet_index << std::endl;
   //rpl.HeaderBlk.printBlock(0, std::cout);
   //rpl.FooterBlk.printBlock(0, std::cout);
   //ecs::g_entity_mgr->debugPrintEntities();
