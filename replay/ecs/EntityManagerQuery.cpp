@@ -157,7 +157,7 @@ namespace ecs {
     if (size == 0)
       return ft;
     G_ASSERT(cnt + size <= eastl::numeric_limits<Cnt>::max());
-    const size_t nextSize = std::min<size_t>(size_t(cnt) + size, eastl::numeric_limits<Cnt>::max());
+    const Cnt nextSize = (Cnt)std::min<size_t>(size_t(cnt) + size, eastl::numeric_limits<Cnt>::max());
 
 
     T *next = (T *)realloc(ft, nextSize * sizeof(T));

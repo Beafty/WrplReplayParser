@@ -209,11 +209,32 @@ namespace ecs {
     this->data_state->templates.instantiateTemplate(t);
   }
 
-  bool EntityManager::destroyEntity(EntityId eid, bool is_dtor) {
-    sendEventImmediate(eid, EventEntityDestroyed{});
+  bool EntityManager::destroyEntity(EntityId eid, bool is_dtor, bool force_destroy) {
     if (!this->doesEntityExist(eid))
       return false;
+
     auto desc = this->entDescs.getEntityDesc(eid);
+
+    if(!this->entDescs.basic_destroyed.test(eid.index(), false))
+      sendEventImmediate(eid, EventEntityDestroyedBasic{});
+    if(!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <= RESERVED_EID_RANGE) {
+      G_ASSERT(!this->entDescs.basic_destroyed.test(eid.index(), false));
+      auto new_eid = this->allocateOneEid();
+      auto &old_desc = this->entDescs[eid];
+      auto &new_desc = this->entDescs[new_eid];
+      new_desc.chunk_id = old_desc.chunk_id;
+      old_desc.chunk_id = INVALID_CHUNK_INDEX_T;
+
+      new_desc.archetype_id = old_desc.archetype_id;
+      old_desc.archetype_id = INVALID_ARCHETYPE;
+
+      new_desc.templ_id = old_desc.templ_id;
+      old_desc.templ_id = INVALID_TEMPLATE_INDEX;
+      this->entDescs.basic_destroyed.set(new_eid.index(), true);
+      return true;
+    }
+
+    sendEventImmediate(eid, EventEntityDestroyed{});
     if(is_dtor) {
       ENTITY_LOGD3("Destroying entity {:#x} of template {}", eid.handle,
             data_state->templates.getTemplate(desc->templ_id)->getName());
@@ -532,7 +553,7 @@ namespace ecs {
       mgr->uid_lookup[*uid] = *eid;
       mgr->uid_unit_ref_lookup[*uid] = unit__ref;
       //LOG("set uid {} to eid {}", *uid, eid->get_handle());
-    } else if (evt.is<ecs::EventEntityDestroyed>()) {
+    } else if (evt.is<ecs::EventEntityDestroyedBasic>()) {
       G_ASSERT(mgr->uid_lookup[*uid] != ecs::INVALID_ENTITY_ID);
       mgr->uid_lookup[*uid] = ecs::INVALID_ENTITY_ID;
       mgr->uid_unit_ref_lookup[*uid] = nullptr;
@@ -556,7 +577,7 @@ namespace ecs {
           make_span(uid_lookup_add_remove_event, 3)/*ro*/,
           empty_span(),
           empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyedBasic>::build(),
           0
       );
 

@@ -203,10 +203,22 @@ class ServerReplay {
       }
     }
   }
+  DataBlock *FooterBlk;
 public:
   std::vector<Replay> replay_files;
   ServerReplay(fs::path &path) {
     init_from_path(path);
+  }
+
+  DataBlock &GetFooterBlk() {
+    if(FooterBlk)
+      return *FooterBlk;
+    for(auto i = this->replay_files.size()-1; i >= 0; i--) {
+      if (!this->replay_files[i].FooterBlk.empty()) {
+        this->FooterBlk  = &this->replay_files[i].FooterBlk;
+        return *this->FooterBlk;
+      }
+    }
   }
 
   ServerReplay(const std::string &path) {
@@ -245,15 +257,17 @@ public:
     }
   }
   IReplayReader *getRplReader() {
-    return new MemoryEfficientServerReplayReader(this->file_paths, this->base_replay);
+    return new MemoryEfficientServerReplayReader(this, this->file_paths, this->base_replay);
   }
   ~MemoryEfficientServerReplay() {
     delete base_replay;
   }
-private:
-  std::vector<fs::path> file_paths{};
   Replay *base_replay = nullptr;
+  DataBlock FooterBlk;
+protected:
+  std::vector<fs::path> file_paths{};
   friend ParserState;
+  friend MemoryEfficientServerReplayReader;
 };
 
 

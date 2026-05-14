@@ -92,11 +92,13 @@ void PyReplay::include(py::module_ &m) {
 
   py::class_<ServerReplay>(sub, "ServerReplay")
       .def(py::init<const std::string &>())
-      .def("get_replay_reader", &ServerReplay::getRplReader, py::return_value_policy::take_ownership);
+      .def("get_replay_reader", &ServerReplay::getRplReader, py::return_value_policy::take_ownership)
+      .def_property_readonly("FooterBlk", &ServerReplay::GetFooterBlk);
 
   py::class_<MemoryEfficientServerReplay>(sub, "MemoryEfficientServerReplay")
       .def(py::init<const std::string &>())
-      .def("get_replay_reader", &MemoryEfficientServerReplay::getRplReader, py::return_value_policy::take_ownership);
+      .def("get_replay_reader", &MemoryEfficientServerReplay::getRplReader, py::return_value_policy::take_ownership)
+      .def_readonly("FooterBlk", &MemoryEfficientServerReplay::FooterBlk);
 }
 
 PyReplay py_replay{};

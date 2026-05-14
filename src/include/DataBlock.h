@@ -717,6 +717,7 @@ public:
     return this->nm;
   }
 
+  bool empty() {return this->param_count == 0 && this->block_count == 0;}
   /// adds a block. if blk is a nullptr, creates a new block and adds it. returns the index of the block
   int addBlock(int name_id);
 
@@ -861,6 +862,11 @@ public:
   DataBlock(int prealloc_param, int prealloc_block);
 
   DataBlock(int prealloc_param, int prealloc_block, const std::shared_ptr<NameMap> &nm);
+
+  DataBlock(const DataBlock &other) noexcept = default;
+  DataBlock(DataBlock &&other) noexcept = default;
+  DataBlock &operator=(const DataBlock &other) noexcept = default;
+  DataBlock &operator=(DataBlock &&other) noexcept = default;
 
   static SharedPtr<DataBlock> makeAliasedBlock(const std::shared_ptr<DataBlockShared> &pool, DataBlock *ptr);
 

@@ -1,5 +1,4 @@
 #include "replay/Replay.h"
-#include "Replay/ReplayReader.h"
 #include "libdeflate.h"
 
 uint32_t getPacketSize(IGenReader &cb) {
@@ -87,6 +86,7 @@ ServerReplayReader::ServerReplayReader(std::vector<Replay> &rdrs) {
   this->readers.reserve(rdrs.size());
   for(auto &rpl : rdrs)
   {
+
     this->readers.push_back(rpl.getFullDecompressReplayReader());
   }
 }
@@ -157,9 +157,15 @@ bool MemoryEfficientServerReplayReader::getNextPacket(ReplayPacket *packet) {
 void MemoryEfficientServerReplayReader::setup_reader(int index) {
   if(this->super_efficiency) {
     this->current_replay = new Replay(this->base_dir->operator[](index).string());
+    if(!this->current_replay->FooterBlk.empty()) {
+      this->owner->FooterBlk = std::move(this->current_replay->FooterBlk);
+    }
     this->curr_reader = this->current_replay->getRplReader();
   } else {
     Replay t_rpl(this->base_dir->operator[](index).string());
+    if(!t_rpl.FooterBlk.empty()) {
+      this->owner->FooterBlk = std::move(t_rpl.FooterBlk);
+    }
     this->curr_reader = t_rpl.getFullDecompressReplayReader(1.05);
   }
 }
@@ -176,11 +182,15 @@ void MemoryEfficientServerReplayReader::delete_curr_reader() {
   }
 }
 
-MemoryEfficientServerReplayReader::MemoryEfficientServerReplayReader(std::vector<fs::path> &base_dir,
+MemoryEfficientServerReplayReader::MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir,
                                                                      Replay *replay_0, bool memory_efficient) {
+  this->owner = owner;
   this->super_efficiency = memory_efficient;
   this->base_dir = &base_dir;
   this->current_replay = nullptr;
+  if(!replay_0->FooterBlk.empty()) {
+    this->owner->FooterBlk = std::move(replay_0->FooterBlk);
+  }
   if(this->super_efficiency) {
     this->curr_reader = replay_0->getRplReader();
   } else {
