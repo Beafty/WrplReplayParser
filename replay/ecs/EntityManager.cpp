@@ -220,6 +220,7 @@ namespace ecs {
     if(!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <= RESERVED_EID_RANGE) {
       G_ASSERT(!this->entDescs.basic_destroyed.test(eid.index(), false));
       auto new_eid = this->allocateOneEid();
+      ENTITY_LOGD2("Moving eid: {:#x} of template {} to {:#x}", eid.get_handle(), this->data_state->getTemplateName(desc->templ_id), new_eid.get_handle());
       auto &old_desc = this->entDescs[eid];
       auto &new_desc = this->entDescs[new_eid];
       new_desc.chunk_id = old_desc.chunk_id;
@@ -388,7 +389,7 @@ namespace ecs {
     G_ASSERT(this->entDescs.doesEntityExist(eid)); // sanity check in dev only
     auto desc = this->entDescs[eid.index()];
     archetype = desc.archetype_id; // should always be valid
-    G_ASSERT(archetype != INVALID_ARCHETYPE);
+    G_ASSERTF(archetype != INVALID_ARCHETYPE, "Entity {:#x} is invalid", eid.get_handle());
     //G_ASSERT(data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) != INVALID_COMPONENT_INDEX);
     std::shared_lock lk(this->data_state->archetypes.archetypes_mtx);
     if (data_state->archetypes.archetypes[archetype].INFO.getComponentId(index) == INVALID_COMPONENT_INDEX)

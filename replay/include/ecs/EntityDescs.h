@@ -60,7 +60,7 @@ namespace ecs
 
     [[nodiscard]] inline bool doesEntityExist(unsigned idx, uint32_t generation) const
     {
-      return idx < entDescs.size() && entDescs[idx].generation == generation;
+      return idx < entDescs.size() && entDescs[idx].generation == generation && entDescs[idx].templ_id != INVALID_TEMPLATE_INDEX;
     }
     [[nodiscard]] bool doesEntityExist(EntityId e) const { return doesEntityExist(e.index(), e.get_generation()); }
 
