@@ -44,12 +44,12 @@ namespace mpi {
           }
           case 3: {
             RET_FAIL(bs->Read(killer_uid));
-            this->offender_unit = state->g_entity_mgr.getUnitObj(killer_uid);
+            this->offended_unit = state->g_entity_mgr.getUnitObj(killer_uid);
             break;
           }
           case 4: {
             RET_FAIL(bs->Read(victim_uid));
-            this->offended_unit = state->g_entity_mgr.getUnitObj(victim_uid);
+            this->offender_unit = state->g_entity_mgr.getUnitObj(victim_uid);
             break;
           }
           case 5: {

@@ -98,7 +98,8 @@ void PyReplay::include(py::module_ &m) {
   py::class_<MemoryEfficientServerReplay>(sub, "MemoryEfficientServerReplay")
       .def(py::init<const std::string &>())
       .def("get_replay_reader", &MemoryEfficientServerReplay::getRplReader, py::return_value_policy::take_ownership)
-      .def_readonly("FooterBlk", &MemoryEfficientServerReplay::FooterBlk);
+      .def_readonly("FooterBlk", &MemoryEfficientServerReplay::FooterBlk)
+      .def_readonly("base_replay", &MemoryEfficientServerReplay::base_replay);
 }
 
 PyReplay py_replay{};
