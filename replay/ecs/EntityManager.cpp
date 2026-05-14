@@ -601,7 +601,7 @@ namespace ecs {
       }
       G_ASSERT(*unit__playerId < mgr->owned_by->players.size());
       mgr->owned_by->players[*unit__playerId].ownedUnits.emplace(*eid);
-    } else if(evt.is<ecs::EventEntityDestroyed>()) {
+    } else if(evt.is<ecs::EventEntityDestroyedBasic>()) {
       if(*unit__playerId == -1) { // not owned by a player
         return;
       }
@@ -619,7 +619,7 @@ namespace ecs {
           make_span(mplayer_add_comps, 2),/*ro*/
           make_span(mplayer_add_comps+2, 1),/*rq*/
           empty_span(),
-          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyed>::build(),
+          ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyedBasic>::build(),
           0
       );
 
