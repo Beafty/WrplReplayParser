@@ -488,12 +488,20 @@ namespace ecs {
     return broadcastEventImmediate(evt);
   }
 
-  ecs::EntityId EntityManager::getUnit(uint16_t uid) {
+  ecs::EntityId EntityManager::getUnitEid(uint16_t uid) {
     uid &= 0x7FF;
     if (uid == 0x7FF) {
       return INVALID_ENTITY_ID;
     }
     return this->uid_lookup[uid];
+  }
+
+  unit::UnitRef * EntityManager::getUnitObj(uint16_t uid) {
+    uid &= 0x7FF;
+    if (uid == 0x7FF) {
+      return nullptr;
+    }
+    return this->uid_unit_ref_lookup[uid];
   }
 
   void
@@ -587,6 +595,7 @@ namespace ecs {
       {
           {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
           {ECS_HASH("unit__playerId"),    ecs::ComponentTypeInfo<int>()},
+          {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()},
           {ECS_HASH("playerUnit"), ecs::ComponentTypeInfo<ecs::Tag>()}
       };
 
@@ -595,18 +604,24 @@ namespace ecs {
                         const ecs::QueryView &__restrict components) {
     auto *eid = (ecs::EntityId *) components.componentData[0];
     auto *unit__playerId = (int *) components.componentData[1];
+    auto unit__ref = (unit::UnitRef *)components.componentData[2];
     if (evt.is<ecs::EventEntityCreated>()) {
       if(*unit__playerId == -1) { // not owned by a player
         return;
       }
       G_ASSERT(*unit__playerId < mgr->owned_by->players.size());
-      mgr->owned_by->players[*unit__playerId].ownedUnits.emplace(*eid);
+      mgr->owned_by->players[*unit__playerId].currentOwnedUnits.emplace(*eid);
+      if(unit__ref->unit) {
+        mgr->owned_by->players[*unit__playerId].allOwnedUnits.emplace_back(unit__ref->unit);
+      }
     } else if(evt.is<ecs::EventEntityDestroyedBasic>()) {
       if(*unit__playerId == -1) { // not owned by a player
         return;
       }
       G_ASSERT(*unit__playerId < mgr->owned_by->players.size());
-      mgr->owned_by->players[*unit__playerId].ownedUnits.erase(*eid);
+      mgr->owned_by->players[*unit__playerId].currentOwnedUnits.erase(*eid);
+      if(unit__ref->unit)
+        unit__ref->unit->exists = false;
     }
   }
 
@@ -616,8 +631,8 @@ namespace ecs {
           "womp womp",
           ecs::EntitySystemOps(mplayer_add_entity),
           empty_span(),
-          make_span(mplayer_add_comps, 2),/*ro*/
-          make_span(mplayer_add_comps+2, 1),/*rq*/
+          make_span(mplayer_add_comps, 3),/*ro*/
+          make_span(mplayer_add_comps+3, 1),/*rq*/
           empty_span(),
           ecs::EventSetBuilder<ecs::EventEntityCreated, ecs::EventEntityDestroyedBasic>::build(),
           0

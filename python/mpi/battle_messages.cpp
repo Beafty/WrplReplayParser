@@ -13,8 +13,8 @@ void PyBattleMessages::include(py::module_ &m) {
       .def_readonly("offender_vehicle", &mpi::KillMessage::offender_vehicle)
       .def_readonly("used_weapon", &mpi::KillMessage::used_weapon)
       .def_readonly("destroyed_weapon", &mpi::KillMessage::destroyed_weapon)
-      .def_readonly("offended_entity", &mpi::KillMessage::offended_entity)
-      .def_readonly("offender_entity", &mpi::KillMessage::offender_entity)
+      .def_readonly("offended_unit", &mpi::KillMessage::offended_unit)
+      .def_readonly("offender_unit", &mpi::KillMessage::offender_unit)
       .def_readonly("offender_pid", &mpi::KillMessage::offender_pid)
       .def_readonly("VictimPid", &mpi::KillMessage::VictimPid)
       .def_readonly("unitType", &mpi::KillMessage::unitType)
@@ -22,17 +22,17 @@ void PyBattleMessages::include(py::module_ &m) {
       .def_readonly("offender_vehicle", &mpi::KillMessage::offender_vehicle);
 
   py::class_<mpi::SevereDamageMessage, mpi::IBattleMessage>(mpi, "SevereDamageMessage")
-      .def_readonly("offended_eid", &mpi::SevereDamageMessage::offended_eid)
+      .def_readonly("offended_unit", &mpi::SevereDamageMessage::offended_unit)
       .def_readonly("player_pid", &mpi::SevereDamageMessage::player_pid)
       .def_readonly("vehicle", &mpi::SevereDamageMessage::vehicle)
-      .def_readonly("player_eid", &mpi::SevereDamageMessage::player_eid)
+      .def_readonly("offender_unit", &mpi::SevereDamageMessage::offender_unit)
       .def_readonly("unitType", &mpi::SevereDamageMessage::unitType);
 
   py::class_<mpi::CriticalDamageMessage, mpi::IBattleMessage>(mpi, "CriticalDamageMessage")
-      .def_readonly("offended_eid", &mpi::CriticalDamageMessage::offended_eid)
+      .def_readonly("offended_unit", &mpi::CriticalDamageMessage::offended_unit)
       .def_readonly("player_pid", &mpi::CriticalDamageMessage::player_pid)
       .def_readonly("vehicle", &mpi::CriticalDamageMessage::vehicle)
-      .def_readonly("player_eid", &mpi::CriticalDamageMessage::player_eid)
+      .def_readonly("offender_unit", &mpi::CriticalDamageMessage::offender_unit)
       .def_readonly("is_fire", &mpi::CriticalDamageMessage::is_fire)
       .def_readonly("unitType", &mpi::CriticalDamageMessage::unitType);
 

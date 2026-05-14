@@ -4,6 +4,7 @@ add_library(PyMpi
         types.cpp
         codegen_types.cpp
         battle_messages.cpp
+        unit.cpp
 )
 
 target_link_libraries(PyMpi

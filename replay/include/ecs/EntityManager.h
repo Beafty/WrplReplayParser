@@ -427,7 +427,9 @@ namespace ecs {
 
     void broadcastEventImmediate(Event &&evt);
 
-    ecs::EntityId getUnit(uint16_t uid);
+    ecs::EntityId getUnitEid(uint16_t uid);
+
+    unit::UnitRef * getUnitObj(uint16_t uid);
 
   protected:
 

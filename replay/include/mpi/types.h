@@ -28,11 +28,6 @@ namespace danet {
     }
   };
 #pragma pack(pop)
-
-  struct SpaceTime {
-    uint32_t time_ms=0;
-    Point3 location{};
-  };
 }
 G_STATIC_ASSERT(sizeof(danet::Uid) == 90);
 

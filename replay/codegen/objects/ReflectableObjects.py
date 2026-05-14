@@ -4,7 +4,8 @@ from .obj_base import SimpleVar as SVar
 
 class MPlayer(ReflectableObject):
     public = [
-        SVar("std::unordered_set<ecs::EntityId>", "ownedUnits")
+        SVar("std::unordered_set<ecs::EntityId>", "currentOwnedUnits"),
+        SVar("std::vector<unit::Unit*>", "allOwnedUnits")
     ]
     uid = Var("danet::Uid", 2)
     invitedNickName = Var("std::string", 3)

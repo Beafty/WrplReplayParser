@@ -135,6 +135,8 @@ namespace unit {
 
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
 
+    // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
+    bool exists = true;
     uint16_t uid;
     UnitType unitType; // make into an enum, maybe match with gaijin enum? I know they have one iirc
     std::string unit_name{};

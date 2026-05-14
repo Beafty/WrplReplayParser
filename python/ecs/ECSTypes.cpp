@@ -5,6 +5,7 @@
 #include "ecs/EntityManager.h" // so all types are defined
 #include "ecs/ComponentTypesDefs.h"
 #include "pybind11/stl_bind.h"
+#include "modules/mpi/unit.h"
 
 std::unordered_map<ecs::component_type_t, cast_cb> cast_to_py_types;
 PyECSTypes py_ecs_types;
@@ -45,9 +46,9 @@ void PyECSTypes::include(py::module_ &m) {
   DO_INCLUDE()
   py_entity_id.include(m);
   py_math.include(m);
+  py_unit.include(m);
   auto dm = m.def_submodule("dm");
   auto ecs = m.def_submodule("ecs");
-  auto unit = m.def_submodule("unit");
   py::class_<InvalidData>(ecs, "InvalidData")
       .def_readonly("componentName", &InvalidData::type_name)
       .def_property_readonly("data", [](const InvalidData &self){
@@ -70,78 +71,6 @@ void PyECSTypes::include(py::module_ &m) {
         }
         return py::none{};
       });
-
-  py::class_<SpaceTime>(m, "SpaceTime")
-      .def_readonly("time_ms", &SpaceTime::time_ms)
-      .def_readonly("location", &SpaceTime::location)
-      .def("__str__", [](SpaceTime &st) {
-        return fmt::format("SpaceTime({}, [{}, {}, {}])", st.time_ms, st.location.x, st.location.y, st.location.z);
-      });
-
-  bind_readonly_vector<std::vector<SpaceTime>>(m, "SpaceTimeList");
-
-  py::enum_<UnitType>(unit, "UnitType")
-      .value("TankType", UnitType::TankType)
-      .value("AircraftType", UnitType::AircraftType);
-
-  /*
-    std::string unit_name{};
-    std::string player_internal_name{};
-    int owner_pid{};
-    TMatrix spawn_position{};
-    std::string loadout_name{};
-    std::string skin_name{};
-    DataBlock camo_info{};
-    DataBlock custom_weapons_blk{};
-    std::vector<weapon_data> weapons{};
-    std::vector<std::string> weapon_mods{};
-    std::vector<std::string> fm_mods{};
-   */
-  py::class_<unit::weapon_data>(unit, "WeaponData")
-      .def_readonly("launcher", &unit::weapon_data::launcher)
-      .def_readonly("bullet", &unit::weapon_data::bullet)
-      .def_readonly("count", &unit::weapon_data::count);
-  py::class_<unit::Unit> un(unit, "Unit");
-
-
-  py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft");
-
-  py::class_<unit::Tank, unit::Unit> t(unit, "Tank");
-
-  //    int weapon_id = -1;
-  //    int weapon_index = -1;
-  //    std::string emitter{};
-  //    std::string blk_path{};
-  //    std::string weapon_name{};
-  py::class_<unit::Weapon>(unit, "Weapon")
-      .def_readonly("weapon_id", &unit::Weapon::weapon_id)
-      .def_readonly("weapon_index", &unit::Weapon::weapon_index)
-      .def_readonly("emitter", &unit::Weapon::emitter)
-      .def_readonly("blk_path", &unit::Weapon::blk_path)
-      .def_readonly("weapon_name", &unit::Weapon::weapon_name);
-
-
-  un
-      .def_readonly("unitType", &unit::Unit::unitType)
-      .def_readonly("uid", &unit::Unit::uid)
-      .def("AsAircraft", &unit::Unit::AsAircraft)
-      .def("AsTank", &unit::Unit::AsTank)
-      .def_readonly("unit_name", &unit::Unit::unit_name)
-      .def_readonly("player_internal_name", &unit::Unit::player_internal_name)
-      .def_readonly("owner_pid", &unit::Unit::owner_pid)
-      .def_readonly("spawn_position", &unit::Unit::spawn_position)
-      .def_readonly("loadout_name", &unit::Unit::loadout_name)
-      .def_readonly("skin_name", &unit::Unit::skin_name)
-      .def_readonly("camo_info", &unit::Unit::camo_info)
-      .def_readonly("custom_weapons_blk", &unit::Unit::custom_weapons_blk)
-      .def_readonly("weapons", &unit::Unit::storage_weapons)
-      .def_readonly("weapon_mods", &unit::Unit::weapon_mods)
-      .def_readonly("actual_weapons", &unit::Unit::weapons)
-      .def_readonly("fm_mods", &unit::Unit::fm_mods)
-      .def_readonly("positions", & unit::Unit::positions);
-
-  py::class_<unit::UnitRef>(unit, "UnitRef")
-      .def_readonly("unit", &unit::UnitRef::unit);
 
   py::class_<FieldSerializerDict>(ecs, "FieldSerializerDict")
       .def_property_readonly("data", [](FieldSerializerDict &dict) -> py::bytes {
