@@ -119,23 +119,24 @@ public:
   bool getNextPacket(ReplayPacket *packet) override;
   ~ServerReplayReader() override;
 };
-
+class MemoryEfficientServerReplay;
 class MemoryEfficientServerReplayReader: public IReplayReader {
   void setup_reader(int index);
   void delete_curr_reader();
-
+  MemoryEfficientServerReplay * owner; // used for footer blk setting
   Replay * current_replay = nullptr;
   IReplayReader * curr_reader = nullptr;
   std::vector<fs::path> * base_dir;
   bool super_efficiency = false; // use zlib-ng stream compression instead of faster libdeflate full decompression
   int curr_file_index = 1;
 public:
-  explicit MemoryEfficientServerReplayReader(std::vector<fs::path> &base_dir, bool memory_efficient=false) {
+  explicit MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir, bool memory_efficient=false) {
+    this->owner = owner;
     this->super_efficiency = memory_efficient;
     this->base_dir = &base_dir;
     this->setup_reader(0);
   }
-  explicit MemoryEfficientServerReplayReader(std::vector<fs::path> &base_dir, Replay * replay_0, bool memory_efficient=false);
+  explicit MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir, Replay * replay_0, bool memory_efficient=false);
   bool getNextPacket(ReplayPacket *packet) override;
 };
 

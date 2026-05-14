@@ -84,11 +84,7 @@ int main() {
   auto start = std::chrono::high_resolution_clock::now();
   ParserState &state = *state_ptr;
   //std::exit(0);
-  int AircraftCount = 0;
-  while (rdr->getNextPacket(pkt)) {
-    if(!state.ParsePacket(*pkt))
-      break;
-  }
+  while (rdr->getNextPacket(pkt) && state.ParsePacket(*pkt)) {}
   auto ended = std::chrono::high_resolution_clock::now();
   for (auto &plr: state_ptr->players) {
     auto owned_eid = plr.ownedUnitRef.data;

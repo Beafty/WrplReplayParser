@@ -42,6 +42,7 @@ void PyReplayState::include(py::module_ &m) {
 
 
   py::class_<ChatMessage>(m, "ChatMessage")
+      .def_readonly("time_ms", &ChatMessage::time_ms)
       .def_readonly("player_name", &ChatMessage::player_name)
       .def_readonly("message", &ChatMessage::message)
       .def_readonly("channel", &ChatMessage::channel)

@@ -5,8 +5,10 @@
 
 namespace ecs {
   ECS_UNICAST_EVENT_TYPE(EventEntityCreated)
+  // does more permanent stuff like actual UnitRef.unit destruction
   ECS_UNICAST_EVENT_TYPE(EventEntityDestroyed)
-  ECS_BROADCAST_EVENT_TYPE(EventEntitySomething)
+  // basic destruction, only does minimal, like remove uid lookup entry, also only called
+  ECS_UNICAST_EVENT_TYPE(EventEntityDestroyedBasic)
 }
 
 

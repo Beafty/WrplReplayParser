@@ -331,6 +331,7 @@ namespace ecs {
     // max of range reserved for replicated entities
     // all ids below this (basically 0 to USHRT_MAX) are for server to do stuff
     bool eidsReservationMode = false; // do we use reserved eid range?
+    bool MoveServerDestroyedEntities = true;
 
     // our deque of freed indices
     // if we are client, we do not push freed indices that are in RESERVED_EID_RANGE
@@ -394,7 +395,7 @@ namespace ecs {
 
     EntityId createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer);
 
-    bool destroyEntity(EntityId eid, bool is_dtor=false);
+    bool destroyEntity(EntityId eid, bool is_dtor=false, bool force_destroy=false);
 
     ComponentRef getComponentRef(EntityId eid, archetype_component_id cid) const;   // cid is 0.. till getNumComponents
     ComponentRef getComponentRefCidx(EntityId eid, component_index_t cidx) const;

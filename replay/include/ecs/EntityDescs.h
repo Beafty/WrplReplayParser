@@ -3,6 +3,7 @@
 #include "ecs/typesAndLimits.h"
 #include <vector>
 #include "ecs/entityId.h"
+#include "EASTL/bitvector.h"
 
 namespace ecs
 {
@@ -25,10 +26,14 @@ namespace ecs
 
 
     std::vector<EntityDesc> entDescs;
+    // has a specific entity index already been 'basic destroyed?'
+    // placed here as its tied directly with the entDesc capacity
+    eastl::bitvector<> basic_destroyed{};
 
     EntityDescs()
     {
-      entDescs.resize(RESERVED_EID_RANGE); // holds space for 100 entities
+      entDescs.resize(RESERVED_EID_RANGE+1); // reserve initial reserved space
+      basic_destroyed.resize(RESERVED_EID_RANGE+1, false);
       EntityDesc desc{1, 1, 1}; // reserves first slot, an invalid entity id is 0
       entDescs[0] = desc;
     }
@@ -42,8 +47,10 @@ namespace ecs
     inline void Allocate(EntityId eid)
     {
       auto idx = eid.index();
-      if (idx >= entDescs.size())
+      if (idx >= entDescs.size()) {
+        basic_destroyed.resize(idx+1, false);
         entDescs.resize(idx+1);
+      }
     }
 
     [[nodiscard]] inline bool doesEntityExistInternal(unsigned idx) const
@@ -53,7 +60,7 @@ namespace ecs
 
     [[nodiscard]] inline bool doesEntityExist(unsigned idx, uint32_t generation) const
     {
-      return idx < entDescs.size() && entDescs[idx].generation == generation;
+      return idx < entDescs.size() && entDescs[idx].generation == generation && entDescs[idx].templ_id != INVALID_TEMPLATE_INDEX;
     }
     [[nodiscard]] bool doesEntityExist(EntityId e) const { return doesEntityExist(e.index(), e.get_generation()); }
 
@@ -61,11 +68,20 @@ namespace ecs
     EntityDesc &operator[](uint32_t i) { return entDescs[i]; }
     const EntityDesc &operator[](uint32_t i) const { return entDescs[i]; }
 
+    EntityDesc &operator[](ecs::EntityId i) {
+      return this->entDescs[i.index()];
+    }
+    const EntityDesc &operator[](ecs::EntityId i) const {
+      return this->entDescs[i.index()];
+    }
+
+
     size_t size() const {return entDescs.size();}
 
     uint32_t push_back() {
       auto idx = this->entDescs.size();
       entDescs.push_back({});
+      basic_destroyed.push_back(false);
       return (uint32_t)idx;
     }
 
