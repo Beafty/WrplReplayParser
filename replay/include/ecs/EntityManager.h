@@ -429,7 +429,7 @@ namespace ecs {
 
     ecs::EntityId getUnitEid(uint16_t uid);
 
-    unit::UnitRef * getUnitObj(uint16_t uid);
+    unit::Unit * getUnitObj(uint16_t uid);
 
   protected:
 

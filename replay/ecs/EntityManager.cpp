@@ -496,12 +496,15 @@ namespace ecs {
     return this->uid_lookup[uid];
   }
 
-  unit::UnitRef * EntityManager::getUnitObj(uint16_t uid) {
+  unit::Unit * EntityManager::getUnitObj(uint16_t uid) {
     uid &= 0x7FF;
     if (uid == 0x7FF) {
       return nullptr;
     }
-    return this->uid_unit_ref_lookup[uid];
+    auto ref = this->uid_unit_ref_lookup[uid];
+    if (ref)
+      return ref->unit;
+    return nullptr;
   }
 
   void
