@@ -38,7 +38,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p2[index];
-      });
+      })
+      .def("__str__", [](Point2 &self){return self.toString(0);});
   py::class_<Point3>(math, "Point3")
       .def(py::init<>())
       .def(py::init<real, real, real>(),
@@ -63,7 +64,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p3[index];
-      });
+      })
+      .def("__str__", [](Point3 &self){return self.toString(0);});
   py::class_<Point4>(math, "Point4")
       .def(py::init<>())
       .def(py::init<real, real, real, real>(),
@@ -89,7 +91,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p4[index];
-      });
+      })
+      .def("__str__", [](Point4 &self){return self.toString(0);});
   py::class_<IPoint2>(math, "IPoint2")
       .def(py::init<>())
       .def(py::init<int, int>(),
@@ -113,7 +116,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p2[index];
-      });
+      })
+      .def("__str__", [](IPoint2 &self){return self.toString(0);});
   py::class_<IPoint3>(math, "IPoint3")
       .def(py::init<>())
       .def(py::init<int, int, int>(),
@@ -138,7 +142,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p3[index];
-      });
+      })
+      .def("__str__", [](IPoint3 &self){return self.toString(0);});
   py::class_<IPoint4>(math, "IPoint4")
       .def(py::init<>())
       .def(py::init<int, int, int, int>(),
@@ -164,7 +169,8 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return p4[index];
-      });
+      })
+      .def("__str__", [](IPoint4 &self){return self.toString(0);});
   py::class_<TMatrix>(math, "TMatrix")
       .def(py::init<>())
       .def(py::init<real>())
@@ -183,12 +189,14 @@ void PyMath::include(py::module_ &m) {
           throw py::index_error();
         }
         return m.col[index];
-      });
+      })
+      .def("__str__", [](TMatrix &self){return self.toString(0);});
   py::class_<E3DCOLOR>(math, "E3DCOLOR")
       .def(py::init<>())
       .def(py::init<uint8_t, uint8_t, uint8_t, uint8_t>(), py::arg("r"), py::arg("g"), py::arg("b"), py::arg("a")=255)
       .def_readonly("r", &E3DCOLOR::r)
       .def_readonly("g", &E3DCOLOR::g)
       .def_readonly("b", &E3DCOLOR::b)
-      .def_readonly("a", &E3DCOLOR::a);
+      .def_readonly("a", &E3DCOLOR::a)
+      .def("__str__", [](E3DCOLOR &self){return fmt::format("c[{}]", self.toString(0));});
 }
