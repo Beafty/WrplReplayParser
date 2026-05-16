@@ -14,13 +14,11 @@ add_library(dagECS
         EventsDB.cpp
         EntityManagerQuery.cpp
         Unit.cpp
-        BaseEntity.cpp.inl.gen.cpp
-        ecsPull.cpp
 )
 
 
 target_link_libraries(dagECS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         BLK::BLK
         FS::FS
         VROMFS::VROMFS

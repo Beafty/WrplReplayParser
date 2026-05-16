@@ -1,3 +1,4 @@
+#include "ecs/EntityManager.h"
 #include "ecs/ComponentTypesDefs.h"
 #include "Unit.h"
 #include "ecs/query/coreEvents.h"
@@ -17,3 +18,20 @@ unit_aircraft_create_es(const ecs::EventEntityCreated &evt, const FlightModelWra
   unit::LoadFromStorage(unit__ref.unit, unit_storage__aircraft);
 }
 
+static void uid_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId eid, const int &uid, unit::UnitRef &unit__ref, ecs::EntityManager *manager) {
+  if (uid == -1) {
+    LOGE("Entity {:#x} has no uid, normal?", eid.get_handle());
+    return;
+  }
+  G_ASSERT(manager->uid_lookup[uid] == ecs::INVALID_ENTITY_ID);
+  manager->uid_lookup[uid] = eid;
+  manager->uid_unit_ref_lookup[uid] = &unit__ref;
+}
+
+
+static void uid_entity_es(const ecs::EventEntityDestroyedBasic &evt, const int &uid, ecs::EntityManager *manager) {
+  G_ASSERT(manager->uid_lookup[uid] != ecs::INVALID_ENTITY_ID);
+  manager->uid_lookup[uid] = ecs::INVALID_ENTITY_ID;
+  manager->uid_unit_ref_lookup[uid] = nullptr;
+  //LOG("removing entity at uid {}", *uid);
+}

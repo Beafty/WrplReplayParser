@@ -79,7 +79,7 @@
     instead
 */
 #include <string.h>
-#include "bitStream.h"
+#include "danet/bitStream.h"
 #include <cstddef> // for offsetof macros
 #include "fmt/base.h"
 #include "fmt/format.h"

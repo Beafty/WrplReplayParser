@@ -487,7 +487,7 @@ def gen_es_simd(esFunction):
       genCode += preForIndent + '}\n'
 
     if esFunction.hasComponents:
-      genCode += preForIndent + 'while (++comp != compE);\n'
+      genCode += preForIndent + '}} while (++comp;\n'
 
     if (len(esFunction.stagesTypes) > 1):
       genCode += indent + '}\n'
@@ -496,6 +496,7 @@ def gen_es_simd(esFunction):
 
 
 def gen_es_event_handler(esFunction):
+  back_bracket = "}"
   global generic_event_type
   if (len(esFunction.eventHandlers) < 1):
     return ''
@@ -535,16 +536,16 @@ def gen_es_event_handler(esFunction):
       genCode += '} else {\n' if index != 0 else ''
     if len(esFunction.eventHandlers[index].condition):
       condition = gen_condition(esFunction, esFunction.eventHandlers[index].condition)
-      genCode += '''  {indent}auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+      genCode += '''  {indent}auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {{
   {indent}{{
     {indent}if ( !({condition}) )
       {indent}continue;
     {indent}{curFuncName}({event}
-    {indent}{call_}  {indent}}}{indent} while (++comp != compE);\n{indent}'''.format(**locals())
+    {indent}{call_}  {indent}}}{indent} }} while (++comp;\n{indent}'''.format(**locals())
     elif esFunction.eventHandlers[index].hasComponents: #esFunction.hasComponents:
-      genCode += '''  {indent}auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+      genCode += '''  {indent}auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {{
     {indent}{curFuncName}({event}
-    {indent}{call_}{indent}  while (++comp != compE);\n{indent}'''.format(**locals())
+    {indent}{call_}{indent}  }} while (++comp != compE);\n{indent}'''.format(**locals())
     else:
       genCode += '''  {indent}{curFuncName}({event}
     {indent}{call_}'''.format(**locals())
@@ -586,7 +587,7 @@ def gen_ecs_query_simd(esFunction):
   funcName = esFunction.funcName
   fullFuncName = esFunction.fullFuncName
   def_quant_code = get_annotated_quant(esFunction.functionDeclAnnotation)
-
+  back_bracket = "}"
   call_ = gen_call_params(esFunction, '            ', esFunction.call_params, '  ')
   eid_arg = 'ecs::EntityId eid, ' if not esFunction.eidArgId == -1 else ''
   mgr_arg = (esFunction.mgrType + ' &manager, ') if not esFunction.mgrArgId == -1 else ''
@@ -595,8 +596,8 @@ def gen_ecs_query_simd(esFunction):
   manager_name = '&manager' if not esFunction.mgrArgId == -1 else 'g_entity_mgr'
   continue_expr = 'return' if esFunction.is_eid_query else 'continue'
   eid_pass = ' eid,' if esFunction.is_eid_query else ''
-  loop_expr = 'auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do' if not esFunction.is_eid_query else 'constexpr size_t comp = 0;'
-  end_loop_expr = 'while (++comp != compE);' if not esFunction.is_eid_query else ''
+  loop_expr = 'auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {{' if not esFunction.is_eid_query else 'constexpr size_t comp = 0;'
+  end_loop_expr = '}} while (++comp;' if not esFunction.is_eid_query else ''
   parallelForCode = '  , nullptr, {funcName}_desc.getQuant()'.format(**locals()) if def_quant_code != '' and not esFunction.is_eid_query else ''
   query_type_start = 'ecs::stoppable_query_cb_t(' if esFunction.breakable else ''
   query_type_end = ')' if esFunction.breakable else ''
@@ -856,6 +857,12 @@ allEventFunctions = []
 allQueryFunctions = []
 allQueryIdFunctions = []
 
+def reload():
+  global allESFunctions, allEventFunctions, allQueryFunctions, allQueryIdFunctions
+  allESFunctions = []
+  allEventFunctions = []
+  allQueryFunctions = []
+  allQueryIdFunctions = []
 
 def gen_es(allParsedFunctions, event_suffix, input_file_name):
   global event_handler_suffix

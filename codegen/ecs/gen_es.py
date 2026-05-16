@@ -5,7 +5,7 @@ import difflib
 import platform
 
 from .clang_ecs_parser import parse_ecs_functions
-from .gen_es30 import gen_es, remove_const_from_type, dot_suffix
+from .gen_es30 import gen_es, remove_const_from_type, dot_suffix, reload
 
 version = "1.0"
 es_suffix = "_es"
@@ -26,6 +26,7 @@ def is_es_name(name):
 # output_file_name = sys.argv[2]
 # rel_path_for_include = sys.argv[3]
 def generate(input_file_name: str, output_file_name: str, rel_path_for_include: str):
+    reload()
     compiler_errors = []
     # input_file_name = r"D:\ReplayParser\replay\testES\toolInputES.cpp.inl"
     # utput_file_name = r"D:\ReplayParser\replay\testES\toolInputES.cpp.inl.gen.cpp"

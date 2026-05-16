@@ -9,7 +9,7 @@ target_link_libraries(dagor_rpl_threading_test
         READER::READER
         FS::FS
         VROMFS::VROMFS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         NET::NET
         dagECS::dagECS
         INIT::INIT

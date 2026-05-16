@@ -8,7 +8,8 @@
 #include <ecs/EntityManager.h>
 
 #define REG_SYS               \
-  RS(BaseEntity)
+  RS(BaseEntity)              \
+  RS(UpdateMPlayer)
 
 
 #define RS(x) ECS_DECL_PULL_VAR(x);

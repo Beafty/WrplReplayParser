@@ -10,6 +10,7 @@ target_link_libraries(INIT
         FS::FS
         dagECS::dagECS
         MPI::MPI
+        WTEvents::WTEvents
 )
 
 set(INCLUDES

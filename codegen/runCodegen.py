@@ -59,10 +59,10 @@ def codegen_ecs():
             if file_name in parsed_objects:
                 raise Exception(f"cannot have ECS codegen files with the same name ({file_name})")
             parsed_objects.add(file_name)
-            if not check_hash(file_name, [str(p)]):
-                inp_file_path = str(p)
-                out_file_path = str(p) + ".gen.cpp"
-                rel_path = p.name
+            if not check_hash(file_name, [str(p)]) : # or True
+                inp_file_path = str(p).replace("\\", "/")
+                out_file_path = str(p).replace(".cpp.inl", ".gen.es.cpp").replace("\\", "/")
+                rel_path = p.name.replace("\\", "/")
                 generate(inp_file_path, out_file_path, rel_path)
                 print(f"generated {inp_file_path}")
 
