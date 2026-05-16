@@ -1,4 +1,4 @@
-from DataTypes import *
+from .DataTypes import *
 
 def datablock_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
     return f"""

@@ -1,5 +1,5 @@
-from DataTypes import DataTypeRegister
-from custom_rw import *
+from .DataTypes import DataTypeRegister
+from .custom_rw import *
 
 class Uid_reg(DataTypeRegister):
     name = "danet::Uid"

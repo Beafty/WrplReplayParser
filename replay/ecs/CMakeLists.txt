@@ -14,6 +14,8 @@ add_library(dagECS
         EventsDB.cpp
         EntityManagerQuery.cpp
         Unit.cpp
+        BaseEntity.cpp.inl.gen.cpp
+        ecsPull.cpp
 )
 
 

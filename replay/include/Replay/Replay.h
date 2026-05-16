@@ -213,9 +213,9 @@ public:
   DataBlock &GetFooterBlk() {
     if(FooterBlk)
       return *FooterBlk;
-    for(auto i = this->replay_files.size()-1; i >= 0; i--) {
-      if (!this->replay_files[i].FooterBlk.empty()) {
-        this->FooterBlk  = &this->replay_files[i].FooterBlk;
+    for(auto i = this->replay_files.size(); i > 0; i--) {
+      if (!this->replay_files[i-1].FooterBlk.empty()) {
+        this->FooterBlk  = &this->replay_files[i-1].FooterBlk;
         return *this->FooterBlk;
       }
     }

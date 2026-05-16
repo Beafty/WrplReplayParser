@@ -32,6 +32,40 @@ namespace ecs {
       RWData data;
       uint16_t roRW = 0;
     };
+
+    [[nodiscard]] ComponentsData getComponentUntypedData(uint16_t compId) const { return componentData[compId]; }
+
+    template <class T>
+    const T* getComponentRawRO(uint16_t compId) const
+    {
+      T* ret = (T*)getComponentUntypedData(compId);
+      return ret;
+    }
+
+    template <class T>
+    T* getComponentRawRW(uint16_t compId) const
+    {
+      T* ret = (T*)getComponentUntypedData(compId);
+      return ret;
+    }
+
+    template <class T, typename U = T>
+    auto &getComponentRW(uint16_t compId, uint32_t idInChunk) const
+    {
+      auto p = getComponentUntypedData(compId);
+      G_ASSERT(p);
+      return ((T*)p)[idInChunk];
+      //return ref<T, U>(p, idInChunk);
+    }
+    template <class T, typename U = T>
+    auto &getComponentRO(uint16_t compId, uint32_t idInChunk) const
+    {
+      auto p = getComponentUntypedData(compId);
+      G_ASSERT(p);
+      return ((const T*)p)[idInChunk];
+      //return ref<T, U, /*bConst*/ true>(p, idInChunk);
+    }
+
     friend GState;
     QueryView(EntityManager *mgr) { this->mgr = mgr;}
     [[nodiscard]] uint32_t begin() const;

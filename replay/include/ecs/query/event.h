@@ -10,6 +10,7 @@
 #include "ecs/ecsHash.h"
 #include "ecs/entityId.h"
 #include "ecs/internal/inplaceKeySet.h"
+#include "dag_assert.h"
 
 namespace ecs
 {

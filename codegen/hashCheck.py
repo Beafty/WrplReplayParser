@@ -13,7 +13,10 @@ class HashChecker:
     def load_keyfile(self) -> dict:
         if os.path.exists(self.keyfile_path):
             with open(self.keyfile_path, "r") as f:
-                return json.load(f)
+                try:
+                    return json.load(f)
+                except json.decoder.JSONDecodeError: # most likely empty file
+                    return {}
         else:
             with open(self.keyfile_path, "x") as _:
                 pass

@@ -38,4 +38,3 @@ target_include_directories(MPI
 
 
 SetGenFlags(MPI)
-add_dependencies(MPI CodeGeneration)

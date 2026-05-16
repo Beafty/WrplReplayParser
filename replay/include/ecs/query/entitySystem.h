@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <ecs/ComponentTypes.h>
 #include "ecs/entityId.h"
 #include "ecs/query/event.h"
 #include "ecsQuery.h"
@@ -159,5 +160,27 @@ namespace ecs {
     if (onDelete)
       onDelete(this);
   }
+
+#if _ECS_CODEGEN
+  #define ECS_BEFORE_ONE(a) __attribute__((annotate("@before:" #a)))
+#define ECS_BEFORE(...)   ECS_FOR_EACH(ECS_BEFORE_ONE, __VA_ARGS__)
+#define ECS_AFTER_ONE(a)  __attribute__((annotate("@after:" #a)))
+#define ECS_AFTER(...)    ECS_FOR_EACH(ECS_AFTER_ONE, __VA_ARGS__)
+#define ECS_TAG_ONE(a)    __attribute__((annotate("@tag:" #a)))
+#define ECS_TAG(...)      ECS_FOR_EACH(ECS_TAG_ONE, __VA_ARGS__)
+#define ECS_TRACK_ONE(a)  __attribute__((annotate("@track:" #a)))
+#define ECS_TRACK(...)    ECS_FOR_EACH(ECS_TRACK_ONE, __VA_ARGS__)
+#define ECS_NO_ORDER      __attribute__((annotate("@before:*")))
+#else
+#define ECS_BEFORE_ONE(a)
+#define ECS_BEFORE(...)
+#define ECS_AFTER_ONE(a)
+#define ECS_AFTER(...)
+#define ECS_TAG_ONE(a)
+#define ECS_TAG(...)
+#define ECS_TRACK_ONE(a)
+#define ECS_TRACK(...)
+#define ECS_NO_ORDER
+#endif
 
 }; // namespace ecs

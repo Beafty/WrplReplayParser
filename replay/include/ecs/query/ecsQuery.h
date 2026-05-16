@@ -39,15 +39,16 @@ namespace ecs {
     uint32_t flags = 0; // bitmask of CDFlags enum
     const char *nameStr = nullptr;
 
+    template <typename T>
+    constexpr ComponentDesc(const HashedConstString n, const ComponentTypeInfo<T> &, uint32_t f = 0) :
+        ComponentDesc(n, ComponentTypeInfo<T>::type, f)
+    {}
+
     constexpr ComponentDesc(const HashedConstString n, component_type_t tp, uint32_t f = 0) :
         name(n.hash),
         type(tp),
         flags(f),
         nameStr(n.str) {}
-    template <typename T>
-    constexpr ComponentDesc(const HashedConstString n, const ComponentTypeInfo<T> &, uint32_t f = 0) :
-        ComponentDesc(n, ComponentTypeInfo<T>::type, f)
-    {}
 
     ComponentDesc() = default;
   };
@@ -100,8 +101,7 @@ namespace ecs {
 
   template <int N>
   struct ComponentSystemIndex
-  { // just functions as a sanity check, you pass in returned value (probably return from comp_hash_index_of)
-      // and the static assert ensures that the 'value' is valid
+  {
     static constexpr int value = N;
     static_assert(N >= 0, "component not found");
   };
@@ -110,6 +110,16 @@ namespace ecs {
 
 #define ECS_QUERY_COMP_RO_INDEX(carr, name) ((uint16_t)(ECS_QUERY_COMP_INDEX(carr, name)))
 #define ECS_QUERY_COMP_RW_INDEX(carr, name) ((uint16_t)(ECS_QUERY_COMP_INDEX(carr, name)))
+
+#define ECS_QUERY_COMP_RO_PTR(T, carr, name) components.getComponentRawRO<T>(ECS_QUERY_COMP_RO_INDEX(carr, name))
+
+#define ECS_QUERY_COMP_RW_PTR(T, carr, name) components.getComponentRawRW<T>(ECS_QUERY_COMP_RW_INDEX(carr, name))
+
+#define ECS_RW_COMP(carr, cname, T)      components.getComponentRW<T>(ECS_QUERY_COMP_RW_INDEX(carr, cname), comp)
+#define ECS_RO_COMP(carr, cname, T)      components.getComponentRO<T>(ECS_QUERY_COMP_RO_INDEX(carr, cname), comp)
+#define ECS_RO_COMP_OR(carr, cname, def) components.getComponentRODef(ECS_QUERY_COMP_RO_INDEX(carr, cname), comp, def)
+#define ECS_RO_COMP_PTR(carr, cname, T)  components.getComponentROOpt<T>(ECS_QUERY_COMP_RO_INDEX(carr, cname), comp)
+#define ECS_RW_COMP_PTR(carr, cname, T)  components.getComponentRWOpt<T>(ECS_QUERY_COMP_RW_INDEX(carr, cname), comp)
 
   //
   struct NamedQueryDesc : public BaseQueryDesc {
@@ -167,6 +177,7 @@ namespace ecs {
                          dag::ConstSpan<ComponentDesc>(components.begin() + roEnd(), rqCnt),
                          dag::ConstSpan<ComponentDesc>(components.begin() + rqEnd(), noCnt));
   }
+
 }
 
 

@@ -1,5 +1,5 @@
-from DataTypes import DataTypeRegister
-from custom_rw import *
+from .DataTypes import DataTypeRegister
+from .custom_rw import *
 
 
 class bool_reg(DataTypeRegister):

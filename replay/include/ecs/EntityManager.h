@@ -56,6 +56,7 @@ DEFINE_HANDLE(handle_entity)
 
 class PyGState; // for python bindings
 struct ParserState;
+extern volatile size_t framework_primary_pulls;
 
 namespace ecs {
   class GState;
@@ -317,9 +318,11 @@ namespace ecs {
 
     void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr);
 
-    void performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr);
+    void performQueryEmptyAllowed(QueryId h, const EventFuncType& fun, const Event &evt, EntityManager *mgr);
 
-    void performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr);
+    void performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager *mgr);
+
+    void perform_query(QueryId h, EntityManager *mgr, const EventFuncType &fun);
 
     friend EntityManager;
     friend PyGState;
@@ -427,14 +430,13 @@ namespace ecs {
 
     void broadcastEventImmediate(Event &&evt);
 
+    void perform_query(QueryId id, const EventFuncType &cb);
+
     ecs::EntityId getUnitEid(uint16_t uid);
 
     unit::Unit * getUnitObj(uint16_t uid);
 
   protected:
-
-
-
     friend Component;
     friend InstantiatedTemplate;
     friend GState;
@@ -445,8 +447,7 @@ namespace ecs {
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
 
   };
-
-
+  void printALlUnits(EntityManager *mgr);
 }
 
 #endif //MYEXTENSION_ENTITYMANAGER_H

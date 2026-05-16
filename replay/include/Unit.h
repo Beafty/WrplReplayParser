@@ -160,7 +160,7 @@ namespace unit {
   };
 
 
-  bool LoadFromStorage(Unit *unit, FieldSerializerDict *data);
+  bool LoadFromStorage(Unit *unit, const FieldSerializerDict &data);
 
   class Aircraft : public Unit {
   public:

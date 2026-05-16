@@ -454,6 +454,8 @@ namespace ecs {
               return RESOLVED_MASK;
             }
           }
+        } else {
+          EXCEPTION("component of name {} doesn't exist", copyDesc.components[i].nameStr);
         }
         resDesc.getComponents()[i] = cidx;
       }
@@ -643,7 +645,7 @@ namespace ecs {
   }
 
   static constexpr int MAX_ONE_EID_QUERY_COMPONENTS = 96;
-  inline void GState::performQueryES(QueryId h, EventFuncType fun, const Event &__restrict evt, EntityManager *mgr) {
+  inline void GState::performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager *mgr) {
     uint32_t index = h.index();
     auto &__restrict archDesc = archetypeQueries[index];
     if (!archDesc.getQueriesCount())
@@ -691,7 +693,7 @@ namespace ecs {
     }
   }
 
-  inline void GState::performQueryEmptyAllowed(QueryId h, EventFuncType fun, const Event &evt, EntityManager *mgr)
+  inline void GState::performQueryEmptyAllowed(QueryId h, const EventFuncType& fun, const Event &evt, EntityManager *mgr)
   {
     if (h)
       performQueryES(h, fun, evt, mgr);
@@ -767,7 +769,7 @@ namespace ecs {
     qv.roRW = archDesc.roRW;
     qv.id = h;
     const uint32_t totalComponentsCount = archDesc.getComponentsCount();
-    G_ASSERT(archDesc.getComponentsCount() < MAX_ONE_EID_QUERY_COMPONENTS); // shouldnt happen cause this is the value gaijin uses so its THEIR fault
+    G_ASSERT(archDesc.getComponentsCount() < MAX_ONE_EID_QUERY_COMPONENTS); // shouldn't happen cause this is the value gaijin uses so its THEIR fault
     uint32_t idInChunk;
     auto chunk = storage.getArch(archetype)->getChunkAndOffset(entDesc.chunk_id, idInChunk);
     auto EntityCount = storage.getArch(archetype)->getEntityCount();
@@ -785,5 +787,9 @@ namespace ecs {
     }
     qv.eid_refs = (ecs::EntityId*)(chunk->getCompArrayUnsafe(0, EntityCount) + idInChunk * sizeof(ecs::EntityId));
     return true;
+  }
+
+  void GState::perform_query(QueryId h, EntityManager *mgr, const EventFuncType & fun) {
+    performQueryES(h, fun, EventQuery{}, mgr);
   }
 }
