@@ -77,6 +77,7 @@ namespace ecs {
   EntityId EntityManager::createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer) {
     this->wasInit.clear();
     validateInitializer(templId, initializer); // ensures the initializer has cIndex populated
+    bool isRecreating = this->entDescs[eid].archetype_id != INVALID_ARCHETYPE;
     archetype_t archetype_id = data_state->EnsureArchetype(templId, this->arch_data);
     chunk_index_t chunk_id;
     InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
@@ -96,48 +97,53 @@ namespace ecs {
       G_ASSERT(t);
       auto archInfo = &info->INFO;
       auto ComponentInfo = &arches->archetypeComponents[info->COMPONENT_OFS];
-      // setup entity with initialized data
+      if(isRecreating) {
+        auto &old_desc = this->entDescs[eid];
+        archetype_t new_arch_id = archetype_id;
+        archetype_t old_arch_id = old_desc.archetype_id;
+        auto &new_ARCHETYPE = *this->arch_data.getArch(new_arch_id);
+        auto &new_info = data_state->archetypes.archetypes[new_arch_id];
+        auto &new_archInfo = *archInfo;
+        auto &new_ComponentInfo = data_state->archetypes.archetypeComponents[new_info.COMPONENT_OFS];
 
+        auto &old_ARCHETYPE = *this->arch_data.getArch(old_arch_id);
+        auto &old_info = data_state->archetypes.archetypes[old_arch_id];
+        auto &old_archInfo = old_info.INFO;
+        auto &old_ComponentInfo = data_state->archetypes.archetypeComponents[old_info.COMPONENT_OFS];
+
+        for (auto comp_info = &old_ComponentInfo; comp_info != &old_ComponentInfo + old_info.COMPONENT_COUNT; comp_info++) {
+          auto old_data = old_ARCHETYPE.getCompDataUnsafe(comp_info->DATA_OFFSET, old_desc.chunk_id, comp_info->DATA_SIZE);
+          auto old_data_comp = data_state->dataComponents.getDataComponent(comp_info->INDEX);
+          auto old_comp = data_state->componentTypes.getComponentData(old_data_comp->componentIndex);
+
+          ComponentRef ref{old_data, old_comp->hash, old_data_comp->componentIndex, old_comp->size};
+          archetype_component_id id = new_archInfo.getComponentId(comp_info->INDEX);
+          if (id != INVALID_ARCHETYPE_COMPONENT_ID) {
+            auto curr_info = ComponentInfo[id];
+            auto new_data = new_ARCHETYPE.getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
+            ref.move(new_data, old_data, comp_types);
+          }
+          // we always destroy the old data.
+          ref.destructCopy(old_data, &data_state->componentTypes);
+          // maybe debuglevel here?
+          memset(old_data, 0xFF, old_comp->size);
+
+          this->wasInit.set(comp_info->INDEX, true);
+        }
+
+        *this->getNullable<ecs::EntityId>(eid, ECS_HASH("eid")) = ecs::INVALID_ENTITY_ID;
+        old_ARCHETYPE.releaseChunkId(old_desc.chunk_id);
+      }
+
+      // setup entity with initialized data
       for (auto &comp: initializer) {
-        //LOG("ComponentInit id %i\n", comp.cIndex);
         archetype_component_id id = archInfo->getComponentId(comp.cIndex);
-        //LOG("%s(%s) data:", dataComponents.getName(comp.cIndex).data(), componentTypes.getName(comp.second.getTypeId()).data());
-        //comp.second.getComponentRef().print(&componentTypes);
         G_ASSERT(id != INVALID_ARCHETYPE_COMPONENT_ID); // component exists for us
         auto curr_info = ComponentInfo[id];
         auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-        //LOG("Initializing component %s(%s) at address %p of size %i in chunk %i\n",
-        //    dataComponents.getName(comp.cIndex).data(),
-        //    componentTypes.getName(comp.second.componentTypeIndex).data(),
-        //    data, comp.second.getSize(), chunk_id);
-        //comp.second.getComponentRef().print(&componentTypes);
-        //LOG("\n");
-        //info->ARCHETYPE.printChunkBoundries(chunk_id);
-        //LOG("\nRaw Data before copy: 0x");
-        //auto charPtr = (const char *)data;
-        //for(int i = 0; i < comp.second.getSize(); i++)
-        //{
-        //  LOG("%02X", charPtr[i]);
-        //}
-        //LOG("\n");
-        //std::cout.flush();
-        comp.second.getComponentRef().createCopy(data, comp_types, this, eid, comp.cIndex);
-        //memcpy(data, comp.second.getRawData(), comp.second.getSize());
-        //LOG("\nRaw Data after copy: 0x");
-        //charPtr = (const char *)data;
-        //for(int i = 0; i < comp.second.getSize(); i++)
-        //{
-        //  LOG("%02X", charPtr[i]);
-        //}
-        //LOG("\n");
-        //std::cout.flush();
-        //LOGE("Freeing Pointer: {}", fmt::ptr(comp.second.getRawData()));
-        //free(comp.second.getRawData()); // we copied the data, so now we free the old shit
-        //comp.second.reset(); // defaults without destructing the data.
+        comp.second.getComponentRef().move(data, comp.second.value, comp_types); // TODO, how does gaijin do it???
         this->wasInit.set(comp.cIndex, true);
-        //LOG("set %i\n", comp.cIndex);
       }
-      //LOG("\n");
 
       // now setup any remaining components with default data
       for (auto &comp: instTempl->components) {
@@ -147,33 +153,10 @@ namespace ecs {
           //LOG("succeeded\n");
           archetype_component_id id = archInfo->getComponentId(comp.comp_type_index);
 
-          // we dont have to test here as the archtype was derived from these components
           auto curr_info = ComponentInfo[id];
           G_ASSERT(curr_info.INDEX == comp.comp_type_index);
           auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-          //LOG("creating component %s(%s) at address %p in chunk %i\n",
-          //    dataComponents.getName(comp.comp_type_index).data(),
-          //    componentTypes.getName(comp.default_component.getTypeId()).data(),
-          //    data, chunk_id);
-
-          //comp.default_component.print(&componentTypes);
-          //LOG("\nRaw Data before copy; 0x");
-          //auto charPtr = (const char *)data;
-          //for(int i = 0; i < comp.default_component.getSize(); i++)
-          //{
-          //  LOG("%02X", charPtr[i]);
-          //}
-          //LOG("\n");
-          //std::cout.flush();
           comp.default_component.createCopy(data, &data_state->componentTypes, this, eid, comp.comp_type_index);
-          //LOG("\nRaw Data after copy: 0x");
-          //charPtr = (const char *)data;
-          //for(int i = 0; i < comp.default_component.getSize(); i++)
-          //{
-          //  LOG("%02X", charPtr[i]);
-          //}
-          //LOG("\n");
-          //std::cout.flush();
         }
       }
     }
@@ -181,7 +164,8 @@ namespace ecs {
     this->entDescs.Allocate(eid);
     this->entDescs[eid.index()] = {templId, archetype_id, chunk_id, eid.generation()};
     this->wasInit.clear();
-    this->sendEventImmediate(eid, ecs::EventEntityCreated{});
+    if(!isRecreating)
+      this->sendEventImmediate(eid, ecs::EventEntityCreated{});
     return eid;
   }
 
@@ -220,6 +204,7 @@ namespace ecs {
     if(!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <= RESERVED_EID_RANGE) {
       G_ASSERT(!this->entDescs.basic_destroyed.test(eid.index(), false));
       auto new_eid = this->allocateOneEid();
+      *this->getNullable<ecs::EntityId>(eid, ECS_HASH("eid")) = new_eid;
       ENTITY_LOGD2("Moving eid: {:#x} of template {} to {:#x}", eid.get_handle(), this->data_state->getTemplateName(desc->templ_id), new_eid.get_handle());
       auto &old_desc = this->entDescs[eid];
       auto &new_desc = this->entDescs[new_eid];
@@ -231,6 +216,7 @@ namespace ecs {
 
       new_desc.templ_id = old_desc.templ_id;
       old_desc.templ_id = INVALID_TEMPLATE_INDEX;
+      add_sub_template(new_eid, "dagor_destroyed_t");
       this->entDescs.basic_destroyed.set(new_eid.index(), true);
       return true;
     }
@@ -473,11 +459,11 @@ namespace ecs {
   void EntityManager::sendEventImmediate(EntityId eid, Event &evt) {
     if (!this->entDescs.doesEntityExist(eid))
     EXCEPTION("tried to send a query to an entity that doesnt exist");
-    this->data_state->sendEventImmediate(eid, evt, this);
+    this->data_state->sendEventImmediate(eid, evt, *this);
   }
 
   void EntityManager::broadcastEventImmediate(Event &evt) {
-    this->data_state->broadcastEventImmediate(evt, this);
+    this->data_state->broadcastEventImmediate(evt, *this);
   }
 
   void EntityManager::sendEventImmediate(EntityId eid, Event &&evt) {
@@ -545,6 +531,24 @@ namespace ecs {
     }
 
     return EntityId(make_eid(idx, entDescs[idx].generation));
+  }
+
+  void EntityManager::add_sub_template(ecs::EntityId eid, const string &sub_template) {
+    G_ASSERT(this->entDescs.doesEntityExist(eid));
+    template_t sub_templ = g_ecs_data->getTemplateIdByName(sub_template);
+    G_ASSERT(sub_templ);
+
+    auto &desc = this->entDescs[eid];
+    auto templ = g_ecs_data->getTemplateDB()->getTemplate(desc.templ_id);
+    // entity already has this sub template
+    if(std::find(templ->getParents().begin(), templ->getParents().end(), sub_templ) != templ->getParents().end())
+      return;
+    // entity doesn't have it, lets get our new template and recreate entity
+    std::string combined_template = fmt::format("{}+{}", templ->getName(), sub_template);
+
+    auto new_templ = g_ecs_data->getTemplateDB()->buildTemplateIdByName(combined_template.c_str());
+    g_ecs_data->getTemplateDB()->instantiateTemplate(new_templ);
+    this->createEntity(eid, new_templ, {});
   }
 }
 

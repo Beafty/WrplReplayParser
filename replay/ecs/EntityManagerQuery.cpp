@@ -890,14 +890,14 @@ namespace ecs {
     //lastEsGen = EntitySystemDesc::generation;
   }
 
-  void GState::sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr) {
+  void GState::sendEventImmediate(EntityId eid, Event &evt, EntityManager &mgr) {
     std::shared_lock lk(this->archetypes.archetypes_mtx);
     G_ASSERTF(evt.getFlags() & EVCAST_UNICAST, "Tried to send entity {:#x} event {} that is not unicast",
               eid.get_handle(), evt.getName());
     return notifyESEventHandlers(eid, evt, mgr);
   }
 
-  void GState::broadcastEventImmediate(Event &evt, EntityManager *mgr) {
+  void GState::broadcastEventImmediate(Event &evt, EntityManager &mgr) {
     std::shared_lock lk(this->archetypes.archetypes_mtx);
     G_ASSERTF(evt.getFlags() & EVCAST_BROADCAST, "Tried to send event {} that is not broadcast", evt.getName());
     auto esListIt = esEvents.find(evt.getType());
@@ -912,7 +912,7 @@ namespace ecs {
   static constexpr int MAX_ONE_EID_QUERY_COMPONENTS = 96;
 
   inline void
-  GState::performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager *mgr) {
+  GState::performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager &mgr) {
     uint32_t index = h.index();
     auto &__restrict archDesc = archetypeQueries[index];
     if (!archDesc.getQueriesCount())
@@ -926,9 +926,10 @@ namespace ecs {
     for (int i = 0; archBegin != archEnd; i++, archBegin++) {
       archetype_t arch_id = *archBegin;
 
-      ensureArchetypeInStorage(arch_id, mgr->arch_data);
+      if(!doesArchetypeExist(arch_id, mgr.arch_data))
+        continue;
 
-      auto curr_arch = mgr->arch_data.getArch(*archBegin);
+      auto curr_arch = mgr.arch_data.getArch(*archBegin);
 
       auto EntityCount = curr_arch->getEntityCount();
       qv.index_start = 0;
@@ -964,19 +965,19 @@ namespace ecs {
   }
 
   inline void
-  GState::performQueryEmptyAllowed(QueryId h, const EventFuncType &fun, const Event &evt, EntityManager *mgr) {
+  GState::performQueryEmptyAllowed(QueryId h, const EventFuncType &fun, const Event &evt, EntityManager &mgr) {
     if (h)
       performQueryES(h, fun, evt, mgr);
     else
       fun(mgr, evt, QueryView(mgr));
   }
 
-  inline void GState::callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr) {
+  inline void GState::callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager &mgr) {
     const EntitySystemDesc &es = *esList[esIndex];
     es.ops.onEvent(mgr, evt, qv);
   }
 
-  void GState::notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr) {
+  void GState::notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager &mgr) {
     auto eventType = evt.getType();
     auto esListIt = esEvents.find(
         eventType); // this is extremely slow, and should not be needed. We can register all events with flat
@@ -996,7 +997,7 @@ namespace ecs {
       // an empty query has an invalid queryId. that is the only case
       G_ASSERTF(queryId || esList[idx]->emptyES, "Empty queries are not allowed");
       // invalid queryId signifies empty query, so just send it cause no data to serialize
-      if (!queryId || fillEidQueryView(eid, mgr->entDescs[idx], queryId, qv, mgr->arch_data))
+      if (!queryId || fillEidQueryView(eid, mgr.entDescs[idx], queryId, qv, mgr.arch_data))
         callESEvent(esIndex, evt, qv, mgr);
     }
   }
@@ -1077,7 +1078,8 @@ namespace ecs {
     for (int i = 0; archBegin != archEnd; i++, archBegin++) {
       archetype_t arch_id = *archBegin;
 
-      ensureArchetypeInStorage(arch_id, mgr.arch_data);
+      if(!doesArchetypeExist(arch_id, mgr.arch_data))
+        continue;
 
       auto curr_arch = mgr.arch_data.getArch(*archBegin);
 
@@ -1124,14 +1126,15 @@ namespace ecs {
       return;
     // basically copied from performQueryES
     QueryView qv{mgr};
-    QueryView::ComponentsData componentData[MAX_ONE_EID_QUERY_COMPONENTS];
-    qv.componentData = componentData;
+    QueryView::ComponentsData componentData_[MAX_ONE_EID_QUERY_COMPONENTS];
+    qv.componentData = componentData_;
     auto archBegin = archDesc.queriesBegin();
     auto archEnd = archDesc.queriesEnd();
     for (int i = 0; archBegin != archEnd; i++, archBegin++) {
       archetype_t arch_id = *archBegin;
 
-      ensureArchetypeInStorage(arch_id, mgr.arch_data);
+      if(!doesArchetypeExist(arch_id, mgr.arch_data))
+        continue;
 
       auto curr_arch = mgr.arch_data.getArch(*archBegin);
 

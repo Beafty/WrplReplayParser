@@ -75,7 +75,11 @@ public:
     int len = ecs::read_string(cb, buf, sizeof(buf));
     if (len < 0)
       return false;
-    *((ecs::string *) data) = ecs::string(buf, len);
+    if(len-1 < 0) {
+      *((ecs::string *) data) = ecs::string();
+      return true;
+    }
+    *((ecs::string *) data) = ecs::string(buf, len-1);
     return true;
   }
 };

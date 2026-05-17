@@ -177,4 +177,20 @@ namespace ecs {
   std::string ComponentRef::toString(ComponentTypes *types, int indent) const {
     return this->toString(this->value, types, indent);
   }
+
+  void ComponentRef::move(void *to, void *from, ComponentTypes *types) const {
+    if (!types)
+      types = g_ecs_data->getComponentTypes();
+    const auto typeInfo = types->getComponentData(componentTypeIndex);
+    if (need_constructor(typeInfo->flags)) // we dont own the data
+    {
+      ComponentTypeManager *ctm = types->getCTM(componentTypeIndex);
+      G_ASSERT(ctm);
+      //LOG("Destructing a %s\n", typeInfo->name.data());
+      //std::cout << std::flush;
+      ctm->move(to, from);
+    } else {
+      memcpy(to, from, this->componentTypeSize);
+    }
+  }
 }

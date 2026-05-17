@@ -158,6 +158,12 @@ namespace ecs {
       std::destroy_at((T *) p);
     }
 
+    void move(void *to, void *from) const override {
+      G_STATIC_ASSERT(std::is_move_constructible<T>::value);
+      T * p_to = (T*)to, * p_from = (T*)from;
+      std::construct_at(p_to, std::move(*p_from));
+    }
+
 
     std::string toString(void *p, int indent=0) const override {
           G_FAST_ASSERT(p);

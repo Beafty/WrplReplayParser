@@ -442,7 +442,7 @@ def gen_es_simd(esFunction):
   if (len(esFunction.stagesNames) < 1):
     return ''
   simdFuncName = getSimdFuncName(esFunction.funcName)
-  genCode = 'static void ' + simdFuncName + '(ecs::EntityManager *mgr, const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)\n{\n'
+  genCode = 'static void ' + simdFuncName + '(ecs::EntityManager &mgr, const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)\n{\n'
   indent = '  '
   if not esFunction.hasComponents:
     genCode += '  G_UNUSED(components);\n'
@@ -505,7 +505,7 @@ def gen_es_event_handler(esFunction):
   mbConst = '' if any([eh.stage_param['mutable'] for eh in esFunction.eventHandlers]) else 'const '
   simdFuncName = getEventHandlerFuncName(esFunction.funcName)
 
-  genCode = 'static void {eventHandlerFuncName}(ecs::EntityManager *mgr, {mbConst}{generic_event_type} &__restrict evt, const ecs::QueryView &__restrict components)\n{{\n'.\
+  genCode = 'static void {eventHandlerFuncName}(ecs::EntityManager &mgr, {mbConst}{generic_event_type} &__restrict evt, const ecs::QueryView &__restrict components)\n{{\n'.\
             format(eventHandlerFuncName=simdFuncName, mbConst=mbConst, generic_event_type=generic_event_type)
   hasGenericEvent = False
   if len([x for x in esFunction.eventHandlers if len(x.call_params) != 0]) == 0:

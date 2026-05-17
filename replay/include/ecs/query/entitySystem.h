@@ -12,7 +12,7 @@
 
 namespace ecs {
   class QueryView;
-  typedef eastl::fixed_function<sizeof(void *) * 2, void(EntityManager *mgr, const Event &evt, const QueryView &components)> EventFuncType;
+  typedef eastl::fixed_function<sizeof(void *) * 2, void(EntityManager &mgr, const Event &evt, const QueryView &components)> EventFuncType;
   // mgr added so an event can do actually complex stuff
   //typedef void (*EventFuncType)(EntityManager *mgr, const Event &evt, const QueryView &components);
 

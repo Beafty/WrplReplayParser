@@ -102,7 +102,7 @@ void on_callback(ecs::GState * state) {
       c->desc = std::make_unique<ecs::EntitySystemDesc>(
           c->es_name.c_str(),
           "python/ecs/ECSQueryES.cpp",
-          ecs::EntitySystemOps([&c](ecs::EntityManager *mgr, const ecs::Event &evt, const ecs::QueryView &components) {
+          ecs::EntitySystemOps([&c](ecs::EntityManager &mgr, const ecs::Event &evt, const ecs::QueryView &components) {
 
             auto compBegin = components.begin(), compEnd = components.end();
             G_ASSERT(compBegin != compEnd);

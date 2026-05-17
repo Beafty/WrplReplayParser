@@ -102,6 +102,13 @@ namespace ecs {
       for(auto &c : *after_comps_callbacks) {
         c(this);
       }
+      std::vector<ecs::ComponentTemplInfo> t_comps{};
+      auto tag_comp = getComponentTypes()->findType(ecs::ComponentTypeInfo<ecs::Tag>::type);
+      auto data_comp = createComponent(ECS_HASH("dagor_destroyed"), tag_comp, nullptr);
+      t_comps.push_back({data_comp, {nullptr, ecs::ComponentTypeInfo<ecs::Tag>::type, tag_comp, 0}});
+      ecs::Template death_templ{"dagor_destroyed_t", std::move(t_comps), {}};
+      getTemplateDB()->AddTemplate(std::move(death_templ));
+
       initCompileTimeQueries();
       resetEsOrder();
     }
@@ -129,8 +136,14 @@ namespace ecs {
     // because of how the persistent state works, an archetype can exist in GState that has actually not been created in the EntityManager
     // because that specific archetype was only needed for a previous replay
     // this is always called within the mutex already, so need for the shared lock
-    void ensureArchetypeInStorage(archetype_t arch_index, MgrArchetypeStorage &storage) {
+    inline void ensureArchetypeInStorage(archetype_t arch_index, MgrArchetypeStorage &storage) {
       this->archetypes.createArchetype(arch_index, storage);
+    }
+
+    // checks if a state has an archetype index. in most long term parses, the GState will have more archetypes than the ParserState,
+    // so this is needed to not query an archetype data that doesn't exist in a ParserState
+    inline bool doesArchetypeExist(archetype_t arch_index, MgrArchetypeStorage &storage) {
+      return this->archetypes.archetypeExists(arch_index, storage);
     }
 
     // given a template, it will attempt to ensure the archetype exists for it
@@ -186,14 +199,14 @@ namespace ecs {
       return this->templates.getTemplateIdByName(name);
     }
 
-    void sendEventImmediate(EntityId eid, Event &evt, EntityManager *mgr);
+    void sendEventImmediate(EntityId eid, Event &evt, EntityManager &mgr);
 
-    void broadcastEventImmediate(Event &evt, EntityManager *mgr);
+    void broadcastEventImmediate(Event &evt, EntityManager &mgr);
 
     friend Component;
     friend InstantiatedTemplate;
   protected:
-    void notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager *mgr);
+    void notifyESEventHandlers(EntityId eid, const Event &evt, EntityManager &mgr);
 
     bool makeArchetypesQuery(archetype_t first_archetype, uint32_t index, bool wasFullyResolved);
 
@@ -327,11 +340,11 @@ namespace ecs {
     bool fillEidQueryView(ecs::EntityId eid, EntityDesc entDesc, QueryId h, QueryView &__restrict qv,
                           MgrArchetypeStorage &storage);
 
-    void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager *mgr);
+    void callESEvent(es_index_type esIndex, const Event &evt, QueryView &qv, EntityManager &mgr);
 
-    void performQueryEmptyAllowed(QueryId h, const EventFuncType& fun, const Event &evt, EntityManager *mgr);
+    void performQueryEmptyAllowed(QueryId h, const EventFuncType& fun, const Event &evt, EntityManager &mgr);
 
-    void performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager *mgr);
+    void performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager &mgr);
 
     QueryCbResult performQueryStoppable(EntityManager &mgr, QueryId h, const stoppable_query_cb_t &fun, void *user_data);
 
@@ -442,6 +455,8 @@ namespace ecs {
     void sendEventImmediate(EntityId eid, Event &&evt);
 
     void broadcastEventImmediate(Event &&evt);
+
+    void add_sub_template(ecs::EntityId eid, const std::string &sub_template);
 
     ecs::EntityId getUnitEid(uint16_t uid);
 

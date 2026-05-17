@@ -29,6 +29,7 @@ namespace ecs
 
     void createCopy(void *data, ComponentTypes *types, ecs::EntityManager *mgr, EntityId eid=INVALID_ENTITY_ID, component_index_t cidx=INVALID_COMPONENT_INDEX) const;
     void destructCopy(void *data, ComponentTypes *types) const;
+    void move(void * to, void * from, ComponentTypes *types) const;
 
 
     bool operator==(const ComponentRef &a) const;

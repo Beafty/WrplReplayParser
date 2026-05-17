@@ -179,12 +179,7 @@ namespace unit {
 
   };
 
-  class UnitRef {
-  public:
+  struct UnitRef {
     Unit *unit = nullptr;
-
-    ~UnitRef() {
-      delete unit;
-    }
   };
 }

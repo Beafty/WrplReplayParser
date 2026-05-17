@@ -12,7 +12,7 @@ static constexpr ecs::ComponentDesc mplayer_add_entity_es_comps[] =
   {ECS_HASH("unit__playerId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
 };
-static void mplayer_add_entity_es_all_events(ecs::EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void mplayer_add_entity_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
 if (evt.is<ecs::EventEntityDestroyedBasic>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {

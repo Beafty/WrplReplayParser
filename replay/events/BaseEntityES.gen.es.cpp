@@ -13,7 +13,7 @@ static constexpr ecs::ComponentDesc on_tank_appear_es_comps[] =
   {ECS_HASH("unit_storage__tank"), ecs::ComponentTypeInfo<HeavyVehicleModelStorageComponent>()},
   {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
 };
-static void on_tank_appear_es_all_events(ecs::EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void on_tank_appear_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
@@ -44,7 +44,7 @@ static constexpr ecs::ComponentDesc on_aircraft_appear_es_comps[] =
   {ECS_HASH("unit_storage__aircraft"), ecs::ComponentTypeInfo<FlightModelWrapStorageComponent>()},
   {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
 };
-static void on_aircraft_appear_es_all_events(ecs::EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void on_aircraft_appear_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
@@ -67,6 +67,31 @@ static ecs::EntitySystemDesc on_aircraft_appear_es_es_desc
   ecs::empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated>::build()
 );
+static constexpr ecs::ComponentDesc on_unit_disappear_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
+};
+static void on_unit_disappear_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<ecs::EventEntityDestroyed>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
+    on_unit_disappear_es(static_cast<const ecs::EventEntityDestroyed&>(evt)
+        , ECS_RW_COMP(on_unit_disappear_es_comps, "unit__ref", unit::UnitRef)
+    );
+  } while (++comp != compE);
+}
+static ecs::EntitySystemDesc on_unit_disappear_es_es_desc
+(
+  "on_unit_disappear_es",
+  "D:/ReplayParser/replay/events/BaseEntityES.cpp.inl",
+  ecs::EntitySystemOps(on_unit_disappear_es_all_events),
+  ecs::make_span(on_unit_disappear_es_comps+0, 1)/*rw*/,
+  ecs::empty_span(),
+  ecs::empty_span(),
+  ecs::empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityDestroyed>::build()
+);
 static constexpr ecs::ComponentDesc uid_entity_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -75,7 +100,7 @@ static constexpr ecs::ComponentDesc uid_entity_es_comps[] =
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
 };
-static void uid_entity_es_all_events(ecs::EntityManager *mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void uid_entity_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
 if (evt.is<ecs::EventEntityDestroyedBasic>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
