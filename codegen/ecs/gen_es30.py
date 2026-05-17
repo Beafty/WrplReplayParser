@@ -486,7 +486,7 @@ def gen_es_simd(esFunction):
       genCode += preForIndent + '}\n'
 
     if esFunction.hasComponents:
-      genCode += preForIndent + '}} while (++comp;\n'
+      genCode += preForIndent + '} while (++comp!=compE);\n'
 
     if (len(esFunction.stagesTypes) > 1):
       genCode += indent + '}\n'
@@ -540,7 +540,7 @@ def gen_es_event_handler(esFunction):
     {indent}if ( !({condition}) )
       {indent}continue;
     {indent}{curFuncName}({event}
-    {indent}{call_}  {indent}}}{indent} }} while (++comp;\n{indent}'''.format(**locals())
+    {indent}{call_}  {indent}}}{indent} while (++comp != compE);\n{indent}'''.format(**locals())
     elif esFunction.eventHandlers[index].hasComponents: #esFunction.hasComponents:
       genCode += '''  {indent}auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {{
     {indent}{curFuncName}({event}
@@ -595,8 +595,8 @@ def gen_ecs_query_simd(esFunction):
   manager_name = '&manager' if not esFunction.mgrArgId == -1 else 'g_entity_mgr'
   continue_expr = 'return' if esFunction.is_eid_query else 'continue'
   eid_pass = ' eid,' if esFunction.is_eid_query else ''
-  loop_expr = 'auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {{' if not esFunction.is_eid_query else 'constexpr size_t comp = 0;'
-  end_loop_expr = '}} while (++comp;' if not esFunction.is_eid_query else ''
+  loop_expr = 'auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {' if not esFunction.is_eid_query else 'constexpr size_t comp = 0;'
+  end_loop_expr = '} while (++comp != compE);' if not esFunction.is_eid_query else ''
   parallelForCode = '  , nullptr, {funcName}_desc.getQuant()'.format(**locals()) if def_quant_code != '' and not esFunction.is_eid_query else ''
   query_type_start = 'ecs::stoppable_query_cb_t(' if esFunction.breakable else ''
   query_type_end = ')' if esFunction.breakable else ''
@@ -969,7 +969,7 @@ def gen_es(allParsedFunctions, event_suffix, input_file_name):
 #
 #
 
-  # resultCode = '#include <daECS/core/internal/performQuery.h>\n'
+  resultCode = '#include <ecs/query/performQuery.h>\n'
 
   for i in range(0, len(allESFunctions)):
     if (allESFunctions[i].funcName == ''):

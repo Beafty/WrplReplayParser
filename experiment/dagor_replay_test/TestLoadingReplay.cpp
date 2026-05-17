@@ -97,7 +97,7 @@ int main() {
     else
       LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data.name, plr.team.data);
   }
-  ecs::printALlUnits(&state.g_entity_mgr);
+  iterate_all_units(state);
   auto idx = state.current_packet_index;
   delete state_ptr;
   delete rdr;

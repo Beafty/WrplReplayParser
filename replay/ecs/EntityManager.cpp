@@ -77,7 +77,7 @@ namespace ecs {
   EntityId EntityManager::createEntity(EntityId eid, template_t templId, ComponentsInitializer &&initializer) {
     this->wasInit.clear();
     validateInitializer(templId, initializer); // ensures the initializer has cIndex populated
-    archetype_t archetype_id = data_state->EnsureArchetype(templId, &this->arch_data);
+    archetype_t archetype_id = data_state->EnsureArchetype(templId, this->arch_data);
     chunk_index_t chunk_id;
     InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
     {
@@ -546,46 +546,5 @@ namespace ecs {
 
     return EntityId(make_eid(idx, entDescs[idx].generation));
   }
-
-  void EntityManager::perform_query(QueryId id, const EventFuncType &cb) {
-    this->data_state->perform_query(id, this, cb);
-  }
-
-  static constexpr ecs::ComponentDesc unit_tank_create_comps[] =
-      {
-          {ECS_HASH("unit_storage__tank"), ecs::ComponentTypeInfo<HeavyVehicleModelStorageComponent>()},
-          {ECS_HASH("uid"),    ecs::ComponentTypeInfo<int>()},
-          {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
-      };
-  static ecs::CompileTimeQueryDesc test_query_es
-      (
-        "test_query_es",
-        empty_span(),
-        make_span(unit_tank_create_comps+1, 2),/*ro*/
-        empty_span(),
-        empty_span()
-      );
-
-
-  void printALlUnits(EntityManager *mgr) {
-    mgr->perform_query(test_query_es.getHandle(), [](EntityManager *mgr, const ecs::Event &__restrict evt,
-                                                     const ecs::QueryView &__restrict components){
-      auto compBegin = components.begin(), compEnd = components.end();
-      G_ASSERT(compBegin != compEnd);
-      do {
-        auto eid = components.eid_refs[compBegin];
-        if(eid != ecs::INVALID_ENTITY_ID) {
-          auto &uid = ((int *) components.componentData[0])[compBegin];
-          auto &unit__ref = ((unit::UnitRef*)components.componentData[1])[compBegin];
-          LOGI("{}", uid);
-        }
-      } while (++compBegin != compEnd);
-
-    });
-  }
-
-
-
-
 }
 

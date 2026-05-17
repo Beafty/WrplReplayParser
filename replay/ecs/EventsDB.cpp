@@ -123,5 +123,4 @@ namespace ecs {
   ECS_REGISTER_EVENT(EventEntityCreated)
   ECS_REGISTER_EVENT(EventEntityDestroyed)
   ECS_REGISTER_EVENT(EventEntityDestroyedBasic)
-  ECS_REGISTER_EVENT(EventQuery)
 }

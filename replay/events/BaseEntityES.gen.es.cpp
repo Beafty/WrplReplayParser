@@ -4,6 +4,7 @@
     #include <ecs/ComponentTypesDefs.h>
     #include "BaseEntityES.cpp.inl"
 ECS_DEF_PULL_VAR(BaseEntity);
+#include <ecs/query/performQuery.h>
 static constexpr ecs::ComponentDesc on_tank_appear_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -106,3 +107,36 @@ static ecs::EntitySystemDesc uid_entity_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventEntityDestroyedBasic>::build()
 ,nullptr,nullptr,nullptr,"on_aircraft_appear_es,on_tank_appear_es");
+static constexpr ecs::ComponentDesc iterate_all_units_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()},
+  {ECS_HASH("unit__className"), ecs::ComponentTypeInfo<ecs::string>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("playerUnit"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc iterate_all_units_ecs_query_desc
+(
+  "iterate_all_units_ecs_query",
+  ecs::empty_span(),
+  ecs::make_span(iterate_all_units_ecs_query_comps+0, 2)/*ro*/,
+  ecs::make_span(iterate_all_units_ecs_query_comps+2, 1)/*rq*/,
+  ecs::empty_span());
+template<typename Callable>
+inline void iterate_all_units_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, iterate_all_units_ecs_query_desc.getHandle(),
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
+        {
+          if (function(
+              ECS_RO_COMP(iterate_all_units_ecs_query_comps, "unit__ref", unit::UnitRef)
+            , ECS_RO_COMP(iterate_all_units_ecs_query_comps, "unit__className", ecs::string)
+            ) == ecs::QueryCbResult::Stop)
+            return ecs::QueryCbResult::Stop;
+        }} while (++comp != compE);
+          return ecs::QueryCbResult::Continue;
+    })
+  );
+}

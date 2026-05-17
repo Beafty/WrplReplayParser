@@ -1,8 +1,4 @@
-
-
-#ifndef MYEXTENSION_ENTITYMANAGER_H
-#define MYEXTENSION_ENTITYMANAGER_H
-
+#pragma once
 
 #include "typesAndLimits.h"
 #include "ecs/ComponentTypes.h"
@@ -133,14 +129,14 @@ namespace ecs {
     // because of how the persistent state works, an archetype can exist in GState that has actually not been created in the EntityManager
     // because that specific archetype was only needed for a previous replay
     // this is always called within the mutex already, so need for the shared lock
-    void ensureArchetypeInStorage(archetype_t arch_index, MgrArchetypeStorage *storage) {
+    void ensureArchetypeInStorage(archetype_t arch_index, MgrArchetypeStorage &storage) {
       this->archetypes.createArchetype(arch_index, storage);
     }
 
     // given a template, it will attempt to ensure the archetype exists for it
     // assumes InstTemplate has already been created
     // will create archetype in GState and in storage if not exists
-    archetype_t EnsureArchetype(template_t tid, MgrArchetypeStorage *storage) {
+    archetype_t EnsureArchetype(template_t tid, MgrArchetypeStorage &storage) {
       InstantiatedTemplate *inst = this->templates.getInstTemplate(tid);;
 
 
@@ -337,7 +333,9 @@ namespace ecs {
 
     void performQueryES(QueryId h, const EventFuncType &fun, const Event &__restrict evt, EntityManager *mgr);
 
-    void perform_query(QueryId h, EntityManager *mgr, const EventFuncType &fun);
+    QueryCbResult performQueryStoppable(EntityManager &mgr, QueryId h, const stoppable_query_cb_t &fun, void *user_data);
+
+    void performQuery(EntityManager &mgr, QueryId h, const query_cb_t &fun, void *user_data);
 
     friend EntityManager;
     friend PyGState;
@@ -445,11 +443,15 @@ namespace ecs {
 
     void broadcastEventImmediate(Event &&evt);
 
-    void perform_query(QueryId id, const EventFuncType &cb);
-
     ecs::EntityId getUnitEid(uint16_t uid);
 
     unit::Unit * getUnitObj(uint16_t uid);
+
+    inline QueryCbResult performQueryStoppable(QueryId h, const stoppable_query_cb_t &fun, void *user_data)
+    {return this->data_state->performQueryStoppable(*this, h, fun, user_data);}
+
+    inline void performQuery(QueryId h, const query_cb_t &fun, void *user_data)
+    {return this->data_state->performQuery(*this, h, fun, user_data);}
 
   protected:
     friend Component;
@@ -462,7 +464,6 @@ namespace ecs {
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
 
   };
-  void printALlUnits(EntityManager *mgr);
 }
 
-#endif //MYEXTENSION_ENTITYMANAGER_H
+void iterate_all_units(ParserState &state);

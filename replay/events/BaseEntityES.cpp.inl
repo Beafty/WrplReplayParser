@@ -1,4 +1,4 @@
-#include "ecs/EntityManager.h"
+#include "state/ParserState.h"
 #include "ecs/ComponentTypesDefs.h"
 #include "Unit.h"
 #include "ecs/query/coreEvents.h"
@@ -40,5 +40,23 @@ static void uid_entity_es(const ecs::EventEntityDestroyedBasic &evt, const int &
   G_ASSERT(manager->uid_lookup[uid] != ecs::INVALID_ENTITY_ID);
   manager->uid_lookup[uid] = ecs::INVALID_ENTITY_ID;
   manager->uid_unit_lookup[uid] = nullptr;
-  //LOG("removing entity at uid {}", *uid);
 }
+
+template <typename Callable>
+ECS_REQUIRE(ecs::Tag playerUnit)
+static void iterate_all_units_ecs_query(ecs::EntityManager &manager, Callable c);
+
+void iterate_all_units(ParserState &state) {
+  iterate_all_units_ecs_query(state.g_entity_mgr, [](const unit::UnitRef &unit__ref, const ecs::string &unit__className){
+    if(unit__ref.unit) {
+      auto &unit = *unit__ref.unit;
+      //log_ext("", 0, DEFAULT_SINK_HANDLER, LOGLEVEL::INFO, fmt::format("{}, {}", unit__ref.unit->uid, unit__className));
+      uint32_t time_ms = unit.positions.empty() ? 0 : unit.positions[unit.positions.size()-1].time_ms;
+      LOGI("{} {} owned by {} last path at {}({})", unit.uid, unit__className, unit.owner_pid, ((float)time_ms)/1000.f, unit.positions.size());
+    } else {
+      LOGI("unk unit {}", unit__className);
+    }
+    return ecs::QueryCbResult::Continue;
+  });
+}
+

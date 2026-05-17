@@ -40,11 +40,11 @@ namespace ecs {
     NamedQueryDesc(n, comps_rw, comps_ro, comps_rq, comps_no),
     ops(ops_),
     evSet(eastl::move(evm)),
-    tagSet(tag_set),
+    dynamic(dyn),
     beforeSet(before_set),
     afterSet(after_set),
+    tagSet(tag_set),
     compChangeSet(comp_set),
-    dynamic(dyn),
     moduleName(module)
     {
       // check on intialization in entityManager

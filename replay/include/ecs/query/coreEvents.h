@@ -11,8 +11,6 @@ namespace ecs {
   ECS_UNICAST_EVENT_TYPE(EventEntityDestroyed)
   // basic destruction, only does minimal, like remove uid lookup entry, also only called
   ECS_UNICAST_EVENT_TYPE(EventEntityDestroyedBasic)
-  // dummy event used for a query
-  ECS_UNICAST_EVENT_TYPE(EventQuery)
 }
 
 

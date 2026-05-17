@@ -68,6 +68,7 @@ namespace ecs {
 
     friend GState;
     QueryView(EntityManager *mgr) { this->mgr = mgr;}
+    QueryView(EntityManager &mgr) { this->mgr = &mgr;}
     [[nodiscard]] uint32_t begin() const;
     [[nodiscard]] uint32_t end() const;
 

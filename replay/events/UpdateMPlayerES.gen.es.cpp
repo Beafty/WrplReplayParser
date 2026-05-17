@@ -4,6 +4,7 @@
     #include <ecs/ComponentTypesDefs.h>
     #include "UpdateMPlayerES.cpp.inl"
 ECS_DEF_PULL_VAR(UpdateMPlayer);
+#include <ecs/query/performQuery.h>
 static constexpr ecs::ComponentDesc mplayer_add_entity_es_comps[] =
 {
 //start of 3 ro components at [0]

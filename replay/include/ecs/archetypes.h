@@ -183,8 +183,8 @@ namespace ecs
   {
   public:
     archetype_t size() const { return (archetype_t)archetypes.size(); }
-    inline void createArchetype(archetype_t archetype, MgrArchetypeStorage *storage) {
-      storage->constructArch(archetype, this->archetypes[archetype].ENTITY_SIZE);
+    inline void createArchetype(archetype_t archetype, MgrArchetypeStorage &storage) {
+      storage.constructArch(archetype, this->archetypes[archetype].ENTITY_SIZE);
     }
 
 
