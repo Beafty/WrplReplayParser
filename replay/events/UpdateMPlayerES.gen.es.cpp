@@ -43,6 +43,5 @@ static ecs::EntitySystemDesc mplayer_add_entity_es_es_desc
   ecs::empty_span(),
   ecs::empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
-                       ecs::EventEntityDestroyedBasic>::build(),
-  0
-);
+                       ecs::EventEntityDestroyedBasic>::build()
+,nullptr,nullptr,nullptr,"uid_entity_es");

@@ -4,7 +4,7 @@ extern "C" {
 #include "lz4.h"
 }
 #include "ecs/EntityManager.h"
-#include "BitStream.h"
+#include "danet/BitStream.h"
 #include "basic_replay_structs.h"
 #include "utils.h"
 #include "consts.h"

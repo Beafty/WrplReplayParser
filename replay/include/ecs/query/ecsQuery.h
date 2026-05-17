@@ -177,7 +177,6 @@ namespace ecs {
                          dag::ConstSpan<ComponentDesc>(components.begin() + roEnd(), rqCnt),
                          dag::ConstSpan<ComponentDesc>(components.begin() + rqEnd(), noCnt));
   }
-
 }
 
 

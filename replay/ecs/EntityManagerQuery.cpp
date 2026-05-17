@@ -1,8 +1,104 @@
 #include "ecs/EntityManager.h"
 #include <EASTL/vector_set.h>
+#include "EASTL/hash_map.h"
+#include "EASTL/fixed_vector.h"
+#include "util/dag_stlqsort.h"
+
+
+template <typename Cb>
+inline bool tokenize_const_string(std::string_view str, const char *delim, Cb cb)
+{
+  size_t start, end = 0;
+  while (end < str.length() && str[end] != 0)
+  {
+    start = end;
+    while (start < str.length() && str[start] && strchr(delim, str[start]) != nullptr)
+      start++; // skip initial delimeters
+    end = start;
+    while (end < str.length() && str[end] && strchr(delim, str[end]) == nullptr)
+      end++; // skip to end of word
+
+    if (end - start != 0) // just ignore zero-length strings.
+      if (!cb(std::string_view(str.data() + start, end - start)))
+        return false;
+    ++end;
+  }
+  return true;
+}
+
+template <class V, typename = typename V::allocator_type>
+inline constexpr void clear_and_shrink(V &v)
+{
+  v = V(v.get_allocator());
+}
+
+template <class V, typename T = typename V::value_type>
+inline constexpr void clear_and_resize(V &v, uint32_t sz)
+{
+  if (sz == v.size())
+    return;
+  v.clear();
+  v.resize(sz);
+}
+
+template <class MarkContainer, class ListContainer, class EdgeContainer, typename LoopDetected>
+static bool visit_top_sort(int node, const EdgeContainer &edges, MarkContainer &temp, MarkContainer &perm, ListContainer &result,
+                           LoopDetected cb)
+{
+  if (perm[node])
+    return true;
+  if (temp[node])
+  {
+    cb(node, temp);
+    perm.set(node, true);
+    return false;
+  }
+  temp.set(node, true);
+  bool ret = true;
+  if (edges.size() > node)
+    for (auto child : edges[node])
+      ret &= visit_top_sort(child, edges, temp, perm, result, cb);
+
+  temp.set(node, false);
+  if (!perm[node]) // this check is needed in case graph is not DAG. we will just ignore such nodes.
+    result.push_back(node);
+  perm.set(node, true);
+  return ret;
+}
+
+template <typename LoopDetected, typename E, typename T>
+static bool topo_sort(int N, const E &edges, T &sortedList, LoopDetected cb)
+{
+  sortedList.reserve(N);
+  eastl::bitvector<> tempMark(N, false);
+  eastl::bitvector<> visitedMark(N, false);
+  bool isDAG = true;
+  for (size_t i = 0; i < N; ++i)
+    isDAG &= visit_top_sort(i, edges, tempMark, visitedMark, sortedList, cb);
+  return isDAG;
+}
+
 
 CREATE_HANDLE(handle_ecs_query, "ECSQuery")
 namespace ecs {
+
+  static inline bool allow_name_collision(const EntitySystemDesc *a, const EntitySystemDesc *b)
+  {
+    if (a == b) // it is same ES, probably bug
+      return false;
+    // we allow name collision, if it is c++ ES systems declared in same module
+    return !a->isDynamic() && !b->isDynamic() && a->getModuleName() && b->getModuleName() &&
+           strcmp(a->getModuleName(), b->getModuleName()) == 0;
+  }
+
+
+  inline bool allCompsAreOptional(const EntitySystemDesc *es)
+  {
+    auto isOptPred = [](const ecs::ComponentDesc &cd) { return (cd.flags & CDF_OPTIONAL) != 0 || cd.name == ECS_HASH("eid").hash; };
+    return es->componentsRQ.empty() && eastl::all_of(es->componentsRW.begin(), es->componentsRW.end(), isOptPred) &&
+           eastl::all_of(es->componentsRO.begin(), es->componentsRO.end(), isOptPred);
+  }
+
   static constexpr int max_query_components_count = 256;
   EntitySystemDesc *EntitySystemDesc::tail = NULL;
   uint32_t EntitySystemDesc::generation = 0;
@@ -542,6 +638,7 @@ namespace ecs {
     for (auto evt : es->evSet) {
       //const auto evtId = eventsDb.findEvent(evt);
       esEvents[evt].push_back(j);
+      std::sort(esEvents[evt].begin(), esEvents[evt].end());
     }
   }
 
@@ -579,6 +676,8 @@ namespace ecs {
     }
   }
 
+  typedef eastl::fixed_vector<int, 2, true> edge_container_t; // typically no more than 2 edges
+
   void GState::resetEsOrder() {
     {
       // fake framemen goes here hahaha
@@ -594,6 +693,193 @@ namespace ecs {
       std::sort(esFullList.begin(), esFullList.end(),
                 [](auto a, auto b) { return ECS_HASH_SLOW(a->name).hash < ECS_HASH_SLOW(b->name).hash; });
 
+      // this es system sorting algo (calling it sorting is underselling it) is all gaijin
+      // start gaijin
+      eastl::hash_map<std::string_view, int, std::hash<std::string_view>, std::equal_to<std::string_view>>
+          nameESMap;
+      nameESMap.reserve(esFullList.size() * 17 / 16); // Heuristic
+
+      std::vector<int> esToGraphNodeMap; // ES to graph vertex map
+      esToGraphNodeMap.reserve(esFullList.size());
+      std::vector<int> graphNodeToEsMap; // graph vertex -> ES map
+      graphNodeToEsMap.reserve(esFullList.size());
+      int graphNodesCount = 0;
+      std::vector<edge_container_t> edgesFrom;
+      auto insertEdge = [&edgesFrom](int from, int to) {
+        if (edgesFrom.size() <= max(from, to))
+          edgesFrom.resize(max(from, to) + 1);
+        edgesFrom[from].push_back(to);
+      };
+// build graph from esOrder (list of sync points)
+      if (esOrder.size())
+      {
+        // restore linear esOrder
+        std::vector<std::string_view> esOrderList;
+        esOrderList.resize(esOrder.size());
+        for (auto &i : esOrder)
+          esOrderList[i.second] = std::string_view(i.first);
+
+        edgesFrom.reserve(esOrderList.size());
+        int prevGraphNode = -1;
+        for (int i = 0, e = esOrderList.size(); i < e; ++i) // explicit order from esOrder
+        {
+          auto insResult = nameESMap.emplace(esOrderList[i], graphNodesCount);
+          if (insResult.second)
+            ++graphNodesCount;
+          const int graphNode = insResult.first->second;
+          if (prevGraphNode >= 0) //-V1051
+            insertEdge(prevGraphNode, graphNode);
+          prevGraphNode = graphNode;
+        }
+      }
+
+      const auto insertNameEdge = [&](const char *name, int graphNode, std::string_view es, bool before) {
+        auto insResult = nameESMap.emplace(es, graphNodesCount);
+        if (insResult.second)
+        {
+          if (esOrder.size() && (esSkip.find_as(name, eastl::less<>()) == esSkip.end()))
+          {
+            const bool eventHandler = es.find("_event_handler") != es.npos;
+            G_UNUSED(eventHandler);
+            // this has to be logerr. All ES has to be fixed first, than it can become logerr
+            // todo: if you see this line afer 01.02.2025 - replace with logerr!
+            //LOGE("ES <{}> is supposed to be {} ES/sync <{.*}>, which is undeclared.{}", name, before ? "before" : "after",
+            //       (int)es.length(), es.data(), eventHandler ? "Just remove _event_handler in the end, as it is not part of ES name" : "");
+          }
+          ++graphNodesCount;
+        }
+        const int other = insResult.first->second;
+        insertEdge(before ? graphNode : other, before ? other : graphNode);
+      };
+
+      // before/after edges
+      auto insertEdges = [&](const char *name, int graphNode, const char *edges, bool before) {
+        if (!edges || edges[0] == '*')
+          return;
+        tokenize_const_string(edges, ",", [&](std::string_view es) {
+          insertNameEdge(name, graphNode, es, before);
+          return true;
+        });
+      };
+      const char *first_sync_point_name = "__first_sync_point";
+      nameESMap.emplace(first_sync_point_name, graphNodesCount++);
+      for (int i = 0, e = esFullList.size(); i < e; ++i)
+      {
+        std::string_view name(esFullList[i]->name);
+        auto insResult = nameESMap.emplace(name, graphNodesCount);
+        const int graphNode = insResult.first->second;
+        if (!insResult.second) // was already inserted
+        {
+          const int j = graphNodeToEsMap.size() <= graphNode ? -1 : graphNodeToEsMap[graphNode];
+          if (j >= 0 && !allow_name_collision(esFullList[i], esFullList[j]))
+          {
+            LOGE("ES of name <{}> already registered in module <{}> now requested in module <{}>", esFullList[i]->name,
+                   esFullList[i]->getModuleName(), esFullList[j]->getModuleName());
+            esFullList[j] = nullptr;
+          }
+        }
+        else // inserted new one
+          graphNodesCount++;
+
+        if (graphNodeToEsMap.size() <= graphNode)
+          graphNodeToEsMap.resize(graphNode + 1, -1);
+        graphNodeToEsMap[graphNode] = i;
+
+        if (esToGraphNodeMap.size() <= i)
+          esToGraphNodeMap.resize(i + 1, -1);
+        esToGraphNodeMap[i] = graphNode;
+      }
+
+      // insert explicit graph edges
+      for (size_t i = 0, e = esFullList.size(); i < e; ++i)
+      {
+        if (!esFullList[i])
+          continue;
+        auto it = nameESMap.find(std::string_view(esFullList[i]->name));
+        G_ASSERT_CONTINUE(it != nameESMap.end());
+        const int graphNode = it->second;
+        const char *beforeStr = esFullList[i]->getBefore(), *afterStr = esFullList[i]->getAfter();
+        insertEdges(esFullList[i]->name, graphNode, beforeStr, true);
+        insertEdges(esFullList[i]->name, graphNode, afterStr, false);
+        if (!beforeStr || !beforeStr[0] || ::strstr(beforeStr, first_sync_point_name) == nullptr)
+          insertNameEdge(esFullList[i]->name, graphNode, first_sync_point_name, false);
+      }
+
+
+      // topo sort
+      std::vector<int> sortedList;
+      auto loopDetected = [&](int i, auto &) {
+        auto it = eastl::find_if(nameESMap.begin(), nameESMap.end(), [&](const auto &it) { return it.second == i; });
+        std::string node = "n/a";
+        if (it != nameESMap.end())
+          node = it->first;
+        LOGE("syncPoint {} resulted in graph to become cyclic and was removed from sorting. ES order is non-determinstic",
+               node.c_str());
+      };
+      topo_sort(graphNodesCount, edgesFrom, sortedList, loopDetected);
+      const int lowestPrio = eastl::numeric_limits<int>::max();
+      std::vector<int> sortedPrio;
+      sortedPrio.resize(sortedList.size(), lowestPrio);
+      for (size_t i = 0, e = sortedList.size(); i < e; ++i)
+      {
+        if (uint32_t(sortedList[i]) < sortedList.size())
+          sortedPrio[sortedList[i]] = sortedList.size() - i;
+      }
+
+      // use graph for ES prio list
+      struct PrioEntitySystemDesc
+      {
+        int id;
+        int prio;
+        PrioEntitySystemDesc(int i, int p) : id(i), prio(p) {}
+        bool operator<(const PrioEntitySystemDesc &other) const { return prio < other.prio; }
+      };
+      std::vector<PrioEntitySystemDesc> prio;
+      prio.reserve(esFullList.size());
+
+      for (size_t i = 0, e = esFullList.size(); i < e; ++i)
+      {
+        EntitySystemDesc *sd = esFullList[i];
+        if (!sd) // removed invalid ES
+          continue;
+        if (disableEntitySystems.find_as(sd->name, eastl::less<>()) != disableEntitySystems.end())
+        {
+          LOGE("skip ES <%s> due to it is switched off in inspection", sd->name);
+          continue;
+        }
+        if (esSkip.find_as(sd->name, eastl::less<>()) != esSkip.end())
+        {
+          LOGE("skip ES <%s> due to it is not needed", sd->name);
+          continue;
+        }
+        const uint32_t graphNode = i < esToGraphNodeMap.size() ? esToGraphNodeMap[i] : ~0u;
+        int updatePrio = (uint32_t(graphNode) < sortedPrio.size()) ? sortedPrio[graphNode] : lowestPrio;
+
+        prio.push_back(PrioEntitySystemDesc({(int)i, updatePrio}));
+      }
+
+      queryToEsMap.clear();
+      clear_and_shrink(esList);
+      //esForAllEntities.clear();
+      stlsort::sort_branchless(prio.begin(), prio.end());
+      clear_and_resize(esList, prio.size());
+      //esForAllEntities.resize(prio.size());
+      //esUpdates.clear();
+
+
+      //uint32_t mask = 0;
+      for (int i = 0; i < prio.size(); ++i)
+      {
+        esList[i] = esFullList[prio[i].id];
+        // es will perform on all entities
+        const EntitySystemDesc *es = esList[i];
+        //mask |= es->stageMask;
+        //if ((es->componentsRW.size() + es->componentsRO.size()) != 0 && allCompsAreOptional(es))
+        //{
+        //  esForAllEntities.set(i, true);
+        //}
+      }
+
       // check if they are correct event handlers
       for (auto sd: esFullList) {
         if ((sd->ops.onEvent == nullptr) !=
@@ -607,21 +893,16 @@ namespace ecs {
             sd->evSet.clear();
         }
       }
-      this->esList.reserve(esFullList.size());
-      for (int i = 0; i < esFullList.size(); i++) {
-        this->esList.push_back(esFullList[i]);
-      }
-      for (auto &eq: esListQueries)
-        if (eq != QueryId() && isQueryValid(eq))
-          G_ASSERT(
-              false); // dont feel like doing allthat, shouldnt ever happen, I dont think ill ever plan to destroy a query
-      //destroyQuery(eq);
+      //for (auto &eq: esListQueries)
+        //if (eq != QueryId() && isQueryValid(eq))
+        //  destroyQuery(eq);
       esListQueries.resize(esList.size());
       for (int j = 0, ej = (int) esList.size(); j < ej; ++j)
         esListQueries[j] = esList[j]->emptyES ? QueryId() : createUnresolvedQuery(*esList[j]);
       registerEsEvents();
     }
     updateAllQueries();
+    // end gaijin (basically)
     //lastEsGen = EntitySystemDesc::generation;
   }
 

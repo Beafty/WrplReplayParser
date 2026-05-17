@@ -501,10 +501,8 @@ namespace ecs {
     if (uid == 0x7FF) {
       return nullptr;
     }
-    auto ref = this->uid_unit_ref_lookup[uid];
-    if (ref)
-      return ref->unit;
-    return nullptr;
+    return this->uid_unit_lookup[uid];
+
   }
 
   void

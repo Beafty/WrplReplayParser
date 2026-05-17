@@ -32,19 +32,21 @@ namespace ecs {
   struct EntitySystemDesc : public NamedQueryDesc {
     typedef void (*DeleteHandler)(EntitySystemDesc *desc);
 
-    EntitySystemDesc(const char *n, const char *module, EntitySystemOps ops_, dag::ConstSpan<ComponentDesc> comps_rw,
+    EntitySystemDesc(const char *n, const char *module, const EntitySystemOps &ops_, dag::ConstSpan<ComponentDesc> comps_rw,
                      dag::ConstSpan<ComponentDesc> comps_ro, dag::ConstSpan<ComponentDesc> comps_rq,
                      dag::ConstSpan<ComponentDesc> comps_no,
-                     EventSet &&evm, int stm, const char *tag_set = nullptr,
-                     bool dyn = false,
-                     DeleteHandler on_delete = nullptr) :
-        NamedQueryDesc(n, comps_rw, comps_ro, comps_rq, comps_no),
-        ops(ops_),
-        evSet(eastl::move(evm)),
-        dynamic(dyn),
-        onDelete(on_delete),
-        tagSet(tag_set),
-        moduleName(module) {
+                     EventSet &&evm, const char *tag_set = nullptr, const char *comp_set = nullptr, const char *before_set = nullptr,
+                     const char *after_set = nullptr, bool dyn = false) :
+    NamedQueryDesc(n, comps_rw, comps_ro, comps_rq, comps_no),
+    ops(ops_),
+    evSet(eastl::move(evm)),
+    tagSet(tag_set),
+    beforeSet(before_set),
+    afterSet(after_set),
+    compChangeSet(comp_set),
+    dynamic(dyn),
+    moduleName(module)
+    {
       // check on intialization in entityManager
       emptyES = (comps_rw.size() == 0 && comps_ro.size() == 0 && comps_rq.size() == 0 && comps_no.size() == 0);
       next = tail;
@@ -52,14 +54,13 @@ namespace ecs {
       generation++;
     }
 
-    EntitySystemDesc(const char *n, EntitySystemOps ops_, dag::ConstSpan<ComponentDesc> comps_rw,
-                     dag::ConstSpan<ComponentDesc> comps_ro,
+
+    EntitySystemDesc(const char *n, const EntitySystemOps &ops_, dag::ConstSpan<ComponentDesc> comps_rw, dag::ConstSpan<ComponentDesc> comps_ro,
                      dag::ConstSpan<ComponentDesc> comps_rq, dag::ConstSpan<ComponentDesc> comps_no, EventSet &&evm,
-                     int stm,
-                     const char *tag_set = nullptr, bool dyn = false,
-                     DeleteHandler on_delete = nullptr) :
-        EntitySystemDesc(n, nullptr, ops_, comps_rw, comps_ro, comps_rq, comps_no, eastl::move(evm), stm, tag_set,
-                         dyn, on_delete) {}
+                     const char *tag_set = nullptr, const char *comp_set = nullptr, const char *before_set = nullptr, const char *after_set = nullptr,
+                     bool dyn = false) :
+        EntitySystemDesc(n, nullptr, ops_, comps_rw, comps_ro, comps_rq, comps_no, eastl::move(evm), tag_set, comp_set, before_set,
+                         after_set, dyn) {}
 
     ~EntitySystemDesc();
 
@@ -79,9 +80,10 @@ namespace ecs {
     static EntitySystemDesc *getTail() { return tail; }
 
     const EntitySystemOps getOps() const { return ops; }
-
+    const char *getBefore() const { return beforeSet; }
+    const char *getAfter() const { return afterSet; }
     const char *getTags() const { return tagSet; }
-
+    const char *getCompSet() const { return compChangeSet; }
     const char *getModuleName() const { return moduleName; }
 
     void setEvSet(EventSet &&evs);
@@ -105,8 +107,10 @@ namespace ecs {
     static EntitySystemDesc *tail;
     static uint32_t generation;
 
-    DeleteHandler onDelete = nullptr;
+    const char *beforeSet = nullptr;     // CSV entity systems names
+    const char *afterSet = nullptr;      // CSV entity systems names
     const char *tagSet = nullptr;        // CSV entity system tags
+    const char *compChangeSet = nullptr; // CSV list of component change event submission
     const char *moduleName = nullptr;
 
     template<typename Lambda>
@@ -157,30 +161,5 @@ namespace ecs {
         prevSys = system;
       system = nextSys;
     }
-    if (onDelete)
-      onDelete(this);
   }
-
-#if _ECS_CODEGEN
-  #define ECS_BEFORE_ONE(a) __attribute__((annotate("@before:" #a)))
-#define ECS_BEFORE(...)   ECS_FOR_EACH(ECS_BEFORE_ONE, __VA_ARGS__)
-#define ECS_AFTER_ONE(a)  __attribute__((annotate("@after:" #a)))
-#define ECS_AFTER(...)    ECS_FOR_EACH(ECS_AFTER_ONE, __VA_ARGS__)
-#define ECS_TAG_ONE(a)    __attribute__((annotate("@tag:" #a)))
-#define ECS_TAG(...)      ECS_FOR_EACH(ECS_TAG_ONE, __VA_ARGS__)
-#define ECS_TRACK_ONE(a)  __attribute__((annotate("@track:" #a)))
-#define ECS_TRACK(...)    ECS_FOR_EACH(ECS_TRACK_ONE, __VA_ARGS__)
-#define ECS_NO_ORDER      __attribute__((annotate("@before:*")))
-#else
-#define ECS_BEFORE_ONE(a)
-#define ECS_BEFORE(...)
-#define ECS_AFTER_ONE(a)
-#define ECS_AFTER(...)
-#define ECS_TAG_ONE(a)
-#define ECS_TAG(...)
-#define ECS_TRACK_ONE(a)
-#define ECS_TRACK(...)
-#define ECS_NO_ORDER
-#endif
-
 }; // namespace ecs

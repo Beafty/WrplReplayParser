@@ -25,6 +25,8 @@
 #include "ecs/internal/ArchetypesQuery.h"
 #include "Unit.h"
 #include <shared_mutex>
+#include "EASTL/vector_map.h"
+#include "EASTL/vector_set.h"
 
 DEFINE_HANDLE(handle_ecs)
 #define ECS_LOGI(format_, ...) ELOGI(handle_ecs, format_, __VA_ARGS__)
@@ -57,6 +59,16 @@ DEFINE_HANDLE(handle_entity)
 class PyGState; // for python bindings
 struct ParserState;
 extern volatile size_t framework_primary_pulls;
+
+
+namespace dag
+{
+  template <typename Key, typename T, typename Compare = eastl::less<Key>>
+  using VectorMap = eastl::vector_map<Key, T, Compare>;
+
+  template <typename Key, typename Compare = eastl::less<Key>>
+  using VectorSet = eastl::vector_set<Key, Compare>;
+}
 
 namespace ecs {
   class GState;
@@ -227,6 +239,9 @@ namespace ecs {
     // SoA for QueryId
     uint8_t currentQueryGen = 1;
 
+    dag::VectorMap<std::string, uint32_t> esOrder{};
+    dag::VectorSet<std::string> disableEntitySystems, esSkip;
+
     typedef uint16_t es_index_type;
     std::vector<const EntitySystemDesc *> esList;
     std::vector<QueryId> esListQueries; // parallel to esList, index in ecs_query_handle
@@ -346,7 +361,7 @@ namespace ecs {
     uint32_t * curr_time_ms;
     // for ease of access
     std::array<ecs::EntityId, 2048> uid_lookup{};
-    std::array<unit::UnitRef*, 2048> uid_unit_ref_lookup{};
+    std::array<unit::Unit*, 2048> uid_unit_lookup{};
 
     explicit EntityManager(ParserState*owned_by);
 

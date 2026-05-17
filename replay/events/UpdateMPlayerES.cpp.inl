@@ -2,7 +2,9 @@
 #include "mpi/codegen/ReflIncludes.h"
 #include "Unit.h"
 #include "ecs/query/coreEvents.h"
+#include "ecs/ecsCodegen.h"
 
+ECS_AFTER(uid_entity_es)
 const void
 mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId &eid, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager *manager) {
@@ -16,6 +18,7 @@ mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId &e
   }
 }
 
+ECS_AFTER(uid_entity_es)
 const void
 mplayer_add_entity_es(const ecs::EventEntityDestroyedBasic &evt, const ecs::EntityId &eid, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager *manager) {

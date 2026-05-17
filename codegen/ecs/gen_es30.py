@@ -380,8 +380,7 @@ def gen_es_desc(esFunction, moduleName, stages, rw_params_str, ro_params_str, rq
   {ro_params_str},
   {rq_params_str},
   {no_params_str},
-  {eventmask_str},
-  {stages}
+  {eventmask_str}
 {tags_list_str}{track_list_str}{before_list_str}{after_list_str}{def_quant_code});
 '''.format(**locals())
   return genCode

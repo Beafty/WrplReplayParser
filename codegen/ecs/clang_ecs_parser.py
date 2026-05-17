@@ -11,9 +11,10 @@ import ctypes
 
 INCLUDE_DIRS = []
 current_dir = pathlib.Path(__file__).parent
+PARENT_DIR = current_dir.parent.parent
 with open(current_dir / "include_dirs") as f:
     for l in f.readlines():
-        INCLUDE_DIRS.append(l.rstrip())
+        INCLUDE_DIRS.append(str(PARENT_DIR / l.rstrip()))
 
 
 # Alt enum for versions >= 15.0 (https://github.com/llvm/llvm-project/blame/f42136d4d6e102659c6a4a870349aae6425a3ba9/clang/bindings/python/clang/cindex.py#L1320)

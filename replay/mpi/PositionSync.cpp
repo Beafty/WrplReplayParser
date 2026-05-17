@@ -179,9 +179,9 @@ bool FMSync(ParserState *state, BitStream *bs) {
         bool cVar4NE0 = bs->ReadBit();
         // if both true, then we do nothing
         if (!(lVar30lessThan0 && cVar4NE0)) {
-          auto unit_ref = state->g_entity_mgr.uid_unit_ref_lookup[uid];
-          if (!unit_ref) return false;
-          auto unit = unit_ref->unit->AsAircraft();
+          auto ref = state->g_entity_mgr.uid_unit_lookup[uid];
+          if (!ref) return false;
+          auto unit = ref->AsAircraft();
           if (!unit) return false;
           bool fVar41LessThan0p5 = bs->ReadBit();
           uint32_t some_uint;
@@ -296,8 +296,8 @@ bool FMSync(ParserState *state, BitStream *bs) {
 }
 
 struct TankRef {
-  unit::UnitRef *ref_1 = nullptr; // + 0.0 always matches
-  unit::UnitRef *ref_2 = nullptr; // + 0x8 needs to not match flags 0x10 and 0x1800
+  unit::Unit *ref_1 = nullptr; // + 0.0 always matches
+  unit::Unit *ref_2 = nullptr; // + 0x8 needs to not match flags 0x10 and 0x1800
   bool val1 = false;
   bool val2 = false;
   bool val3 = false;
@@ -398,8 +398,8 @@ bool ParseVehicleInfo(ParserState *state, BitStream &bs, TankRef *ref, bool is_f
       unit_position.x = fv1;
       unit_position.z = fv3;
     }
-    if (ref->ref_1 && ref->ref_1->unit && ref->ref_1->unit->AsTank()) {
-      auto tank = ref->ref_1->unit->AsTank();
+    if (ref->ref_1 && ref->ref_1 && ref->ref_1->AsTank()) {
+      auto tank = ref->ref_1->AsTank();
       tank->positions.push_back({state->curr_time_ms, unit_position});
     }
     Point3 out_2;
@@ -563,7 +563,7 @@ bool GMSync(ParserState *state, BitStream *bs) {
     if (bool1) {
       auto curr_unit = state->g_entity_mgr.uid_lookup[uid_lower];
       //G_ASSERT(curr_unit); // this can apparently fucking happen
-      ref.ref_1 = ref.ref_2 = state->g_entity_mgr.uid_unit_ref_lookup[uid_lower];
+      ref.ref_1 = ref.ref_2 = state->g_entity_mgr.uid_unit_lookup[uid_lower];
       //std::string_view name = *state->g_entity_mgr.getNullable<ecs::string>(curr_unit, ECS_HASH("unit__className"));
       bool bool2;
       uint8_t some_val_idk;
