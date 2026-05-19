@@ -1,3 +1,6 @@
+
+#include <newReplay/Replay.h>
+
 #include "Replay/Replay.h"
 
 uint32_t getPacketSize(IGenReader &cb) {
@@ -65,3 +68,4 @@ fs::path file_exists_fs(const std::string& path, const std::vector<fs::path> &pa
   }
   return {};
 }
+

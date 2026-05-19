@@ -1,12 +1,11 @@
 add_library(Replay
         STATIC
+        Replay.cpp
         ReplayReader.cpp
 )
 
 target_link_libraries(Replay
-        ZSTD
-        LZ4::LZ4
-        dagECS::dagECS
+        BS::BS
         Zlib::Zlib
         libdeflate::libdeflate_static
 )

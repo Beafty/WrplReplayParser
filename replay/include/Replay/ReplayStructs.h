@@ -1,6 +1,39 @@
-
 #pragma once
+#include "cstdint"
+#include "string"
 #include "danet/BitStream.h"
+
+constexpr uint32_t CURR_MAGIC = 0x00018bfe;
+#pragma pack(push, 1)
+struct ReplayHeader {
+  uint32_t header;
+  uint32_t magic; // changes each major version
+  char level_path[128];
+  char mission_path[260];
+  char mission_name[128];
+  char environment[128];
+  char visibility[32];
+  uint32_t footer_blk_offset;
+  uint8_t difficulty;
+  char unk0[35];
+  uint32_t SessionType;
+  uint32_t player_count;
+  uint64_t session_id;
+  uint8_t replay_part_number;
+  char unk2[3];
+  uint32_t MSetSize;
+  uint16_t settings_blk_size;
+  char unk3[30];
+  char location_name[128];
+  uint32_t start_time;
+  uint32_t time_limit;
+  uint32_t score_limit;
+  char unk4[48];
+  char battle_class[128];
+  char battle_kill_streak[128];
+  char unk5[10];
+};
+#pragma pack(pop)
 
 enum class ReplayPacketType : uint16_t {
   EndMarker = 0, // last packet in a replay

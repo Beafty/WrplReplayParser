@@ -355,7 +355,7 @@ namespace net
       }
       else
       {
-        EXCEPTION("Entity {:#x} already destroyed?", serverEid);
+        LOGE("Entity {:#x} already destroyed?", serverEid);
       }
     }
     return true;

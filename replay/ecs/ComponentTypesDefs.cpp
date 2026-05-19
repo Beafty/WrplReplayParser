@@ -72,14 +72,8 @@ public:
     G_UNUSED(hint);
     G_UNUSED(sz);
     char buf[ecs::MAX_STRING_LENGTH];
-    int len = ecs::read_string(cb, buf, sizeof(buf));
-    if (len < 0)
-      return false;
-    if(len-1 < 0) {
-      *((ecs::string *) data) = ecs::string();
-      return true;
-    }
-    *((ecs::string *) data) = ecs::string(buf, len-1);
+    ecs::read_string(cb, buf, sizeof(buf));
+    *((ecs::string *) data) = ecs::string(buf);
     return true;
   }
 };
@@ -533,7 +527,7 @@ namespace ecs {
     ok &= cb.read(&Rocket_data.u8_1, sizeof(Rocket_data.u8_1) * 8, 0);
     //LOGE("{} : {}", (*mgr->curr_time_ms)/1000.f, Rocket_data.toString(0));
     auto ref = mgr->getNullable<unit::UnitRef>(Rocket_data.ownerEid, ECS_HASH("unit__ref"));
-    if(ref->unit) {
+    if(ref && ref->unit) {
       if(auto aircraft = ref->unit->AsAircraft()) {
         auto weap = aircraft->getWeapon(Rocket_data.weapon_ref);
         if(weap) {

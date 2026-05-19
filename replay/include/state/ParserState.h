@@ -58,9 +58,7 @@ struct ChatMessage {
 struct ParserState {
 
   explicit ParserState(int player_count=32) : players(player_count) {}
-  explicit ParserState(Replay *replay): players(replay->PlayerCount) {}
-  explicit ParserState(ServerReplay *replay): players(replay->replay_files[0].PlayerCount) {}
-  explicit ParserState(MemoryEfficientServerReplay *replay): players(replay->base_replay->PlayerCount) {}
+  explicit ParserState(IReplay *replay): players(replay->getHeader()->player_count) {}
 private:
 
   //friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);

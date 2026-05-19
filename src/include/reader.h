@@ -10,8 +10,6 @@
 #include "utils.h"
 
 class IGenReader {
-private:
-    char buff[1028]{};
 protected:
     bool owns = false;
 public:
@@ -41,18 +39,6 @@ public:
         return this->tryRead((void *)&dest, sizeof(dest)) == sizeof(dest);
     }
 
-    /// reads a c string
-    bool readInto(std::string &dest) {
-        char *ptr = buff - 1; // I know this is stupid, but it should work
-        do {
-            ptr++;
-            bool out = this->read(ptr, 1);
-            if (!out) return false;
-        } while (*ptr != 0);
-
-        dest = std::string(buff);
-        return true;
-    }
   template <typename T>
   bool readCompressedUnsignedGeneric(T &v)
   {
@@ -81,6 +67,7 @@ class BaseReader : public IGenReader
 {
 public:
     BaseReader(char * data, int size, bool owns);
+    BaseReader() : BaseReader(nullptr, -1, false) {}
 
     ~BaseReader() override;
 
@@ -142,6 +129,8 @@ public:
     bool seekrel(int) override;
 
     bool isValid() const;
+
+    const std::string & getFName() {return fName;}
 protected:
     std::string fName;
     std::ifstream input;

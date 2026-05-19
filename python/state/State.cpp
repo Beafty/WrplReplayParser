@@ -55,9 +55,9 @@ void PyReplayState::include(py::module_ &m) {
 
   py::class_<ParserState>(m, "ParserState")
       .def(py::init<>())
+      .def(py::init<IReplay *>())
       .def(py::init<Replay *>())
       .def(py::init<ServerReplay *>())
-      .def(py::init<MemoryEfficientServerReplay *>())
       .def_readonly("mgr", &ParserState::g_entity_mgr)
       .def_readonly("players", &ParserState::players)
       .def_readonly("teams", &ParserState::teams)
@@ -82,7 +82,7 @@ void PyReplayState::include(py::module_ &m) {
               if (func) {
                 py::gil_scoped_acquire gil;
                 try {
-                  while (cont && rdr.getNextPacket(&pkt)) {
+                  while (cont && rdr.getNextPacket(pkt)) {
                     BitSize_t start_offs = pkt.stream.GetReadOffset();
                     cont = state.ParsePacket(pkt);
                     pkt.stream.SetReadOffset(start_offs);
@@ -93,7 +93,7 @@ void PyReplayState::include(py::module_ &m) {
                 }
 
               } else {
-                while (rdr.getNextPacket(&pkt) && state.ParsePacket(pkt));
+                while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
               }
             });
         temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread

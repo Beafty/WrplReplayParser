@@ -12,6 +12,13 @@ struct IReplayReaderIterInto {
       : into(pkt), py_reader_ref(std::move(py_reader)), rdr(py_reader_ref.cast<IReplayReader*>()) {}
 };
 
+template <size_t N>
+std::string_view getStr(const char (&arr)[N]) {
+  auto length = strlen(arr);
+  length = length > 0 ? length : 0;
+  return {arr, std::min(length, N)};
+}
+
 void PyReplay::include(py::module_ &m) {
   DO_INCLUDE()
   py_data_block.include(m);
@@ -35,10 +42,30 @@ void PyReplay::include(py::module_ &m) {
       .def_readonly("data", &ReplayPacket::stream)
       .def_readonly("time_ms", &ReplayPacket::timestamp_ms);
 
+  py::class_<ReplayHeader>(sub, "ReplayHeader")
+      .def_readonly("header", &ReplayHeader::header)
+      .def_readonly("magic", &ReplayHeader::magic)
+      .def_property_readonly("level_path", [](ReplayHeader &header) {return getStr(header.level_path);})
+      .def_property_readonly("mission_path", [](ReplayHeader &header) {return getStr(header.mission_path);})
+      .def_property_readonly("environment", [](ReplayHeader &header) {return getStr(header.environment);})
+      .def_property_readonly("visibility", [](ReplayHeader &header) {return getStr(header.visibility);})
+      .def_readonly("difficulty", &ReplayHeader::difficulty)
+      .def_readonly("SessionType", &ReplayHeader::SessionType)
+      .def_readonly("player_count", &ReplayHeader::player_count)
+      .def_readonly("session_id", &ReplayHeader::session_id)
+      .def_readonly("replay_part_number", &ReplayHeader::replay_part_number)
+      .def_readonly("MSetSize", &ReplayHeader::MSetSize)
+      .def_property_readonly("location_name", [](ReplayHeader &header) {return getStr(header.location_name);})
+      .def_readonly("start_time", &ReplayHeader::start_time)
+      .def_readonly("time_limit", &ReplayHeader::time_limit)
+      .def_readonly("score_limit", &ReplayHeader::score_limit)
+      .def_property_readonly("battle_class", [](ReplayHeader &header) {return getStr(header.battle_class);})
+      .def_property_readonly("battle_kill_streak", [](ReplayHeader &header) {return getStr(header.battle_kill_streak);});
+
   py::class_<IReplayReaderIterInto>(sub, "IReplayReaderIterInto")
       .def("__iter__", [](IReplayReaderIterInto &rdr) {return rdr;})
       .def("__next__", [](IReplayReaderIterInto &rdr){
-        if(rdr.rdr->getNextPacket(rdr.into)) {
+        if(rdr.rdr->getNextPacket(*rdr.into)) {
           return py::none{};
         }
         throw py::stop_iteration();
@@ -52,54 +79,33 @@ void PyReplay::include(py::module_ &m) {
       .def("__iter__", [](IReplayReader &rdr) -> IReplayReader& {return rdr;})
       .def("__next__", [](IReplayReader &rdr) {
         auto pkt = std::make_unique<ReplayPacket>();
-        if(rdr.getNextPacket(pkt.get()))
+        if(rdr.getNextPacket(*pkt.get()))
           return pkt;
         else {
           pkt.reset();
           throw py::stop_iteration();
         }
       });
-  py::class_<ReplayReader, IReplayReader>(sub, "ReplayReader");
-
-  py::class_<ServerReplayReader, IReplayReader>(sub, "ServerReplayReader");
-
   py::class_<FullDecompressReplayReader, IReplayReader>(sub, "FullDecompressReplayReader");
 
-  py::class_<MemoryEfficientServerReplayReader, IReplayReader>(sub, "MemoryEfficientServerReplayReader");
+  py::class_<CompressedReplayReader, IReplayReader>(sub, "CompressedReplayReader");
 
-  py::class_<Replay>(sub, "Replay")
-      .def(py::init<const std::string &>())
-      .def_static("from_bytes", [](py::bytes bytes_data) {
-        char* buffer_ptr;
-        ssize_t length;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(bytes_data.ptr(), &buffer_ptr, &length)) {
-          throw std::runtime_error("Unable to extract bytes contents");
-        }
-        return std::make_unique<Replay>(std::span((uint8_t*)buffer_ptr, length));
-      })
-      .def_readonly("level_bin_path", &Replay::level_bin)
-      .def_readonly("level_blk_path", &Replay::level_blk)
-      .def_readonly("header_blk", &Replay::HeaderBlk)
-      .def_readonly("footer_blk", &Replay::FooterBlk)
-      .def_readonly("player_count", &Replay::PlayerCount)
-      .def_readonly("session_id", &Replay::session_id)
-      .def("get_streaming_replay_reader", [](Replay &rpl){
-        return rpl.getRplReader();
-      }, py::return_value_policy::take_ownership)
-      .def("get_replay_reader", [](Replay &rpl){
-        return rpl.getFullDecompressReplayReader();
-        }, py::return_value_policy::take_ownership);
+  py::class_<ServerReplayReader<true>, IReplayReader>(sub, "CompressedServerReplayReader");
 
-  py::class_<ServerReplay>(sub, "ServerReplay")
-      .def(py::init<const std::string &>())
-      .def("get_replay_reader", &ServerReplay::getRplReader, py::return_value_policy::take_ownership)
-      .def_property_readonly("FooterBlk", &ServerReplay::GetFooterBlk);
+  py::class_<ServerReplayReader<false>, IReplayReader>(sub, "FullDecompressServerReplayReader");
 
-  py::class_<MemoryEfficientServerReplay>(sub, "MemoryEfficientServerReplay")
-      .def(py::init<const std::string &>())
-      .def("get_replay_reader", &MemoryEfficientServerReplay::getRplReader, py::return_value_policy::take_ownership)
-      .def_readonly("FooterBlk", &MemoryEfficientServerReplay::FooterBlk)
-      .def_readonly("base_replay", &MemoryEfficientServerReplay::base_replay);
+  py::class_<IReplay>(sub, "IReplay")
+      .def("getHeaderBlk", &IReplay::getHeaderBlk, py::return_value_policy::reference)
+      .def("getFooterBlk", &IReplay::getFooterBlk, py::return_value_policy::reference)
+      .def("getReplayReader", &IReplay::getReplayReader, py::return_value_policy::take_ownership)
+      .def("getCompressedReplayReader", &IReplay::getCompressedReplayReader, py::return_value_policy::take_ownership)
+      .def("getHeader", &IReplay::getHeader, py::return_value_policy::reference);
+
+  py::class_<Replay, IReplay>(sub, "Replay")
+      .def(py::init<const std::string &>());
+
+  py::class_<ServerReplay, IReplay>(sub, "ServerReplay")
+      .def(py::init<const std::string &>());
 }
 
 PyReplay py_replay{};

@@ -5,7 +5,6 @@ extern "C" {
 }
 #include "ecs/EntityManager.h"
 #include "danet/BitStream.h"
-#include "basic_replay_structs.h"
 #include "utils.h"
 #include "consts.h"
 #include "ecs/typesAndLimits.h"
