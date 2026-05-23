@@ -24,7 +24,7 @@ class BaseWriter : public IWriter {
 public:
     ~BaseWriter() override = default;
     void write(const void *ptr, size_t size) override {
-        data.append_range(std::span((uint8_t*)ptr, size));
+        //data.append_range(std::span((uint8_t*)ptr, size));
     }
     void reserve(size_t size) {
         data.reserve(size);

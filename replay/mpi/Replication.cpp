@@ -226,7 +226,7 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
         break;
       }
       case 4: {
-        bs.Read(x->areaFlags.data);
+        bs.Read(*x->areaFlags.data);
         break;
       }
       case 5: {
@@ -256,6 +256,7 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
   if(index >= state->missionAreas1.size()) {
     state->missionAreas1.resize(index+1, nullptr);
   }
+  G_ASSERT(state->missionAreas1[index] == nullptr);
   state->missionAreas1[index] = x;
   state->missionAreas2[idx] = x;
   REPLICATION_LOGD2("Parsing Replicated MissionArea");

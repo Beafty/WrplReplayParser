@@ -81,15 +81,15 @@ int main() {
     //std::exit(0);
     while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
     for (auto &plr: state.players) {
-      auto owned_eid = plr.ownedUnitRef.data;
+      auto owned_eid = *plr.ownedUnitRef.data;
       std::string * vehicle = nullptr;
       if (owned_eid != ecs::INVALID_ENTITY_ID) {
         vehicle = state.g_entity_mgr.getNullable<ecs::string>(owned_eid, ECS_HASH("unit__className"));
       }
       if(vehicle)
-      LOGE("Name: {}; team: {}; vehicle: {}", plr.uid.data.name, plr.team.data, *vehicle);
+        LOGE("Name: {}; team: {}; vehicle: {}", plr.uid.data->name, *plr.team.data, *vehicle);
       else
-      LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data.name, plr.team.data);
+        LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data->name, *plr.team.data);
     }
     iterate_all_units(state);
     idx = state.current_packet_index;

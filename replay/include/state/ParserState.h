@@ -89,6 +89,9 @@ public:
     for(auto v : BattleMessages) {
       delete v;
     }
+    for (auto v : missionAreas1) {
+      delete v;
+    }
   }
   void onPacket(ReplayPacket *pkt) {
     conn.onPacket(pkt, pkt->timestamp_ms);

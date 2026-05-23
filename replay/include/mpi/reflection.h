@@ -3,81 +3,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
-
-/*
-  usage example :
-
-  class TestUnit : public ReflectableObject
-  {
-  public:
-
-    DECL_REFLECTION(TestUnit);
-
-    //
-    // reflection - serialize/deserialize changed var in serializeChangedReflectables/deserializeReflectables
-    //
-
-    // standart number declaration
-    // Warning : unsigned type prefix ignored, if you need unsigned type use RVF_UNSIGNED flag explicitly
-    REFL_VAR(int, test);
-
-    // could freely interleaves with any other vars or methods
-    String nonReflectVar;
-
-    // extended syntax var def, params are:
-    // type, var_name, addition flags, num bits to encode (0 for sizeof) and custom coder func (NULL for auto dispatch)
-    REFL_VAR_EXT(float, extSyntaxVar, 0, 0, my_coder_func);
-
-    // exclude prev var from reflection
-    EXCLUDE_VAR(extSyntaxVar);
-
-    // code float in range 0.f, 500.f in 16 bits
-    // sizeof(theFloat) == sizeof(ReflectionVarMeta) + sizeof(float)*3
-    REFL_FLOAT_MIN_MAX(theFloat, 0.f, 500.f, 0, 16)
-
-  };
-
-  //
-  // for replication define as
-  //
-  class MyObject : public ReplicatedObject
-  {
-  public:
-
-    DECL_REPLICATION(MyObject)
-  };
-
-  // in *.cpp
-
-  IMPLEMENT_REPLICATION(MyObject)
-
-  // serialize data needed for object creation (this data passed on remote machine in createReplicatedObject())
-  virtual void serializeReplicaCreationData(BitStream& bs) const {}
-
-  // this function create new client object (or get existing if it alreay exist (for example on host migration))
-  ReplicatedObject* MyObject::createReplicatedObject(BitStream& bs) { return something; }
-
-  to make serialization work:
-
-  1) create object on server as usual
-  2) call on server for that object MyObject->genReplicationEvent(myBitStream) and send that bitStream
-      to remote machine manually (message id must be writed manually before function call)
-  3) on remote machine (client) call ReplicatedObject::onRecvReplicationEvent for received bitStream
-    (automatically will be called SomeObject::createReplicatedObject with serialized on server data)
-
-  (same principle is apply for genReplicationEventForAll/onRecvReplicationEventForAll)
-
-  Warning: change flag is not raised when you explicitly change field member in vector type (x,y,z...)
-    like that
-
-    reflVec.x = 1.f; // wrong
-
-    do
-
-    reflVec.getForModify().x = 1.f; // right
-
-    instead
-*/
 #include <string.h>
 #include "danet/bitStream.h"
 #include <cstddef> // for offsetof macros
@@ -165,7 +90,7 @@ namespace danet {
 
   class ReplicatedObject;
 
-#define DANET_ENCODER_SIGNATURE int op, ReflectionVarMeta *meta, const ReflectableObject *ro, BitStream *bs
+#define DANET_ENCODER_SIGNATURE int op, ReflectionVarMeta *meta, const ReflectableObject *ro, BitStream *bs, ParserState * state
 
   typedef int (*reflection_var_encoder)(DANET_ENCODER_SIGNATURE);
 
@@ -220,6 +145,14 @@ namespace danet {
   }
 
 
+  // is attached to a var, represents its various states throughout a replay
+  template <typename T>
+  class VarVersionHandler {
+    struct TimeState {
+      uint32_t time_ms;
+      T object;
+    };
+  };
 // vars of this type are linked in one list inside of ReflectableObject
   class ReflectionVarMeta {
   public:
@@ -234,10 +167,10 @@ namespace danet {
     const char *getVarName() const { return name; }
 
     template<class T>
-    T *getValue() const {
-      // Correct pointer arithmetic using char* as base
-      return reinterpret_cast<T *>(reinterpret_cast<char *>(const_cast<ReflectionVarMeta *>(this)) +
-                                   sizeof(ReflectionVarMeta));
+   T* getValue() const {
+      const char* raw = reinterpret_cast<const char*>(this) + sizeof(ReflectionVarMeta);
+      const T* const* storedPtr = reinterpret_cast<const T* const*>(raw);
+      return const_cast<T*>(*storedPtr);
     }
 
     void setChanged(bool f) {
@@ -271,13 +204,24 @@ namespace danet {
   template<typename T>
   class ReflectionVar : public ReflectionVarMeta {
 
+    class SpaceHandler {
+      struct TimeState {
+        uint32_t time_ms;
+        T value;
+      };
+      std::vector<TimeState> timeStates;
+
+    public:
+
+    };
+
     static constexpr reflection_var_encoder getCoder() {
       G_STATIC_ASSERT(HasValidEncoder<T>::value);
       return DefaultEncoderChooser<T>::coder;
     }
 
   public:
-    T data;
+    T * data;
     ReflectionVar() = delete; // some values NEED to be set
     void init(const char *name, ReflectionVarMeta *next, uint8_t pid, reflection_var_encoder coder = getCoder(),
               uint16_t bits = sizeof(T) << 3) {
@@ -286,29 +230,33 @@ namespace danet {
       this->persistentId = pid;
       this->numBits = bits;
       this->coder = coder;
+      this->data = new T{};
     }
 
-    ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid) : ReflectionVarMeta(), data() {
+    ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid) : ReflectionVarMeta() {
       init(name, next, pid);
     }
 
     ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid, reflection_var_encoder coder_)
-        : ReflectionVarMeta(), data() {
+        : ReflectionVarMeta() {
       init(name, next, pid, coder_);
     }
 
     ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid, uint16_t bit_count)
-        : ReflectionVarMeta(), data() {
+        : ReflectionVarMeta() {
       init(name, next, pid, getCoder(), bit_count);
     }
 
     ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid, uint16_t bit_count,
-                  reflection_var_encoder coder_) : ReflectionVarMeta(), data() {
+                  reflection_var_encoder coder_) : ReflectionVarMeta() {
       init(name, next, pid, coder_, bit_count);
     }
 
     T *Get() const {
       return this->getValue<T>();
+    }
+    ~ReflectionVar() {
+      delete data;
     }
   };
 
@@ -525,8 +473,8 @@ namespace danet {
     // reset RVF_CHANGED flag for variables and remove object from changed_reflectables list
     // (if none changed wars was left and do_reset_changed_flag==true)
     int
-    serialize(BitStream &bs, uint16_t flags_to_have = RVF_CHANGED, bool fth_all = true, uint16_t flags_to_ignore = 0,
-              bool fti_all = false, bool do_reset_changed_flag = true);
+    serialize(BitStream &bs, ParserState *state, uint16_t flags_to_have = RVF_CHANGED, bool fth_all = true,
+              uint16_t flags_to_ignore = 0, bool fti_all = false, bool do_reset_changed_flag = true);
 
     virtual bool deserialize(BitStream &bs, int data_size, ParserState *state);
 
@@ -572,13 +520,13 @@ namespace danet {
 // vars with RVF_EXCLUDED do not serializes
 // accept flags that must exists in changed vars (all or any of that flags must exist ruled by bool)
 // return how many objects was serialized (could be zero)
-  int serializeChangedReflectables(BitStream &bs, uint16_t flags_to_have = RVF_CHANGED, bool fth_all = true,
+  int serializeChangedReflectables(BitStream &bs, ParserState *state, uint16_t flags_to_have = RVF_CHANGED, bool fth_all = true,
                                    uint16_t flags_to_ignore = 0, bool fti_all = false,
                                    bool do_reset_changed_flag = true);
 
   int
-  serializeAllReflectables(BitStream &bs, uint16_t flags_to_have = 0, bool fth_all = true, uint16_t flags_to_ignore = 0,
-                           bool fti_all = false, bool do_reset_changed_flag = true);
+  serializeAllReflectables(BitStream &bs, ParserState *state, uint16_t flags_to_have = 0, bool fth_all = true,
+                           uint16_t flags_to_ignore = 0, bool fti_all = false, bool do_reset_changed_flag = true);
 
 // return -1 on error, or how many reflectables was deserialized
   int deserializeReflectables(BitStream &bs, mpi::object_dispatcher resolver, ParserState *state);
