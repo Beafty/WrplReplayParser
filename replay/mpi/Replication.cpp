@@ -8,7 +8,7 @@ void force_link_replication() {
 }
 
 
-BaseZone* create_zone(BitStream &bs, uint8_t zone_type, ParserState * state) {
+MissionZone* create_zone(BitStream &bs, uint8_t zone_type, ParserState * state) {
   IdFieldSerializer255 serializer255{};
   BitSize_t end;
   uint32_t count = serializer255.readFieldsSizeAndCount(bs, end);
@@ -51,7 +51,7 @@ BaseZone* create_zone(BitStream &bs, uint8_t zone_type, ParserState * state) {
   }
   //LOGE("mission_area_id: {}; maybe_team_id: {}, some_val: {}; some_val_2: {}", mission_area_id, maybe_team_id, some_val, some_val_2);
   if(zone_id == state->Zones.size()) {
-    BaseZone * obj;
+    MissionZone * obj;
     switch(zone_type) {
       case 0: {obj = new BombingZone(); break;}
       case 1: {obj = new CaptureZone(); break;}
@@ -121,12 +121,6 @@ IMPLEMENT_REPLICATION(UnitWinch) // 21
 IMPLEMENT_REPLICATION(Waypoint) // 22
 
 IMPLEMENT_REPLICATION(Wing) // 23
-
-IMPLEMENT_REPLICATION(BaseZone) // 24, but should not be used eveeeeeeer
-
-danet::ReplicatedObject * BaseZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  EXCEPTION("this should never be created");
-}
 
 danet::ReplicatedObject * Airfield::createReplicatedObject(BitStream &bs, ParserState *state) {
   REPLICATION_LOGD2("Parsing Replicated Airfield");
@@ -289,7 +283,7 @@ danet::ReplicatedObject * MissionObjective::createReplicatedObject(BitStream &bs
 }
 
 danet::ReplicatedObject * MissionZone::createReplicatedObject(BitStream &bs, ParserState *state) {
-  REPLICATION_LOGD2("Parsing Replicated MissionZone");
+  EXCEPTION("MissionZone should not be created");
   return nullptr;
 }
 
@@ -345,7 +339,7 @@ danet::ReplicatedObject * Wing::createReplicatedObject(BitStream &bs, ParserStat
 
 
 void Airfield::serializeReplicaCreationData(BitStream &bs) const {}
-void BaseZone::serializeReplicaCreationData(BitStream &bs) const {}
+void MissionZone::serializeReplicaCreationData(BitStream &bs) const {}
 void BombingZone::serializeReplicaCreationData(BitStream &bs) const {}
 void CaptureZone::serializeReplicaCreationData(BitStream &bs) const {}
 void DMSquad::serializeReplicaCreationData(BitStream &bs) const {}
@@ -358,7 +352,6 @@ void InteractiveObjectProxy::serializeReplicaCreationData(BitStream &bs) const {
 void MissionArea::serializeReplicaCreationData(BitStream &bs) const {}
 void MissionDrawing::serializeReplicaCreationData(BitStream &bs) const {}
 void MissionObjective::serializeReplicaCreationData(BitStream &bs) const {}
-void MissionZone::serializeReplicaCreationData(BitStream &bs) const {}
 void ObjectsGroup::serializeReplicaCreationData(BitStream &bs) const {}
 void OrderPlayerProgress::serializeReplicaCreationData(BitStream &bs) const {}
 void PickupZone::serializeReplicaCreationData(BitStream &bs) const {}

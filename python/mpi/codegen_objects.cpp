@@ -90,15 +90,15 @@ void PyCodegenObjects::include(py::module_ &m) {
     .def_readonly("tm", &MissionArea::tm)
     .def_property_readonly("areaFlags", [](MissionArea*ths){return &ths->areaFlags.data;})
   ;
-  py::class_<BaseZone, danet::ReplicatedObject, std::unique_ptr<BaseZone, py::nodelete>>(mpi, "BaseZone")
-    .def_readonly("area", &BaseZone::area)
-    .def_property_readonly("armyNo", [](BaseZone*ths){return &ths->armyNo.data;})
-    .def_property_readonly("flags", [](BaseZone*ths){return &ths->flags.data;})
+  py::class_<MissionZone, danet::ReplicatedObject, std::unique_ptr<MissionZone, py::nodelete>>(mpi, "MissionZone")
+    .def_readonly("area", &MissionZone::area)
+    .def_property_readonly("armyNo", [](MissionZone*ths){return &ths->armyNo.data;})
+    .def_property_readonly("flags", [](MissionZone*ths){return &ths->flags.data;})
   ;
-  py::class_<BombingZone, BaseZone, std::unique_ptr<BombingZone, py::nodelete>>(mpi, "BombingZone")
+  py::class_<BombingZone, MissionZone, std::unique_ptr<BombingZone, py::nodelete>>(mpi, "BombingZone")
     .def_property_readonly("curZoneIntegrity", [](BombingZone*ths){return &ths->curZoneIntegrity.data;})
   ;
-  py::class_<CaptureZone, BaseZone, std::unique_ptr<CaptureZone, py::nodelete>>(mpi, "CaptureZone")
+  py::class_<CaptureZone, MissionZone, std::unique_ptr<CaptureZone, py::nodelete>>(mpi, "CaptureZone")
     .def_property_readonly("mpTimeX100", [](CaptureZone*ths){return &ths->mpTimeX100.data;})
     .def_property_readonly("conqTeam", [](CaptureZone*ths){return &ths->conqTeam.data;})
     .def_property_readonly("iconIdx", [](CaptureZone*ths){return &ths->iconIdx.data;})
@@ -106,11 +106,11 @@ void PyCodegenObjects::include(py::module_ &m) {
     .def_property_readonly("dummyVarForCapturePart", [](CaptureZone*ths){return &ths->dummyVarForCapturePart.data;})
     .def_property_readonly("dummyVarForNumOfActiveCapturers", [](CaptureZone*ths){return &ths->dummyVarForNumOfActiveCapturers.data;})
   ;
-  py::class_<RearmZone, BaseZone, std::unique_ptr<RearmZone, py::nodelete>>(mpi, "RearmZone")
+  py::class_<RearmZone, MissionZone, std::unique_ptr<RearmZone, py::nodelete>>(mpi, "RearmZone")
   ;
-  py::class_<ExitZone, BaseZone, std::unique_ptr<ExitZone, py::nodelete>>(mpi, "ExitZone")
+  py::class_<ExitZone, MissionZone, std::unique_ptr<ExitZone, py::nodelete>>(mpi, "ExitZone")
   ;
-  py::class_<PickupZone, BaseZone, std::unique_ptr<PickupZone, py::nodelete>>(mpi, "PickupZone")
+  py::class_<PickupZone, MissionZone, std::unique_ptr<PickupZone, py::nodelete>>(mpi, "PickupZone")
     .def_property_readonly("showOnTacticalMap", [](PickupZone*ths){return &ths->showOnTacticalMap.data;})
   ;
 }

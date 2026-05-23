@@ -6,7 +6,7 @@
 #include "mpi/codegen/ReflectableObjects/GlobalElo.h"
 #include "mpi/codegen/ReflectableObjects/GeneralState.h"
 #include "mpi/codegen/ReflectableObjects/MissionArea.h"
-#include "mpi/codegen/ReflectableObjects/BaseZone.h"
+#include "mpi/codegen/ReflectableObjects/MissionZone.h"
 #include "mpi/codegen/ReflectableObjects/BombingZone.h"
 #include "mpi/codegen/ReflectableObjects/CaptureZone.h"
 #include "mpi/codegen/ReflectableObjects/RearmZone.h"

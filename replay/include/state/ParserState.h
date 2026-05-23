@@ -68,7 +68,7 @@ public:
   net_delta_t NetDelta;
   std::vector<MPlayer> players;
   ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
-  std::vector<BaseZone*> Zones{};
+  std::vector<MissionZone*> Zones{};
   std::array<TeamData, 3> teams{}; // team[0] is global data, teams[1] is first team, teams[2] is second team
   std::vector<ChatMessage> chatMessages{};
   GlobalElo glob_elo{};

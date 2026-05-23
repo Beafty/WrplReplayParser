@@ -90,28 +90,28 @@ class MissionArea(ReplicatedObject):
     areaFlags = Var("danet::AreaFlagsEnum", 0x2)
 
 
-class BaseZone(ReplicatedObject):
+class MissionZone(ReplicatedObject):
     public = [
         SVar("MissionArea*", "area"),
     ]
     armyNo = Var("uint8_t", 2)
     flags = Var("uint16_t", 3)
 
-class BombingZone(BaseZone):
+class BombingZone(MissionZone):
     curZoneIntegrity = Var("float", 0x43)
 
-class CaptureZone(BaseZone):
+class CaptureZone(MissionZone):
     mpTimeX100 = Var("uint8_t", 0x43)
     conqTeam = Var("uint8_t", 0x44)
     iconIdx = Var("uint8_t", 0x45)
     dummyVarForCapturers = Var("std::vector<danet::UnitId, uint8_t>", 0x46)
     dummyVarForCapturePart = Var("std::vector<danet::UnitIdStruct, uint8_t>", 0x47)
     dummyVarForNumOfActiveCapturers = Var("std::vector<uint8_t, uint8_t>", 0x48)
-class RearmZone(BaseZone):
+class RearmZone(MissionZone):
     pass
 
-class ExitZone(BaseZone):
+class ExitZone(MissionZone):
     pass
 
-class PickupZone(BaseZone):
+class PickupZone(MissionZone):
     showOnTacticalMap = Var("bool", 0x43)

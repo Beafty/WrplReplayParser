@@ -71,12 +71,6 @@ public:
   DECL_REPLICATION(MissionObjective, danet::ReplicatedObject)
 };
 
-// id 13
-class MissionZone : public danet::ReplicatedObject {
-public:
-  DECL_REPLICATION(MissionZone, danet::ReplicatedObject)
-};
-
 // id 14
 class ObjectsGroup : public danet::ReplicatedObject {
 public:
