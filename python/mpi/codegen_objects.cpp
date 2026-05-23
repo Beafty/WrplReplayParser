@@ -86,7 +86,12 @@ void PyCodegenObjects::include(py::module_ &m) {
     .def_property_readonly("dummyForUnlimitedControlEvent", [](GeneralState*ths){return &ths->dummyForUnlimitedControlEvent.data;})
     .def_property_readonly("customState", [](GeneralState*ths){return &ths->customState.data;})
   ;
+  py::class_<MissionArea, danet::ReplicatedObject, std::unique_ptr<MissionArea, py::nodelete>>(mpi, "MissionArea")
+    .def_readonly("tm", &MissionArea::tm)
+    .def_property_readonly("areaFlags", [](MissionArea*ths){return &ths->areaFlags.data;})
+  ;
   py::class_<BaseZone, danet::ReplicatedObject, std::unique_ptr<BaseZone, py::nodelete>>(mpi, "BaseZone")
+    .def_readonly("area", &BaseZone::area)
     .def_property_readonly("armyNo", [](BaseZone*ths){return &ths->armyNo.data;})
     .def_property_readonly("flags", [](BaseZone*ths){return &ths->flags.data;})
   ;

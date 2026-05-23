@@ -191,6 +191,13 @@ namespace mpi {
           return &state->teams[count];
         }
       }
+      case 0x16: {
+        if (count < state->missionAreas2.size()) {
+          return state->missionAreas2[count];
+        } else {
+          LOGE("Invalid MissionArea index");
+        }
+      }
     }
     //LOG("unable to dispatch to oid: {:#x}; type: {}; index: {}", oid, obj, count);
     return nullptr;

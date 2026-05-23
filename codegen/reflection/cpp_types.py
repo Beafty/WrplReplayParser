@@ -5,6 +5,9 @@ class Uid_reg(DataTypeRegister):
     name = "danet::Uid"
     is_pod = True
 
+class AreaFlagsEnum_reg(DataTypeRegister):
+    name = "danet::AreaFlagsEnum"
+    is_pod = True
 
 class RoundScore_reg(DataTypeRegister):
     name = "danet::RoundScore"
@@ -126,3 +129,4 @@ class UnitIdStruct_reg(DataTypeRegister):
         "danet::UnitId uid;",
         "uint8_t thang;"
     ]
+

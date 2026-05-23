@@ -173,7 +173,7 @@ int ZstdReader::getSize() {
     return 0;
 }
 
-void ZstdLoadCB::open(IGenReader &in_crd, int in_size, const ZSTD_DDict_s *dict)
+void ZstdLoadCB::open(IReader &in_crd, int in_size, const ZSTD_DDict_s *dict)
 {
     assert(!loadCb && "already opened?");
     assert(in_size > 0);

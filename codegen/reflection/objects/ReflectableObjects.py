@@ -81,7 +81,19 @@ class GeneralState(ReflectableObject):
     dummyForUnlimitedControlEvent = Var("bool", 0xb, "InvalidSerializer") # TODO dummy value
     customState = Var("DataBlock", 8)
 
+
+
+class MissionArea(ReplicatedObject):
+    public = [
+        SVar("TMatrix", "tm"),
+    ]
+    areaFlags = Var("danet::AreaFlagsEnum", 0x2)
+
+
 class BaseZone(ReplicatedObject):
+    public = [
+        SVar("MissionArea*", "area"),
+    ]
     armyNo = Var("uint8_t", 2)
     flags = Var("uint16_t", 3)
 

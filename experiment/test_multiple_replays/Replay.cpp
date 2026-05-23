@@ -3,7 +3,7 @@
 
 #include "Replay/Replay.h"
 
-uint32_t getPacketSize(IGenReader &cb) {
+uint32_t getPacketSize(IReader &cb) {
   uint8_t first_byte;
   if (!cb.readInto(first_byte))
     return 0;

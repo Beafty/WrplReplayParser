@@ -1,6 +1,10 @@
 #include "Replay/Replay.h"
 #include "filesystem"
 #include "dag_assert.h"
+#include "libdeflate.h"
+#include "zlib.h"
+#include "danet/daNetTypes.h"
+
 
 namespace fs = std::filesystem;
 
@@ -114,7 +118,7 @@ IReplayReader *Replay::getStreamingReplayReader(uint32_t time_wait) {
 
   auto *rdr = new FileStreamReader(d->reader.getFName(), time_wait);
   rdr->seekto(this->zlib_offs);
-  return new CompressedReplayReader{*this, rdr, 0xFFFFFFFFFFFFFFFF};
+  return new CompressedReplayReader{*this, rdr, 0x7FFFFFFF, false};
 }
 
 ServerReplay::ServerReplay(std::vector<std::span<uint8_t>> &data, bool owns) {

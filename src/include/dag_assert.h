@@ -8,7 +8,6 @@
 #endif
 
 #include <fmt/base.h>
-#include <iostream>
 #include <cstdlib>
 #include <cstdarg>  // for va_list, va_start, va_end
 #include <cstdint>
@@ -57,12 +56,12 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
 #define DAGOR_DBGLEVEL 2
 #if DAGOR_DBGLEVEL < 1
 // No side-effects in release
-#define G_ASSERT_EX(expression, expr_str)            ((void)0)
-#define G_ASSERTF_EX(expression, expr_str, fmt, ...) ((void)0)
-#define G_ASSERT(expression)                         ((void)0)
-#define G_ASSERTF(expression, fmt, ...)              ((void)0)
-#define G_ASSERTF_ONCE(expression, fmt, ...)         ((void)0)
-#define G_FAST_ASSERT(expression)                    ((void)0)
+#define G_ASSERT_EX(expression, expr_str)            (expression)
+#define G_ASSERTF_EX(expression, expr_str, fmt, ...) (expression)
+#define G_ASSERT(expression)                         (expression)
+#define G_ASSERTF(expression, fmt, ...)              (expression)
+#define G_ASSERTF_ONCE(expression, fmt, ...)         (expression)
+#define G_FAST_ASSERT(expression)                    (expression)
 #define G_ASSERT_FAIL(fmt, ...)                      ((void)0)
 #else
 #define G_ASSERT_EX(expression, expr_str)                                 \

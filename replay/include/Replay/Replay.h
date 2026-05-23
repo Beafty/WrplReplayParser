@@ -4,7 +4,7 @@
 #include "ReplayStructs.h"
 #include "DataBlock.h"
 #include "ReplayReader.h"
-
+#include "writer.h"
 
 
 

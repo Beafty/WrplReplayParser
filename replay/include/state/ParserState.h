@@ -74,6 +74,8 @@ public:
   GlobalElo glob_elo{};
   GeneralState gen_state{};
   std::vector<const mpi::IBattleMessage*> BattleMessages{};
+  std::vector<MissionArea*> missionAreas1{};
+  std::vector<MissionArea*> missionAreas2{};
   uint32_t curr_time_ms = 0;
   int current_packet_index=0;
   void setPlayerCount(int player_count) {
@@ -120,7 +122,7 @@ public:
         break;
       }
       case ReplayPacketType::NextSegment: {
-        LOG("NextSegment");
+        //LOG("NextSegment");
         break;
       }
       case ReplayPacketType::ECS: {

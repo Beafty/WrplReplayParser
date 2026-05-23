@@ -9,12 +9,12 @@
 #include <fstream>
 #include "utils.h"
 
-class IGenReader {
+class IReader {
 protected:
     bool owns = false;
 public:
     /// virtual destructor
-    virtual ~IGenReader() = default;
+    virtual ~IReader() = default;
 
     /// reads from the stream, returns nullptr if unable
     virtual bool read(void * ptr, int size) = 0;
@@ -63,7 +63,7 @@ public:
     }
 };
 
-class BaseReader : public IGenReader
+class BaseReader : public IReader
 {
 public:
     BaseReader(char * data, int size, bool owns);
@@ -103,7 +103,7 @@ protected:
 
 };
 
-class FileReader: public IGenReader
+class FileReader: public IReader
 {
 public:
     explicit FileReader(const std::string &file_name);
@@ -152,7 +152,7 @@ public:
 
 
 
-class ZstdReader : public IGenReader
+class ZstdReader : public IReader
 {
 public:
     ZstdReader() = default;
@@ -196,7 +196,7 @@ class ZstdLoadCB : public ZstdReader
 {
 public:
     ZstdLoadCB() = default; //-V730   /* since rdBuf shall not be filled in ctor for performance reasons */
-    ZstdLoadCB(IGenReader &in_reader, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false)
+    ZstdLoadCB(IReader &in_reader, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false)
     {
         ZstdReader::owns = tmp;
         open(in_reader, in_size, dict);
@@ -204,7 +204,7 @@ public:
     ~ZstdLoadCB() override { close(); }
 
 
-    void open(IGenReader &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr);
+    void open(IReader &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr);
     void close();
 
     void ceaseReading();
@@ -212,7 +212,7 @@ public:
 protected:
     static constexpr int RD_BUFFER_SIZE = (32 << 10);
     size_t inBufLeft = 0;
-    IGenReader *loadCb = nullptr;
+    IReader *loadCb = nullptr;
     alignas(16) char rdBuf[RD_BUFFER_SIZE];
 
     bool supplyMoreData() override;
@@ -224,10 +224,10 @@ enum
     ZLIB_LOAD_BUFFER_SIZE = (16 << 10),
 };
 
-class ZlibLoadCB : public IGenReader
+class ZlibLoadCB : public IReader
 {
 public:
-    ZlibLoadCB(IGenReader &in_crd, int in_size, bool raw_inflate = false, bool fatal_errors = true, bool fail_on_no_sz = true) :
+    ZlibLoadCB(IReader &in_crd, int in_size, bool raw_inflate = false, bool fatal_errors = true, bool fail_on_no_sz = true) :
             isFinished(false), isStarted(false), fatalErrors(fatal_errors), loadCb(nullptr)
     {
         open(in_crd, in_size, raw_inflate);
@@ -247,7 +247,7 @@ public:
 
     const char *getTargetName() { return loadCb ? "" : NULL; }
 
-    void open(IGenReader &in_crd, int in_size, bool raw_inflate = false);
+    void open(IReader &in_crd, int in_size, bool raw_inflate = false);
     void close();
 
     int getSize() override
@@ -271,7 +271,7 @@ protected:
     bool isFinished, isStarted;
     bool rawInflate;
     bool fatalErrors;
-    IGenReader *loadCb;
+    IReader *loadCb;
     int inBufLeft;
     unsigned char strm[SIZE_OF_Z_STREAM]; // z_stream strm;
     unsigned char buffer[ZLIB_LOAD_BUFFER_SIZE];

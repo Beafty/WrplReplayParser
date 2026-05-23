@@ -4,6 +4,7 @@
 class BaseZone : public danet::ReplicatedObject {
 public:
   DECL_REPLICATION(BaseZone, danet::ReplicatedObject)
+  MissionArea* area{};
   danet::ReflectionVar<uint8_t> armyNo{"armyNo", &flags, 2};
   danet::ReflectionVar<uint16_t> flags{"flags", nullptr, 3};
   BaseZone() : ReplicatedObject()  {

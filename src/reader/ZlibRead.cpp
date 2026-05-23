@@ -3,11 +3,11 @@
 #include "zlib.h"
 #include "dag_assert.h"
 
-void ZlibLoadCB::open(IGenReader &in_crd, int in_size, bool raw_inflate) {
-  assert(!loadCb && "already opened?");
-  static_assert(SIZE_OF_Z_STREAM >= sizeof(z_stream));
+void ZlibLoadCB::open(IReader &in_crd, int in_size, bool raw_inflate) {
+  G_ASSERT(!loadCb && "already opened?");
+  G_STATIC_ASSERT(SIZE_OF_Z_STREAM >= sizeof(z_stream));
 
-  assert(in_size > 0);
+  G_ASSERT(in_size > 0);
   loadCb = &in_crd;
   inBufLeft = in_size;
   isStarted = false;
@@ -21,7 +21,7 @@ void ZlibLoadCB::open(IGenReader &in_crd, int in_size, bool raw_inflate) {
 }
 
 void ZlibLoadCB::close() {
-  assert(isFinished || !isStarted);
+  G_ASSERT(isFinished || !isStarted);
   ceaseReading();
   loadCb = NULL;
   inBufLeft = 0;
@@ -139,4 +139,4 @@ bool ZlibLoadCB::ceaseReading() {
   return ret;
 }
 
-void ZlibLoadCB::issueFatal() { assert(0 && "restricted by design"); }
+void ZlibLoadCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }

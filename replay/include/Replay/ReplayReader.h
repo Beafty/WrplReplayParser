@@ -1,8 +1,10 @@
 #pragma once
 #include "ReplayStructs.h"
+#include "writer.h"
 
 
-uint32_t getPacketSize(IGenReader &cb);
+uint32_t getPacketSize(IReader &cb);
+void writePacketSize(IWriter &cb, uint32_t size);
 class IReplay;
 class Replay;
 class ServerReplay;
@@ -35,9 +37,10 @@ public:
 class CompressedReplayReader: public IReplayReader
 {
   ZlibLoadCB reader; // reads data from the base reader to stream decompress.  much more memory efficient compared to FullDecompress, but much slower
-  IGenReader * base_reader;
+  IReader * base_reader;
   uint32_t curr_time=0;
-  explicit CompressedReplayReader(Replay &replay, IGenReader *base_reader, size_t in_size);
+  bool acquired_lock=false;
+  explicit CompressedReplayReader(Replay &replay, IReader *base_reader, size_t in_size, bool acquired_lock=true);
   friend Replay;
 public:
   ~CompressedReplayReader() override;
