@@ -51,6 +51,8 @@ namespace danet {
 
   int AreaFlagsEnumCoder(DANET_ENCODER_SIGNATURE);
 
+  int int8_tCoder(DANET_ENCODER_SIGNATURE);
+
   int danetUnitId_uint8_tvectorCoder(DANET_ENCODER_SIGNATURE);
 
   int danetUnitIdStruct_uint8_tvectorCoder(DANET_ENCODER_SIGNATURE);
@@ -169,6 +171,11 @@ namespace danet {
   template <>
   struct DefaultEncoderChooser<danet::AreaFlagsEnum> {
     static constexpr reflection_var_encoder coder = AreaFlagsEnumCoder;
+  };
+
+  template <>
+  struct DefaultEncoderChooser<int8_t> {
+    static constexpr reflection_var_encoder coder = int8_tCoder;
   };
 
   template <>

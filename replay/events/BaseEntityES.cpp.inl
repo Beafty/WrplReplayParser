@@ -26,9 +26,16 @@ on_unit_disappear_es(const ecs::EventEntityDestroyed &evt, unit::UnitRef &unit__
     delete unit__ref.unit;
 }
 
-
 ECS_AFTER(on_aircraft_appear_es, on_tank_appear_es)
-static void uid_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId eid, const int &uid, unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
+static void after_unit_appear_es(const ecs::EventEntityCreated &evt, unit::UnitRef &unit__ref, const int &uid, ecs::EntityManager &manager) {
+  if (unit__ref.unit) {
+    unit__ref.unit->created_at = *manager.curr_time_ms;
+  }
+}
+
+
+ECS_AFTER(after_unit_appear_es)
+static void uid_entity_es(const ecs::EventEntityCreatedBasic &evt, const ecs::EntityId eid, const int &uid, unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
   if (uid == -1) {
     LOGE("Entity {:#x} has no uid, normal?", eid.get_handle());
     return;
@@ -36,15 +43,22 @@ static void uid_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityI
   ENTITY_LOGD3("Entity {:#x} requested uid {}", eid.get_handle(), uid);
   G_ASSERT(manager.uid_lookup[uid] == ecs::INVALID_ENTITY_ID);
   manager.uid_lookup[uid] = eid;
-  if(unit__ref.unit)
+  if(unit__ref.unit) {
     manager.uid_unit_lookup[uid] = unit__ref.unit;
+    unit__ref.unit->curr_eid = eid;
+  }
 }
 
-ECS_AFTER(on_aircraft_appear_es, on_tank_appear_es)
-static void uid_entity_es(const ecs::EventEntityDestroyedBasic &evt, const int &uid, ecs::EntityManager &manager) {
+ECS_AFTER(after_unit_appear_es)
+static void uid_entity_es(const ecs::EventEntityDestroyedBasic &evt, unit::UnitRef &unit__ref, const int &uid, ecs::EntityManager &manager) {
   G_ASSERT(manager.uid_lookup[uid] != ecs::INVALID_ENTITY_ID);
   manager.uid_lookup[uid] = ecs::INVALID_ENTITY_ID;
   manager.uid_unit_lookup[uid] = nullptr;
+  if (unit__ref.unit) {
+    unit__ref.unit->curr_eid = evt.get<0>();
+    if (unit__ref.unit->created_at <= *manager.curr_time_ms) // if an entity
+      unit__ref.unit->destroyed_at = *manager.curr_time_ms; // this entity was destroyed after it was created
+  }
 }
 
 template <typename Callable>

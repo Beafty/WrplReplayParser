@@ -550,7 +550,7 @@ def gen_es_event_handler(esFunction):
     {indent}{call_}'''.format(**locals())
 
   if len(esFunction.eventHandlers) != 1:
-    genCode += '  }} else {{G_ASSERTF(0, "Unexpected event type <%s> in {funcName}", evt.getName());}}\n'.format(funcName=funcName) if (not hasGenericEvent) else '}\n'
+    genCode += '  }} else {{G_ASSERTF(0, "Unexpected event type <{{}}> in {funcName}", evt.getName());}}\n'.format(funcName=funcName) if (not hasGenericEvent) else '}\n'
   genCode += '}\n'
   return genCode
 
@@ -639,7 +639,7 @@ def gen_ecs_query_simd(esFunction):
 inline {result_type} {fullFuncName}({first_arg}{second_arg}Callable function)
 {{
   {return_statement}perform_query({manager_name},{eid_pass} {funcName}_desc.getHandle(),
-    {query_type_start}[&function](const ecs::QueryView& __restrict components)
+    {query_type_start}[&function](const ecs::QueryView& __restrict components, ecs::EntityManager &mgr)
     {{{callCode}}}{query_type_end}
   {parallelForCode});
 }}

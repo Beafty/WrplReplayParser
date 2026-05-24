@@ -15,7 +15,9 @@ namespace ecs
     template_t templ_id = INVALID_TEMPLATE_INDEX;
     archetype_t archetype_id = INVALID_ARCHETYPE;
     chunk_index_t chunk_id = INVALID_CHUNK_INDEX_T;
-    uint32_t generation = globalGen;
+    uint8_t generation = globalGen;
+    bool exists = true;
+    // because my ECS keeps all entities forever, does this specific entity exist as of the current time_ms?
   };
   // a class that represents
   class EntityDescs

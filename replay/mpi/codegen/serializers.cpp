@@ -2,6 +2,7 @@
 #include "mpi/serializers.h"
 #include "ecs/entityId.h"
 #include "network/eid.h"
+#include "state/ParserState.h"
 namespace danet {
 
   int UidCoder(DANET_ENCODER_SIGNATURE) {
@@ -443,6 +444,19 @@ namespace danet {
 
   int AreaFlagsEnumCoder(DANET_ENCODER_SIGNATURE) {
     auto data = meta->getValue<danet::AreaFlagsEnum>();
+    if (op == DANET_REFLECTION_OP_ENCODE) {
+      bs->Write(*(data));
+      return true;
+    }
+    else if (op == DANET_REFLECTION_OP_DECODE) {
+      REPL_VER(bs->Read(*(data)));
+      return true;
+    }
+    return false;
+  }
+
+  int int8_tCoder(DANET_ENCODER_SIGNATURE) {
+    auto data = meta->getValue<int8_t>();
     if (op == DANET_REFLECTION_OP_ENCODE) {
       bs->Write(*(data));
       return true;

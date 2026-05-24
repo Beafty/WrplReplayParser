@@ -27,23 +27,7 @@
 #define ECS_FOR_EACH_RSEQ_N()       15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 #define ECS_FOR_EACH_(N, WHAT, ...) ECS_EXPAND(CONCATENATE(ECS_FOR_EACH_, N)(WHAT, __VA_ARGS__))
 #define ECS_FOR_EACH(WHAT, ...)     ECS_FOR_EACH_(ECS_FOR_EACH_NARG(__VA_ARGS__), WHAT, __VA_ARGS__)
-#ifdef _MSC_VER
-#define ECS_BEFORE_ONE(a)
-#define ECS_BEFORE(...)
-#define ECS_AFTER_ONE(a)
-#define ECS_AFTER(...)
-#define ECS_TAG_ONE(a)
-#define ECS_TAG(...)
-#define ECS_TRACK_ONE(a)
-#define ECS_TRACK(...)
-#define ECS_NO_ORDER
-
-#define ECS_UNUSED(a)                      a
-#define ECS_REQUIRE_ONE(a)
-#define ECS_REQUIRE(...)
-#define ECS_REQUIRE_NOT_ONE(a)
-#define ECS_REQUIRE_NOT(...)
-#else
+#ifdef _ECS_CODEGEN
 #define ECS_BEFORE_ONE(a) __attribute__((annotate("@before:" #a)))
 #define ECS_BEFORE(...)   ECS_FOR_EACH(ECS_BEFORE_ONE, __VA_ARGS__)
 #define ECS_AFTER_ONE(a)  __attribute__((annotate("@after:" #a)))
@@ -59,4 +43,20 @@
 #define ECS_REQUIRE(...)                   ECS_FOR_EACH(ECS_REQUIRE_ONE, __VA_ARGS__)
 #define ECS_REQUIRE_NOT_ONE(a)             __attribute__((annotate("@require_not:" #a)))
 #define ECS_REQUIRE_NOT(...)               ECS_FOR_EACH(ECS_REQUIRE_NOT_ONE, __VA_ARGS__
+#else
+#define ECS_BEFORE_ONE(a)
+#define ECS_BEFORE(...)
+#define ECS_AFTER_ONE(a)
+#define ECS_AFTER(...)
+#define ECS_TAG_ONE(a)
+#define ECS_TAG(...)
+#define ECS_TRACK_ONE(a)
+#define ECS_TRACK(...)
+#define ECS_NO_ORDER
+
+#define ECS_UNUSED(a)                      a
+#define ECS_REQUIRE_ONE(a)
+#define ECS_REQUIRE(...)
+#define ECS_REQUIRE_NOT_ONE(a)
+#define ECS_REQUIRE_NOT(...)
 #endif

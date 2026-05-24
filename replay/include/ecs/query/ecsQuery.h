@@ -36,8 +36,8 @@ namespace ecs {
   };
 
 // Queries are considered perfomance critical therefore it should not allocate memory on execution (hence fixed_function)
-  typedef eastl::fixed_function<sizeof(void *) * 2, void(const QueryView &)> query_cb_t;
-  typedef eastl::fixed_function<sizeof(void *) * 2, QueryCbResult(const QueryView &)> stoppable_query_cb_t;
+  typedef eastl::fixed_function<sizeof(void *) * 2, void(const QueryView &, EntityManager &)> query_cb_t;
+  typedef eastl::fixed_function<sizeof(void *) * 2, QueryCbResult(const QueryView &, EntityManager &)> stoppable_query_cb_t;
 
   enum
   {

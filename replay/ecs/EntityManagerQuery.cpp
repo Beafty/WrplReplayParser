@@ -1091,7 +1091,7 @@ namespace ecs {
           qv.eid_refs = (ecs::EntityId *) (chunk.getCompArrayUnsafe(0,
                                                                     EntityCount)); // first array at 0th is always eid
           qv.num_of_entities = chunk.used;
-          if(DAGOR_UNLIKELY(fun(qv) == QueryCbResult::Stop))
+          if(DAGOR_UNLIKELY(fun(qv, mgr) == QueryCbResult::Stop))
             return QueryCbResult::Stop;
         }
       } else {
@@ -1111,7 +1111,7 @@ namespace ecs {
               *componentData = nullptr;
             }
           }
-          if(DAGOR_UNLIKELY(fun(qv) == QueryCbResult::Stop))
+          if(DAGOR_UNLIKELY(fun(qv, mgr) == QueryCbResult::Stop))
             return QueryCbResult::Stop;
         }
       }
@@ -1136,7 +1136,7 @@ namespace ecs {
       if(!doesArchetypeExist(arch_id, mgr.arch_data))
         continue;
 
-      auto curr_arch = mgr.arch_data.getArch(*archBegin);
+      auto curr_arch = mgr.arch_data.getArch(arch_id);
 
       auto EntityCount = curr_arch->getEntityCount();
       qv.index_start = 0;
@@ -1146,7 +1146,7 @@ namespace ecs {
           qv.eid_refs = (ecs::EntityId *) (chunk.getCompArrayUnsafe(0,
                                                                     EntityCount)); // first array at 0th is always eid
           qv.num_of_entities = chunk.used;
-          fun(qv);
+          fun(qv, mgr);
         }
       } else {
         for (auto &chunk: curr_arch->chunks) {
@@ -1165,7 +1165,7 @@ namespace ecs {
               *componentData = nullptr;
             }
           }
-          fun(qv);
+          fun(qv, mgr);
         }
       }
     }

@@ -356,6 +356,96 @@ namespace ecs {
 
   extern OnDemandInit<GState> g_ecs_data;
 
+  enum class DIRECTION {
+    Rewind,
+    Fastforward,
+  };
+
+  class RewindAction {
+    friend EntityManager;
+  public:
+    const uint32_t time_ms;
+    DIRECTION last_direction = DIRECTION::Fastforward;
+    RewindAction(const uint32_t time_ms) : time_ms(time_ms) {}
+    virtual ~RewindAction() = default;
+    virtual void forward(EntityManager &mgr) = 0; // we are going forward in time
+    virtual void backward(EntityManager &mgr) = 0; // we are going back in time
+  };
+
+
+  class EntityCreatedAction : public RewindAction {
+    EntityId before{}; // holds entity while destroyed
+    EntityId after{}; // holds entity while created
+    friend EntityManager;
+  public:
+    EntityCreatedAction(const uint32_t time_ms, const EntityId before, const EntityId after) : RewindAction(time_ms), before(before), after(after) {}
+    ~EntityCreatedAction() override = default;
+    void forward(EntityManager &mgr) override;
+    void backward(EntityManager &mgr) override;
+  };
+
+  class EntityDestroyedAction : public RewindAction {
+    EntityId before{}; // holds entity while destroyed
+    EntityId after{}; // holds entity while created
+    friend EntityManager;
+  public:
+    EntityDestroyedAction(const uint32_t time_ms, const EntityId before, const EntityId after) : RewindAction(time_ms), before(before), after(after) {}
+    ~EntityDestroyedAction() override = default;
+    void forward(EntityManager &mgr) override;
+    void backward(EntityManager &mgr) override;
+  };
+
+  constexpr size_t MAX_ACTION_SIZE = std::max(sizeof(EntityCreatedAction), sizeof(EntityDestroyedAction)); // basically useless but hehehe
+  using ACTION_ARRAY_CONTAINER =  std::array<uint8_t, MAX_ACTION_SIZE>;
+
+  class RewindManager {
+    // allocation is not really needed here, so lets try it inplace
+    std::vector<ACTION_ARRAY_CONTAINER> actions;
+    int curr_index{};
+    DIRECTION prev_direction = DIRECTION::Fastforward;
+
+
+    inline RewindAction * getAction(uint32_t index) {
+      auto &base = actions[index];
+      return reinterpret_cast<RewindAction*>(base.data());
+    }
+
+    inline uint32_t getTime(int index) {
+      if (index < 0)
+        return 0;
+      if (index >= (int)actions.size())
+        return 0xFFFFFFFF;
+      auto action = getAction(index);
+      return action->time_ms;
+    }
+
+    friend EntityManager;
+    RewindManager() {
+      actions.reserve(1000);
+    }
+    uint32_t createCreationAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
+      uint32_t action_idx = (uint32_t)actions.size();
+  actions.emplace_back();
+      auto &base = actions.back();
+      new (base.data()) EntityCreatedAction(time_ms, invalid_storage, valid_storage);
+      curr_index = (uint32_t)actions.size();
+      return action_idx;
+    }
+
+    uint32_t createDestroyAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
+      uint32_t action_idx = (uint32_t)actions.size();
+  actions.emplace_back();
+      auto &base = actions.back();
+      new (base.data()) EntityDestroyedAction(time_ms, invalid_storage, valid_storage);
+      curr_index = (uint32_t)actions.size();
+      return action_idx;
+    }
+
+
+
+    void rewindTo(uint32_t, EntityManager &mgr);
+  };
+
   class EntityManager {
     // max of range reserved for replicated entities
     // all ids below this (basically 0 to USHRT_MAX) are for server to do stuff
@@ -366,10 +456,18 @@ namespace ecs {
     // if we are client, we do not push freed indices that are in RESERVED_EID_RANGE
     std::deque<ecs::entity_id_t> freeIndices, freeIndicesReserved;
     ecs::entity_id_t nextReservedIndex=0;
+
+    RewindManager rewindManager;
+
+    std::unordered_map<EntityId, uint32_t> eidToEventCreationMap;
+
+    void swap_desc(EntityId e1, EntityId e2);
+
   public:
 
     ParserState * owned_by=nullptr;
     uint32_t * curr_time_ms;
+    uint32_t * curr_rewind_time_ms;
     // for ease of access
     std::array<ecs::EntityId, 2048> uid_lookup{};
     std::array<unit::Unit*, 2048> uid_unit_lookup{};
@@ -446,7 +544,7 @@ namespace ecs {
 
     void debugPrintEntities();
 
-    EntityId allocateOneEid();
+    EntityId allocateOneEid(int16_t generation=-1);
 
     void sendEventImmediate(EntityId eid, Event &evt);
 
@@ -468,10 +566,15 @@ namespace ecs {
     inline void performQuery(QueryId h, const query_cb_t &fun, void *user_data)
     {return this->data_state->performQuery(*this, h, fun, user_data);}
 
+    void rewindTo(uint32_t time) {rewindManager.rewindTo(time, *this);}
+
   protected:
     friend Component;
     friend InstantiatedTemplate;
     friend GState;
+    friend RewindAction;
+    friend EntityCreatedAction;
+    friend EntityDestroyedAction;
 
     GState *data_state = g_ecs_data.get();
     EntityDescs entDescs;

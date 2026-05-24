@@ -11,11 +11,88 @@ namespace ecs {
   OnDemandInit<std::vector<after_components_cb>> after_comps_callbacks{};
   OnDemandInit<GState> g_ecs_data{};
 
+
+  void EntityCreatedAction::forward(EntityManager &mgr) {
+    //LOGI("EntityCreatedAction::forward: {}", this->time_ms);
+    G_ASSERT(this->last_direction == DIRECTION::Rewind);
+    mgr.swap_desc(before, after);
+    auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
+    G_ASSERT(ptr);
+    *ptr = after;
+    mgr.sendEventImmediate(after, EventEntityCreatedBasic{});
+    last_direction = DIRECTION::Fastforward;
+  }
+
+  void EntityCreatedAction::backward(EntityManager &mgr) {
+    //LOGI("EntityCreatedAction::backward: {}", this->time_ms);
+    G_ASSERT(this->last_direction == DIRECTION::Fastforward);
+    auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
+    G_ASSERT(ptr);
+    *ptr = before;
+    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before});
+    mgr.swap_desc(before, after);
+    last_direction = DIRECTION::Rewind;
+  }
+
+  void EntityDestroyedAction::forward(EntityManager &mgr) {
+    //LOGI("EntityDestroyedAction::forward: {}", this->time_ms);
+    G_ASSERT(this->last_direction == DIRECTION::Rewind);
+    auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
+    G_ASSERT(ptr);
+    *ptr = before;
+    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before});
+    mgr.swap_desc(before, after);
+    last_direction = DIRECTION::Fastforward;
+  }
+
+  void EntityDestroyedAction::backward(EntityManager &mgr) {
+    //LOGI("EntityDestroyedAction::backward: {}", this->time_ms);
+    G_ASSERT(this->last_direction == DIRECTION::Fastforward);
+    mgr.swap_desc(before, after);
+    auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
+    G_ASSERT(ptr);
+    *ptr = after;
+    mgr.sendEventImmediate(after, EventEntityCreatedBasic{});
+    last_direction = DIRECTION::Rewind;
+  }
+
+  void RewindManager::rewindTo(uint32_t time_ms, EntityManager &mgr) {
+    const int sz = (int)actions.size();
+    if (sz == 0)
+      return;
+
+    // curr_index in [0, sz]:
+    //   0   = no actions applied
+    //   sz  = all actions applied
+    //   k   = actions [0, k-1] applied, action k is next to apply forward
+    curr_index = std::clamp(curr_index, 0, sz);
+
+    // Undo actions whose time is strictly after target: action[curr_index-1] was last applied
+    while (curr_index > 0 && getTime(curr_index - 1) > time_ms) {
+      --curr_index;
+      *mgr.curr_time_ms = getTime(curr_index - 1);
+      getAction(curr_index)->backward(mgr);
+    }
+
+    // Apply actions whose time is within target
+    while (curr_index < sz && getTime(curr_index) <= time_ms) {
+      *mgr.curr_time_ms = getTime(curr_index - 1);
+      getAction(curr_index)->forward(mgr);
+      ++curr_index;
+    }
+  }
+
   CompileTimeQueryDesc *CompileTimeQueryDesc::tail = nullptr;
 
   void GState::initCompileTimeQueries() {
     for (CompileTimeQueryDesc *sd = CompileTimeQueryDesc::tail; sd; sd = sd->next)
       sd->query = createUnresolvedQuery(*sd);
+  }
+
+  void EntityManager::swap_desc(EntityId e1, EntityId e2) {
+    auto &destroyed_desc = entDescs[e1];
+    auto &created_desc = entDescs[e2];
+    std::swap(destroyed_desc, created_desc);
   }
 
   EntityManager::EntityManager(ParserState*owned_by) {
@@ -25,8 +102,7 @@ namespace ecs {
     for (auto &eid: this->uid_lookup) {
       eid = ecs::INVALID_ENTITY_ID;
     }
-    wasInit.resize(10000,
-                   false); // just in case, current max datacomponents was like 950; edit: its now like 7000 cause of infantry and shit
+    wasInit.resize(10000, false);
   }
 
   inline const EntityDesc *EntityDescs::getEntityDesc(EntityId eid) const {
@@ -118,6 +194,7 @@ namespace ecs {
 
           ComponentRef ref{old_data, old_comp->hash, old_data_comp->componentIndex, old_comp->size};
           archetype_component_id id = new_archInfo.getComponentId(comp_info->INDEX);
+          // new template has the component
           if (id != INVALID_ARCHETYPE_COMPONENT_ID) {
             auto curr_info = ComponentInfo[id];
             auto new_data = new_ARCHETYPE.getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
@@ -161,11 +238,17 @@ namespace ecs {
       }
     }
 
+    auto storage_eid = this->allocateOneEid(); // (int16_t)eid.get_generation()
+
+    auto idx = this->rewindManager.createCreationAction(*curr_time_ms, storage_eid, eid);
+    eidToEventCreationMap[eid] = idx;
     this->entDescs.Allocate(eid);
-    this->entDescs[eid.index()] = {templId, archetype_id, chunk_id, eid.generation()};
+    this->entDescs[eid.index()] = {templId, archetype_id, chunk_id, eid.generation(), true};
     this->wasInit.clear();
-    if(!isRecreating)
+    if(!isRecreating) {
       this->sendEventImmediate(eid, ecs::EventEntityCreated{});
+      this->sendEventImmediate(eid, ecs::EventEntityCreatedBasic{});
+    }
     return eid;
   }
 
@@ -199,27 +282,25 @@ namespace ecs {
 
     auto desc = this->entDescs.getEntityDesc(eid);
 
-    if(!this->entDescs.basic_destroyed.test(eid.index(), false))
-      sendEventImmediate(eid, EventEntityDestroyedBasic{});
     if(!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <= RESERVED_EID_RANGE) {
       G_ASSERT(!this->entDescs.basic_destroyed.test(eid.index(), false));
-      auto new_eid = this->allocateOneEid();
+      //auto new_eid = this->allocateOneEid();
+      auto creation_action = (EntityCreatedAction*)this->rewindManager.actions[eidToEventCreationMap[eid]].data();
+      auto new_eid = creation_action->before;
+      G_ASSERT(new_eid);
+      eidToEventCreationMap.erase(eid);
+      sendEventImmediate(eid, EventEntityDestroyedBasic{new_eid}); 
       *this->getNullable<ecs::EntityId>(eid, ECS_HASH("eid")) = new_eid;
       ENTITY_LOGD2("Moving eid: {:#x} of template {} to {:#x}", eid.get_handle(), this->data_state->getTemplateName(desc->templ_id), new_eid.get_handle());
-      auto &old_desc = this->entDescs[eid];
-      auto &new_desc = this->entDescs[new_eid];
-      new_desc.chunk_id = old_desc.chunk_id;
-      old_desc.chunk_id = INVALID_CHUNK_INDEX_T;
-
-      new_desc.archetype_id = old_desc.archetype_id;
-      old_desc.archetype_id = INVALID_ARCHETYPE;
-
-      new_desc.templ_id = old_desc.templ_id;
-      old_desc.templ_id = INVALID_TEMPLATE_INDEX;
-      add_sub_template(new_eid, "dagor_destroyed_t");
+      swap_desc(eid, new_eid);
+      //add_sub_template(new_eid, "dagor_destroyed_t");
       this->entDescs.basic_destroyed.set(new_eid.index(), true);
+      this->rewindManager.createDestroyAction(*curr_time_ms, new_eid, eid);
       return true;
     }
+
+    if(!this->entDescs.basic_destroyed.test(eid.index(), false))
+      sendEventImmediate(eid, EventEntityDestroyedBasic{ecs::INVALID_ENTITY_ID});
 
     sendEventImmediate(eid, EventEntityDestroyed{});
     if(is_dtor) {
@@ -509,7 +590,7 @@ namespace ecs {
     }
   }
 
-  EntityId EntityManager::allocateOneEid() {
+  EntityId EntityManager::allocateOneEid(int16_t generation) {
 
     bool reserved = eidsReservationMode;
     auto &freed_deque = reserved ? freeIndicesReserved : freeIndices;
@@ -529,8 +610,11 @@ namespace ecs {
         goto alloc_idx;
       }
     }
-
-    return EntityId(make_eid(idx, entDescs[idx].generation));
+    G_ASSERT(generation <= 255);
+    uint8_t gen = generation >= 0 ? (uint8_t)generation : entDescs[idx].generation;
+    auto eid = EntityId(make_eid(idx, gen));
+    this->entDescs.Allocate(eid);
+    return eid;
   }
 
   void EntityManager::add_sub_template(ecs::EntityId eid, const string &sub_template) {

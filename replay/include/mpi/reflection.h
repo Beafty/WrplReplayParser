@@ -146,15 +146,21 @@ namespace danet {
 
 
   // is attached to a var, represents its various states throughout a replay
-  template <typename T>
-  class VarVersionHandler {
-    struct TimeState {
-      uint32_t time_ms;
-      T object;
-    };
+  class ISpaceHandler {
+  public:
+    virtual ~ISpaceHandler() = default;
+    virtual void* addState(uint32_t time_ms) = 0; // add state for this var at this time, return pointer to value
+    virtual void checkPreviousState() = 0; // checks if previous state is same as the one before it, deletes recent if so
+    virtual void* goToTime(uint32_t time_ms) = 0; // does rewinding operation
+    virtual void removePreviousState() = 0; // call during a deserialize fail
   };
 // vars of this type are linked in one list inside of ReflectableObject
   class ReflectionVarMeta {
+    void setValuePtr(void* ptr) {
+      char* raw = reinterpret_cast<char*>(this) + sizeof(ReflectionVarMeta);
+      std::memcpy(raw, &ptr, sizeof(ptr));
+    }
+    friend ReflectableObject;
   public:
     uint8_t persistentId;
     uint16_t flags;
@@ -162,6 +168,7 @@ namespace danet {
     const char *name;
     reflection_var_encoder coder;
     ReflectionVarMeta *next;
+    ISpaceHandler * handler;
     friend ReflectableObject;
 
     const char *getVarName() const { return name; }
@@ -175,6 +182,10 @@ namespace danet {
 
     void setChanged(bool f) {
       flags = f ? (flags | RVF_CHANGED) : (flags & ~RVF_CHANGED);
+    }
+
+    void setNewVar(uint32_t time_ms) {
+      setValuePtr(this->handler->addState(time_ms));
     }
   };
 
@@ -204,15 +215,55 @@ namespace danet {
   template<typename T>
   class ReflectionVar : public ReflectionVarMeta {
 
-    class SpaceHandler {
+    class SpaceHandler : public ISpaceHandler  {
       struct TimeState {
-        uint32_t time_ms;
-        T value;
+        uint32_t time_ms = 0;
+        T value{};
       };
-      std::vector<TimeState> timeStates;
+
+      std::vector<TimeState> timeStates{};
+      size_t curr_index = 0;
 
     public:
+      void* addState(uint32_t time_ms) override {
+        timeStates.push_back(TimeState{time_ms, T{}});
+        curr_index = timeStates.size() - 1;
+        return &timeStates.back().value;
+      }
 
+      void checkPreviousState()  override {
+        if (timeStates.size() < 2)
+          return;
+        auto prev = &timeStates.back();
+        auto prev_prev = &timeStates[timeStates.size() - 2];
+        if (prev->value == prev_prev->value) {
+          timeStates.resize(timeStates.size() - 1);
+        curr_index = timeStates.size() - 1;
+        }
+      }
+
+      void* goToTime(uint32_t time_ms) override {
+        if (timeStates.empty())
+          return nullptr;
+        if (timeStates.size() == 1)
+          return &timeStates[0].value;
+
+        if (time_ms < timeStates[curr_index].time_ms) {
+          while (curr_index > 0 && timeStates[curr_index].time_ms > time_ms)
+            --curr_index;
+        } else {
+          while (curr_index + 1 < timeStates.size() &&
+                 timeStates[curr_index + 1].time_ms <= time_ms)
+            ++curr_index;
+        }
+
+        return &timeStates[curr_index].value;
+      }
+      void removePreviousState() override {
+        if (!timeStates.empty()) {
+          timeStates.pop_back();
+        }
+      }
     };
 
     static constexpr reflection_var_encoder getCoder() {
@@ -221,7 +272,8 @@ namespace danet {
     }
 
   public:
-    T * data;
+    T * data = nullptr;
+    SpaceHandler spaceHandler;
     ReflectionVar() = delete; // some values NEED to be set
     void init(const char *name, ReflectionVarMeta *next, uint8_t pid, reflection_var_encoder coder = getCoder(),
               uint16_t bits = sizeof(T) << 3) {
@@ -230,7 +282,8 @@ namespace danet {
       this->persistentId = pid;
       this->numBits = bits;
       this->coder = coder;
-      this->data = new T{};
+      this->data = (T*)spaceHandler.addState(0);
+      this->handler = &spaceHandler;
     }
 
     ReflectionVar(const char *name, ReflectionVarMeta *next, uint8_t pid) : ReflectionVarMeta() {
@@ -255,9 +308,9 @@ namespace danet {
     T *Get() const {
       return this->getValue<T>();
     }
-    ~ReflectionVar() {
-      delete data;
-    }
+    //~ReflectionVar() {
+    //  delete data;
+    //}
   };
 
   struct Invalid {
@@ -492,6 +545,12 @@ namespace danet {
     // implemented automatically in DECL_REFLECTION macros
 
     virtual const char *getClassName() const = 0;
+
+    void rewindToTime(uint32_t time_ms) {
+      for (ReflectionVarMeta *m = varList.head; m; m = m->next) {
+        m->setValuePtr(m->handler->goToTime(time_ms));
+      }
+    }
   };
 
   class ReplicatedObject : public ReflectableObject {

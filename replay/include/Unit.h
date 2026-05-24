@@ -5,6 +5,7 @@
 #include "danet/BitStream.h"
 #include "math/dag_Point3.h"
 #include "DataBlock.h"
+#include "ecs/entityId.h"
 //#include "mpi/mpi.h"
 //#include "mpi/codegen/ReflIncludes.h"
 
@@ -136,8 +137,12 @@ namespace unit {
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
 
     // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
-    bool exists = true;
+
+    uint32_t created_at = 0;
+    uint32_t killed_at = 0xFFFFFFFF; // when was killed
+    uint32_t destroyed_at = 0xFFFFFFFF; // when was 'destroyed' in ecs
     uint16_t uid;
+    ecs::EntityId curr_eid;
     UnitType unitType; // make into an enum, maybe match with gaijin enum? I know they have one iirc
     std::string unit_name{};
     std::string player_internal_name{};

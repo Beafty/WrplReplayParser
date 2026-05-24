@@ -161,6 +161,7 @@ class DataType(NameSpace):
         return [
             f"struct {self.name} {'{'}",
             *["  " + x.rstrip(";") + "{};" for x in vars],
+            f"  bool operator==(const {self.name}& other) const = default;",
             "};"
         ]
 
@@ -460,6 +461,7 @@ class DataTypeManager:
                 f.write("#include \"mpi/serializers.h\"\n")
                 f.write("#include \"ecs/entityId.h\"\n")
                 f.write("#include \"network/eid.h\"\n")
+                f.write("#include \"state/ParserState.h\"\n")
                 f.write("namespace danet {\n")
                 for serializer in self.serializer_strs:
                     f.write(serializer)

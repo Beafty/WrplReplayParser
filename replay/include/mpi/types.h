@@ -7,10 +7,10 @@
 #include "dag_assert.h"
 #include "vector"
 #include "array"
+#include "Unit.h"
 #include "ecs/entityId.h"
 #include "math/dag_Point3.h"
 namespace danet {
-
   enum AreaFlagsEnum : uint16_t {
     air = 1 << 0,
     unk1 = 1 << 1,
@@ -32,6 +32,7 @@ namespace danet {
 
   struct UnitId { // so that Uid and uint16_t can have different encoders
     uint16_t val{};
+    bool operator==(const UnitId& other) const = default;
   };
 }
 
@@ -43,8 +44,11 @@ namespace danet {
     uint64_t player_id{};
     char name[82]{};
 
-    std::string_view get_player_name() {
-      return std::string_view(name, std::min(strlen(name), sizeof(name)));
+    std::string_view get_player_name() const {
+      return std::string_view(name, strnlen(name, sizeof(name)));
+    }
+    bool operator==(const Uid& other) const {
+      return std::memcmp(this, &other, sizeof(Uid)) == 0;
     }
   };
 #pragma pack(pop)

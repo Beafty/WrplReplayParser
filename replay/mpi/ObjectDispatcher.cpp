@@ -190,6 +190,7 @@ namespace mpi {
         if(count < 3) { // max team count is 3
           return &state->teams[count];
         }
+        EXCEPTION("Invalid team index");
       }
       case 0x16: {
         if (count < state->missionAreas2.size()) {
@@ -197,6 +198,7 @@ namespace mpi {
         } else {
           LOGE("Invalid MissionArea index");
         }
+        return nullptr;
       }
     }
     //LOG("unable to dispatch to oid: {:#x}; type: {}; index: {}", oid, obj, count);

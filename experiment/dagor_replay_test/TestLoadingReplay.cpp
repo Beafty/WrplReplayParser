@@ -93,6 +93,9 @@ int main() {
     }
     iterate_all_units(state);
     idx = state.current_packet_index;
+    state.rewindToMs(105620);
+    state.rewindToMs(157507);
+    state.rewindToMs(156777);
     delete rdr;
     delete rpl;
 

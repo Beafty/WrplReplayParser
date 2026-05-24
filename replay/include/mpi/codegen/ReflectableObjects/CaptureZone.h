@@ -4,7 +4,7 @@
 class CaptureZone : public MissionZone {
 public:
   DECL_REPLICATION(CaptureZone, MissionZone)
-  danet::ReflectionVar<uint8_t> mpTimeX100{"mpTimeX100", &conqTeam, 67};
+  danet::ReflectionVar<int8_t> mpTimeX100{"mpTimeX100", &conqTeam, 67};
   danet::ReflectionVar<uint8_t> conqTeam{"conqTeam", &iconIdx, 68};
   danet::ReflectionVar<uint8_t> iconIdx{"iconIdx", &dummyVarForCapturers, 69};
   danet::ReflectionVar<std::vector<danet::UnitId>> dummyVarForCapturers{"dummyVarForCapturers", &dummyVarForCapturePart, 70};

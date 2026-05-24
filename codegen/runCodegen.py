@@ -2,6 +2,7 @@ import os.path
 import sys
 
 import reflection.parser
+from codegen.reflection import custom_rw
 from hashCheck import HashChecker
 
 from reflection import builtin_types
@@ -32,7 +33,7 @@ def codegen_reflection(force_gen: bool = False):
     type_imports = [builtin_types, cpp_types]
 
     file_paths = [*[inspect.getsourcefile(module) for module in obj_imports], *[inspect.getsourcefile(module) for module in type_imports]]
-
+    file_paths.append(inspect.getsourcefile(custom_rw))
     if check_hash("ReflectionObjBindings", file_paths):
         return
 
@@ -50,7 +51,7 @@ def codegen_reflection(force_gen: bool = False):
 
 # codegen for DagECS. this basically calls into the dagECS codegen.
 def codegen_ecs():
-    SEARCH_DIRS = [f"{ROOT_PATH}/replay"]
+    SEARCH_DIRS = [f"{ROOT_PATH}/replay", f"{ROOT_PATH}/replay_inspector"]
     parsed_objects = set()
     for d in SEARCH_DIRS:
         for p in pathlib.Path(d).rglob("*.cpp.inl"):

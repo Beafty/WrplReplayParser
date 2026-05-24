@@ -868,6 +868,8 @@ public:
   DataBlock &operator=(const DataBlock &other) noexcept = default;
   DataBlock &operator=(DataBlock &&other) noexcept = default;
 
+  bool operator==(const DataBlock& other) const {return false;} // honestly probably faster for reflection
+
   static SharedPtr<DataBlock> makeAliasedBlock(const std::shared_ptr<DataBlockShared> &pool, DataBlock *ptr);
 
   void dumpBlocks(std::vector<DataBlock *> &blocks_, std::vector<DataBlockInfo> &blkinfo) const;

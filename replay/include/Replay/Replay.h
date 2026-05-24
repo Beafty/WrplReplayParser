@@ -25,6 +25,7 @@ public:
   /// getCompressedReplayReader() is slower, but also more memory efficient.
   /// \return returns the object, you must delete it yourself
   virtual IReplayReader * getCompressedReplayReader() = 0;
+  virtual bool isValid() = 0;
 };
 
 
@@ -184,6 +185,7 @@ public:
   DataBlock * getFooterBlk() override {return &footer_blk;}
   IReplayReader * getReplayReader() override;
   IReplayReader *getCompressedReplayReader() override;
+  bool isValid() {return is_valid;}
   IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);
 };
 
@@ -205,4 +207,5 @@ public:
 
   IReplayReader * getReplayReader() override;
   IReplayReader *getCompressedReplayReader() override;
+  bool isValid() override;
 };

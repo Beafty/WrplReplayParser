@@ -92,6 +92,35 @@ static ecs::EntitySystemDesc on_unit_disappear_es_es_desc
   ecs::empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityDestroyed>::build()
 );
+static constexpr ecs::ComponentDesc after_unit_appear_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("uid"), ecs::ComponentTypeInfo<int>()}
+};
+static void after_unit_appear_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
+    after_unit_appear_es(static_cast<const ecs::EventEntityCreated&>(evt)
+        , ECS_RW_COMP(after_unit_appear_es_comps, "unit__ref", unit::UnitRef)
+    , ECS_RO_COMP(after_unit_appear_es_comps, "uid", int)
+    , mgr
+    );
+  } while (++comp != compE);
+}
+static ecs::EntitySystemDesc after_unit_appear_es_es_desc
+(
+  "after_unit_appear_es",
+  "D:/ReplayParser/replay/events/BaseEntityES.cpp.inl",
+  ecs::EntitySystemOps(after_unit_appear_es_all_events),
+  ecs::make_span(after_unit_appear_es_comps+0, 1)/*rw*/,
+  ecs::make_span(after_unit_appear_es_comps+1, 1)/*ro*/,
+  ecs::empty_span(),
+  ecs::empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated>::build()
+,nullptr,nullptr,nullptr,"on_aircraft_appear_es,on_tank_appear_es");
 static constexpr ecs::ComponentDesc uid_entity_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -105,20 +134,21 @@ static void uid_entity_es_all_events(ecs::EntityManager &mgr, const ecs::Event &
 if (evt.is<ecs::EventEntityDestroyedBasic>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
       uid_entity_es(static_cast<const ecs::EventEntityDestroyedBasic&>(evt)
-            , ECS_RO_COMP(uid_entity_es_comps, "uid", int)
+            , ECS_RW_COMP(uid_entity_es_comps, "unit__ref", unit::UnitRef)
+      , ECS_RO_COMP(uid_entity_es_comps, "uid", int)
       , mgr
       );
     } while (++comp != compE);
-  } else if (evt.is<ecs::EventEntityCreated>()) {
+  } else if (evt.is<ecs::EventEntityCreatedBasic>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
-      uid_entity_es(static_cast<const ecs::EventEntityCreated&>(evt)
+      uid_entity_es(static_cast<const ecs::EventEntityCreatedBasic&>(evt)
             , ECS_RO_COMP(uid_entity_es_comps, "eid", ecs::EntityId)
       , ECS_RO_COMP(uid_entity_es_comps, "uid", int)
       , ECS_RW_COMP(uid_entity_es_comps, "unit__ref", unit::UnitRef)
       , mgr
       );
     } while (++comp != compE);
-    } else {G_ASSERTF(0, "Unexpected event type <%s> in uid_entity_es", evt.getName());}
+    } else {G_ASSERTF(0, "Unexpected event type <{}> in uid_entity_es", evt.getName());}
 }
 static ecs::EntitySystemDesc uid_entity_es_es_desc
 (
@@ -129,9 +159,9 @@ static ecs::EntitySystemDesc uid_entity_es_es_desc
   ecs::make_span(uid_entity_es_comps+1, 2)/*ro*/,
   ecs::empty_span(),
   ecs::empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
+  ecs::EventSetBuilder<ecs::EventEntityCreatedBasic,
                        ecs::EventEntityDestroyedBasic>::build()
-,nullptr,nullptr,nullptr,"on_aircraft_appear_es,on_tank_appear_es");
+,nullptr,nullptr,nullptr,"after_unit_appear_es");
 static constexpr ecs::ComponentDesc iterate_all_units_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
@@ -151,7 +181,7 @@ template<typename Callable>
 inline void iterate_all_units_ecs_query(ecs::EntityManager &manager, Callable function)
 {
   perform_query(&manager, iterate_all_units_ecs_query_desc.getHandle(),
-    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
+    ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components, ecs::EntityManager &mgr)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
         {

@@ -168,7 +168,7 @@ namespace ecs
     }
 
     bool hasArchetype(archetype_t index) {
-      return index < data.size() || data[index] != nullptr;
+      return index < data.size() && data[index] != nullptr;
     }
     // all construction of a specific archetype happens earlier, so no checks here
     Archetype *getArch(archetype_t index) const {

@@ -101,7 +101,7 @@ class BombingZone(MissionZone):
     curZoneIntegrity = Var("float", 0x43)
 
 class CaptureZone(MissionZone):
-    mpTimeX100 = Var("uint8_t", 0x43)
+    mpTimeX100 = Var("int8_t", 0x43)
     conqTeam = Var("uint8_t", 0x44)
     iconIdx = Var("uint8_t", 0x45)
     dummyVarForCapturers = Var("std::vector<danet::UnitId, uint8_t>", 0x46)

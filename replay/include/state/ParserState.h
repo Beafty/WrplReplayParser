@@ -62,7 +62,12 @@ struct ParserState {
 private:
 
   //friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);
+
+
 public:
+  uint32_t replay_length_ms = 0;
+  uint32_t current_rewind_ms;
+  uint32_t curr_time_ms = 0;
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
   net_delta_t NetDelta;
@@ -76,13 +81,13 @@ public:
   std::vector<const mpi::IBattleMessage*> BattleMessages{};
   std::vector<MissionArea*> missionAreas1{};
   std::vector<MissionArea*> missionAreas2{};
-  uint32_t curr_time_ms = 0;
   int current_packet_index=0;
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }
   ~ParserState() {
     ZoneScoped;
+    this->rewindToMs(0xFFFFFFFF);
     for(auto v : Zones) {
       delete v;
     }
@@ -99,8 +104,10 @@ public:
 
   inline bool ParsePacket(ReplayPacket &pkt) {
     curr_time_ms = pkt.timestamp_ms;
+    current_rewind_ms = curr_time_ms;
     switch (pkt.type) {
       case ReplayPacketType::EndMarker: {
+        replay_length_ms = pkt.timestamp_ms;
         return false;
       }
       case ReplayPacketType::StartMarker: {
@@ -139,6 +146,21 @@ public:
     }
     current_packet_index++;
     return true;
+  }
+
+  inline void rewindToMs(uint32_t time_ms) {
+    if (current_rewind_ms == time_ms)
+      return;
+    //LOGI("rewinding to {} from {}", time_ms, current_rewind_ms);
+    current_rewind_ms = time_ms;
+    this->g_entity_mgr.rewindTo(time_ms);
+    for (auto & p : players)
+      p.rewindToTime(time_ms);
+    for (auto & p : Zones)
+      p->rewindToTime(time_ms);
+    for (auto & p : missionAreas2)
+      p->rewindToTime(time_ms);
+    curr_time_ms = time_ms;
   }
 };
 

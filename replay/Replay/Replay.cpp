@@ -197,3 +197,11 @@ IReplayReader *ServerReplay::getReplayReader() {
 IReplayReader *ServerReplay::getCompressedReplayReader() {
   return new ServerReplayReader<true>(*this);
 }
+
+bool ServerReplay::isValid() {
+  for (auto & rpl : replay_files) {
+    if (!rpl->is_valid)
+      return false;
+  }
+  return true;
+}

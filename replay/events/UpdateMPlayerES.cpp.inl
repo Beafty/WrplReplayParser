@@ -4,9 +4,24 @@
 #include "ecs/query/coreEvents.h"
 #include "ecs/ecsCodegen.h"
 
+
+
 ECS_AFTER(uid_entity_es)
 const void
-mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId &eid, const int &unit__playerId,
+mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const int &unit__playerId,
+                      const unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
+  if (unit__playerId == -1) { // not owned by a player
+    return;
+  }
+  G_ASSERT(unit__playerId < manager.owned_by->players.size());
+  if (unit__ref.unit) {
+    manager.owned_by->players[unit__playerId].allOwnedUnits.emplace_back(unit__ref.unit);
+  }
+}
+
+ECS_AFTER(uid_entity_es)
+const void
+mplayer_add_entity_es(const ecs::EventEntityCreatedBasic &evt, const ecs::EntityId &eid, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
   if (unit__playerId == -1) { // not owned by a player
     return;
@@ -14,7 +29,6 @@ mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const ecs::EntityId &e
   G_ASSERT(unit__playerId < manager.owned_by->players.size());
   if (unit__ref.unit) {
     manager.owned_by->players[unit__playerId].currentOwnedUnits.emplace(unit__ref.unit);
-    manager.owned_by->players[unit__playerId].allOwnedUnits.emplace_back(unit__ref.unit);
   }
 }
 
@@ -29,6 +43,6 @@ mplayer_add_entity_es(const ecs::EventEntityDestroyedBasic &evt, const ecs::Enti
   G_ASSERT(unit__playerId < manager.owned_by->players.size());
   if (unit__ref.unit) {
     manager.owned_by->players[unit__playerId].currentOwnedUnits.erase(unit__ref.unit);
-    unit__ref.unit->exists = false;
+
   }
 }

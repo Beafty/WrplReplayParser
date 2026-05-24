@@ -14,6 +14,10 @@ class uint8_t_reg(DataTypeRegister):
     name = "uint8_t"
     is_pod = True
 
+class int8_t_reg(DataTypeRegister):
+    name = "int8_t"
+    is_pod = True
+
 
 class uint16_t_reg(DataTypeRegister):
     name = "uint16_t"

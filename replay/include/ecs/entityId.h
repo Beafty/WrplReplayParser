@@ -61,7 +61,7 @@ namespace ecs {
     //friend unsigned get_generation(const EntityId);
     entity_id_t handle = ECS_INVALID_ENTITY_ID_VAL;
 
-    unsigned generation() const { return (handle >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
+    uint8_t generation() const { return (handle >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
   };
 
   struct EidHash {
