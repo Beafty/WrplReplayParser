@@ -7,7 +7,7 @@
 
 
 ECS_AFTER(uid_entity_es)
-const void
+inline void
 mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
   if (unit__playerId == -1) { // not owned by a player
@@ -20,7 +20,7 @@ mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const int &unit__playe
 }
 
 ECS_AFTER(uid_entity_es)
-const void
+inline void
 mplayer_add_entity_es(const ecs::EventEntityCreatedBasic &evt, const ecs::EntityId &eid, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
   if (unit__playerId == -1) { // not owned by a player
@@ -33,7 +33,7 @@ mplayer_add_entity_es(const ecs::EventEntityCreatedBasic &evt, const ecs::Entity
 }
 
 ECS_AFTER(uid_entity_es)
-const void
+inline void
 mplayer_add_entity_es(const ecs::EventEntityDestroyedBasic &evt, const ecs::EntityId &eid, const int &unit__playerId,
                       const unit::UnitRef &unit__ref, ecs::EntityManager &manager) {
 

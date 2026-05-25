@@ -29,7 +29,7 @@ on_unit_disappear_es(const ecs::EventEntityDestroyed &evt, unit::UnitRef &unit__
 ECS_AFTER(on_aircraft_appear_es, on_tank_appear_es)
 static void after_unit_appear_es(const ecs::EventEntityCreated &evt, unit::UnitRef &unit__ref, const int &uid, ecs::EntityManager &manager) {
   if (unit__ref.unit) {
-    unit__ref.unit->created_at = *manager.curr_time_ms;
+    unit__ref.unit->created_at_ms = *manager.curr_time_ms;
   }
 }
 
@@ -56,8 +56,9 @@ static void uid_entity_es(const ecs::EventEntityDestroyedBasic &evt, unit::UnitR
   manager.uid_unit_lookup[uid] = nullptr;
   if (unit__ref.unit) {
     unit__ref.unit->curr_eid = evt.get<0>();
-    if (unit__ref.unit->created_at <= *manager.curr_time_ms) // if an entity
-      unit__ref.unit->destroyed_at = *manager.curr_time_ms; // this entity was destroyed after it was created
+    if (evt.get<1>()) {
+      unit__ref.unit->destroyed_at_ms = *manager.curr_time_ms;
+    }
   }
 }
 

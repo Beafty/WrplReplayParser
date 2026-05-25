@@ -61,7 +61,7 @@ class TeamData(ReflectableObject):
     orderCooldownTotal = Var("uint32_t", 4)
     orderCooldownLeft = Var("uint32_t", 5)
     spawnScore = Var("uint32_t", 6)
-    roundScore = Var("uint32_t", 7)
+    roundScore = Var("float", 7)
 
 class GlobalElo(ReflectableObject):
     teamAvgEloRatings = Var("danet::teamAvgEloRatings", 2)

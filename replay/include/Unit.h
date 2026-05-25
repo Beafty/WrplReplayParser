@@ -138,9 +138,9 @@ namespace unit {
 
     // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
 
-    uint32_t created_at = 0;
-    uint32_t killed_at = 0xFFFFFFFF; // when was killed
-    uint32_t destroyed_at = 0xFFFFFFFF; // when was 'destroyed' in ecs
+    uint32_t created_at_ms = 0;
+    uint32_t killed_at_ms = 0xFFFFFFFF; // when was killed
+    uint32_t destroyed_at_ms = 0xFFFFFFFF; // when was 'destroyed' in ecs
     uint16_t uid;
     ecs::EntityId curr_eid;
     UnitType unitType; // make into an enum, maybe match with gaijin enum? I know they have one iirc

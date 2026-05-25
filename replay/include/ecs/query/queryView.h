@@ -32,8 +32,16 @@ namespace ecs {
       RWData data;
       uint16_t roRW = 0;
     };
-
+    // msvc eat it
+#ifdef _MSC_VER
     [[nodiscard]] ComponentsData getComponentUntypedData(uint16_t compId) const { return componentData[compId]; }
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+    [[nodiscard]] ComponentsData getComponentUntypedData(uint16_t compId) const { return componentData[compId]; }
+#pragma GCC diagnostic pop
+#endif
+
 
     template <class T>
     const T* getComponentRawRO(uint16_t compId) const
@@ -50,7 +58,7 @@ namespace ecs {
     }
 
     template <class T, typename U = T>
-    auto &getComponentRW(uint16_t compId, uint32_t idInChunk) const
+    [[nodiscard]] auto &getComponentRW(uint16_t compId, uint32_t idInChunk) const
     {
       auto p = getComponentUntypedData(compId);
       G_ASSERT(p);
@@ -58,7 +66,7 @@ namespace ecs {
       //return ref<T, U>(p, idInChunk);
     }
     template <class T, typename U = T>
-    auto &getComponentRO(uint16_t compId, uint32_t idInChunk) const
+    [[nodiscard]] auto &getComponentRO(uint16_t compId, uint32_t idInChunk) const
     {
       auto p = getComponentUntypedData(compId);
       G_ASSERT(p);

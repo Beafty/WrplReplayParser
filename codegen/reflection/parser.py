@@ -10,11 +10,13 @@ from .DataTypes import DataTypeManager, iterate_classes_in_source_order
 from .write_header import write_header
 
 
-def generate_reflectables(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
 
+type_imports = [builtin_types, cpp_types]
+mgr = DataTypeManager(type_imports)
+
+def generate_reflectables(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
+    global mgr
     obj_imports = [objects]
-    type_imports = [builtin_types, cpp_types]
-    mgr = DataTypeManager(type_imports)
     refl_include_paths: list[str] = []
     for imp in obj_imports:
         for obj in iterate_classes_in_source_order(imp):
@@ -52,9 +54,8 @@ def generate_reflectables(header_codegen_path: str, cpp_codegen_path: str, force
         f1.write("#include \"mpi/Replication.h\"\n")
 
 def generate_bindings(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
+    global mgr
     obj_imports = [objects]
-    type_imports = [builtin_types, cpp_types]
-    mgr = DataTypeManager(type_imports)
     with open(f"{cpp_codegen_path}/codegen_objects.cpp", "w") as f:
         write_header(f)
         f.write("#include \"modules/mpi/codegen_objects.h\"\n")

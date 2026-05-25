@@ -59,10 +59,6 @@ class EntityId_reg(DataTypeRegister):
     custom_loader = EntityId_loader
     custom_writer = EntityId_writer
 
-class entity_id_t_reg(DataTypeRegister):
-    name = "ecs::entity_id_t"
-    custom_loader = entity_id_t_loader
-    custom_writer = entity_id_t_writer
 
 class vector_reg(DataTypeRegister):
     name = "std::vector"

@@ -44,7 +44,9 @@ void PyUnit::include(py::module_ &m) {
   un
       .def_readonly("unitType", &unit::Unit::unitType)
       .def_readonly("uid", &unit::Unit::uid)
-      .def_readonly("exists", &unit::Unit::exists)
+      .def_readonly("created_at_ms", &unit::Unit::created_at_ms)
+      .def_readonly("killed_at_ms", &unit::Unit::killed_at_ms)
+      .def_readonly("destroyed_at_ms", &unit::Unit::destroyed_at_ms)
       .def("AsAircraft", &unit::Unit::AsAircraft)
       .def("AsTank", &unit::Unit::AsTank)
       .def_readonly("unit_name", &unit::Unit::unit_name)

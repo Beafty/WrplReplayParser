@@ -13,6 +13,8 @@ namespace danet {
 
   int uint16_tCoder(DANET_ENCODER_SIGNATURE);
 
+  int EntityIdCoder(DANET_ENCODER_SIGNATURE);
+
   int boolCoder(DANET_ENCODER_SIGNATURE);
 
   int floatCoder(DANET_ENCODER_SIGNATURE);
@@ -22,8 +24,6 @@ namespace danet {
   int UidCoder(DANET_ENCODER_SIGNATURE);
 
   int DataBlockCoder(DANET_ENCODER_SIGNATURE);
-
-  int EntityIdCoder(DANET_ENCODER_SIGNATURE);
 
   int ecsEntityId_20arrayCoder(DANET_ENCODER_SIGNATURE);
 

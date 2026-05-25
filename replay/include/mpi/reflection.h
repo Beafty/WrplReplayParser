@@ -83,6 +83,11 @@ enum DanetReflectionVarFlags {
   RVF_UNRELIABLE = 1 << 15,
 };
 
+namespace pybind11 {
+  template <typename type_, typename... options>
+  class class_;
+}
+
 namespace danet {
   class ReflectionVarMeta;
 
@@ -212,19 +217,39 @@ namespace danet {
   };
 
 
+
   template<typename T>
   class ReflectionVar : public ReflectionVarMeta {
+    static constexpr reflection_var_encoder getCoder() {
+      G_STATIC_ASSERT(HasValidEncoder<T>::value);
+      return DefaultEncoderChooser<T>::coder;
+    }
 
-    class SpaceHandler : public ISpaceHandler  {
+    template <typename type_, typename... options>
+    friend class pybind11::class_;
+  public:
+    // so pybind11 can see it
+    struct SpaceHandler : public ISpaceHandler  {
       struct TimeState {
         uint32_t time_ms = 0;
         T value{};
+
+        bool operator==(const TimeState& other) const {
+          return time_ms == other.time_ms && value == other.value;
+        }
       };
 
       std::vector<TimeState> timeStates{};
       size_t curr_index = 0;
 
+      template <typename type_, typename... options>
+      friend class pybind11::class_;
     public:
+
+      const std::vector<const TimeState> *getStates() {
+        return &timeStates;
+      }
+
       void* addState(uint32_t time_ms) override {
         timeStates.push_back(TimeState{time_ms, T{}});
         curr_index = timeStates.size() - 1;
@@ -238,7 +263,7 @@ namespace danet {
         auto prev_prev = &timeStates[timeStates.size() - 2];
         if (prev->value == prev_prev->value) {
           timeStates.resize(timeStates.size() - 1);
-        curr_index = timeStates.size() - 1;
+          curr_index = timeStates.size() - 1;
         }
       }
 
@@ -266,14 +291,13 @@ namespace danet {
       }
     };
 
-    static constexpr reflection_var_encoder getCoder() {
-      G_STATIC_ASSERT(HasValidEncoder<T>::value);
-      return DefaultEncoderChooser<T>::coder;
-    }
 
-  public:
-    T * data = nullptr;
+    const auto& get_history() const { return spaceHandler.timeStates; }
+
+    T * data = nullptr; // MUST BE FIRST VAR
+  private:
     SpaceHandler spaceHandler;
+  public:
     ReflectionVar() = delete; // some values NEED to be set
     void init(const char *name, ReflectionVarMeta *next, uint8_t pid, reflection_var_encoder coder = getCoder(),
               uint16_t bits = sizeof(T) << 3) {

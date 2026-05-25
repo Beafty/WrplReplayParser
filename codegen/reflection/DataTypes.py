@@ -1,6 +1,7 @@
 import inspect
 import types
 import ast
+from io import StringIO
 from typing import TextIO, Union
 from .write_header import write_header
 from typing import TYPE_CHECKING
@@ -525,34 +526,102 @@ extern PyCodegenObjects py_codegen_objects;
                         io.write("    ;\n")
                     else:
                         write_namespace(nm, io)
+
+        def collect_all_types(nm_: NameSpace) -> list[DataType]:
+            payload = []
+            for nm in nm_.contains.values():
+                if isinstance(nm, DataType):
+                    payload.append(nm)
+                else:
+                    payload.extend(collect_all_types(nm))
+            return payload
+
+        def write_predicate(io: TextIO, number: int):
+            io.write("#include \"modules/mpi/mpi.h\"\n")
+            io.write("#include \"modules/mpi/codegen_types.h\"\n")
+            io.write("#include \"modules/bind_readonly_vector.h\"\n")
+            io.write("#include \"mpi/reflection.h\"\n")
+            io.write("#include \"mpi/types.h\"\n")
+            io.write("#include \"modules/mpi/bind_array.h\"\n")
+            io.write("#include \"pybind11/stl_bind.h\"\n")
+            io.write(f"void include_types_{number+1}(py::module &gen);\n")
+            io.write(f"void include_types_{number}(py::module &gen) {{\n")
+
+
         with open(f"{cpp_path}/codegen_types.cpp", "w") as f:
             write_header(f)
-            f.write(f"#include \"modules/mpi/mpi.h\"\n")
-            f.write(f"#include \"modules/mpi/codegen_types.h\"\n")
+            f.write("#include \"modules/mpi/mpi.h\"\n")
+            f.write("#include \"modules/mpi/codegen_types.h\"\n")
+            f.write("#include \"modules/bind_readonly_vector.h\"\n")
+            f.write("#include \"mpi/reflection.h\"\n")
             f.write("#include \"mpi/types.h\"\n")
             f.write("#include \"modules/mpi/bind_array.h\"\n")
             f.write("#include \"pybind11/stl_bind.h\"\n")
             f.write(f"PyCodegenTypes py_codegen_types{'{}'};\n")
+            f.write(f"void include_types_0(py::module &m);\n")
             f.write("void PyCodegenTypes::include(py::module_ &m) {\n  DO_INCLUDE()\n  py_mpi.include(m);\n")
             f.write("  auto mpi = m.def_submodule(\"mpi\");\n")
+            f.write("  auto gen = mpi.def_submodule(\"gen\");\n")
+
+            all_written_objects = []
             # first step, write all the base type
             write_namespace(self.datatypes, f)
+            parsed_types = set()
             for data_type_name, data_type in self.inst_datatypes.items():
                 nm = data_type.datatype.reg.get_base_name(data_type)
                 full = data_type.datatype.reg.serialize_name(data_type)
+
+                if full in parsed_types:
+                    continue
+                parsed_types.add(full)
                 # print(data_type_name, data_type, self.refractor_raw_name(data_type_name), nm)
                 # print(data_type.datatype.name)
+                print(f"serializing {full}")
+                full_substituted = full.replace("::", "_").replace("<", "_").replace(">", "_").replace(",", "_")
                 if len(data_type.datatype.vars) > 0:
                     pass # serialized above in write_namespace
                 elif nm == "std::vector":
                     ...
-                    f.write(f"  py::bind_vector<{full}>(mpi, \"Vector_{data_type.template_args[0].datatype.name}\");\n\n")
+                    f.write(f"  bind_readonly_vector<{full}>(gen, \"{full_substituted}\");\n\n")
                 elif nm == "std::array":
-                    f.write(f"  bind_array<{data_type.template_args[0].datatype.name}, {data_type.template_args[1]}>(mpi, \"Array\");\n\n")
+                    f.write(f"  bind_array<{data_type.template_args[0].full_type_name}, {data_type.template_args[1]}>(mpi, \"{full_substituted}\");\n\n")
                 else: # all these should be types that already exist
                     ...
 
-            f.write("}")
+                io = StringIO()
+                state_str = f"danet::ReflectionVar<{full}>::SpaceHandler::TimeState"
+                io.write(f"  //danet::ReflectionVar<{full}> bindings\n")
+
+                #write TimeState instance
+                io.write(f"  py::class_<{state_str}>(gen, \"{full_substituted}_ts\")\n")
+                io.write(f"  .def_readonly(\"time_ms\", &{state_str}::time_ms)\n")
+                io.write(f"  .def_readonly(\"value\", &{state_str}::value);\n\n")
+
+                # write TimeState vector instance
+                io.write(f"  bind_readonly_vector<std::vector<{state_str}>>(gen, \"{full_substituted}_ts_vector\");\n\n")
+
+
+                io.write(f"  py::class_<danet::ReflectionVar<{full}>>(gen, \"{full_substituted}_var\")\n")
+                io.write(f"  .def_readonly(\"data\", &danet::ReflectionVar<{full}>::data)\n")
+                io.write(f"  .def_property_readonly(\"history\", [](danet::ReflectionVar<{full}> &self){{return &self.get_history();}});\n\n\n")
+                all_written_objects.append(io)
+
+            f.write("include_types_0(gen);\n}")
+            OBJECT_COUNT = 8
+            batches = [all_written_objects[i:i+OBJECT_COUNT] for i in range(0, len(all_written_objects), OBJECT_COUNT)]
+            for index, written in enumerate(batches):
+                with open(f"{cpp_path}/codegen_types_{index}.cpp", "w") as f:
+                    write_predicate(f, index)
+                    for b in written:
+                        txt = b.getvalue()
+                        f.write(txt)
+                    f.write(f"  include_types_{index+1}(gen);\n}}")
+
+            # index isnt destroyed outside the loop, so lets use it to easily write out last file
+            with open(f"{cpp_path}/codegen_types_{index+1}.cpp", "w") as f:
+                f.write("#include \"modules/mpi/mpi.h\"\n")
+                f.write(f"void include_types_{index+1}(py::module &gen) {{}}")
+
 
 
     def refractor_raw_name(self, raw_type: str) -> str:

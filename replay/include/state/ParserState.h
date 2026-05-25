@@ -72,7 +72,7 @@ public:
   mpi::GeneralObject main_dispatch{this};
   net_delta_t NetDelta;
   std::vector<MPlayer> players;
-  ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
+  ecs::EntityManager g_entity_mgr{this}; // this order is required as g_entity_mgr needs to be destroyed before players
   std::vector<MissionZone*> Zones{};
   std::array<TeamData, 3> teams{}; // team[0] is global data, teams[1] is first team, teams[2] is second team
   std::vector<ChatMessage> chatMessages{};
@@ -155,6 +155,8 @@ public:
     current_rewind_ms = time_ms;
     this->g_entity_mgr.rewindTo(time_ms);
     for (auto & p : players)
+      p.rewindToTime(time_ms);
+    for (auto & p : teams)
       p.rewindToTime(time_ms);
     for (auto & p : Zones)
       p->rewindToTime(time_ms);

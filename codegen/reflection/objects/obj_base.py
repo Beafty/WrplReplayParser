@@ -140,7 +140,7 @@ class InstReflectable:
                     self.oss.write(f"    .def_readonly(\"{v.name}\", &{self.obj_name}::{v.name})\n")
 
         for v in self.vars.ls:
-            self.oss.write(f"    .def_property_readonly(\"{v[0]}\", []({self.obj_name}*ths){'{'}return &ths->{v[0]}.data;{'}'})\n")
+            self.oss.write(f"    .def_readonly(\"{v[0]}\", &{self.obj_name}::{v[0]})\n")
         self.oss.write("  ;\n")
 
     def getLastVar(self):

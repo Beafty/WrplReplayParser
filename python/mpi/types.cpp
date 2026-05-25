@@ -26,5 +26,16 @@ void PyMpiTypes::include(py::module_ &m) {
         return py::make_iterator(self.begin(), self.end());
       }, py::keep_alive<0, 1>());
   bind_readonly_vector_no_contain<std::vector<unit::Unit>>(mpi, "UnitList");
+    py::enum_<danet::AreaFlagsEnum>(mpi, "AreaFlagsEnum")
+    .value("air", danet::AreaFlagsEnum::air)
+    .value("ground", danet::AreaFlagsEnum::ground)
+    .value("mapArea", danet::AreaFlagsEnum::mapArea)
+    .value("team1", danet::AreaFlagsEnum::team1)
+    .value("team2", danet::AreaFlagsEnum::team2)
+    .value("killArea", danet::AreaFlagsEnum::killArea)
+    .value("detectionArea", danet::AreaFlagsEnum::detectionArea)
+    .value("airMapArea", danet::AreaFlagsEnum::airMapArea);
+
+
   py_codegen_types.include(m);
 }

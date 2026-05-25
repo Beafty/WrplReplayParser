@@ -27,8 +27,8 @@ class dummyForFootballStat_reg(DataTypeRegister):
 class Crew_reg(DataTypeRegister):
     name = "danet::Crew"
     members = [
-        "ecs::entity_id_t e1;",
-        "ecs::entity_id_t e2;",
+        "ecs::EntityId e1;",
+        "ecs::EntityId e2;",
         "uint8_t v1;",
         "uint8_t v2;",
     ]
@@ -85,9 +85,7 @@ class dummyForKillStreaksProgress_reg(DataTypeRegister):
 class teamAvgEloRatings_reg(DataTypeRegister):
     name = "danet::teamAvgEloRatings"
     members = [
-        "float team1;",
-        "float team2;",
-        "float team3;",
+        "std::array<float, 3> data;",
     ]
 
 class intPair_reg(DataTypeRegister):

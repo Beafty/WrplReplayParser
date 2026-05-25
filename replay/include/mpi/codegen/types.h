@@ -13,8 +13,8 @@ namespace danet {
     bool operator==(const dummyForFootballStat& other) const = default;
   };
   struct Crew {
-    ecs::entity_id_t e1{};
-    ecs::entity_id_t e2{};
+    ecs::EntityId e1{};
+    ecs::EntityId e2{};
     uint8_t v1{};
     uint8_t v2{};
     bool operator==(const Crew& other) const = default;
@@ -61,9 +61,7 @@ namespace danet {
     bool operator==(const dummyForKillStreaksProgress& other) const = default;
   };
   struct teamAvgEloRatings {
-    float team1{};
-    float team2{};
-    float team3{};
+    std::array<float,3> data{};
     bool operator==(const teamAvgEloRatings& other) const = default;
   };
   struct zigZagPair {

@@ -25,13 +25,6 @@ def EntityId_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
 def EntityId_writer(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
     return f"      net::write_eid(*bs, {datatype.access_var(name)});"
 
-
-def entity_id_t_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
-    return f"      REPL_VER(net::read_server_eid({datatype.access_var(name)}, *bs));"
-
-def entity_id_t_writer(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
-    return f"      net::write_server_eid({datatype.access_var(name)}, *bs);"
-
 def vector_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
     template_type = datatype.compiled.template_args[0]
     size_type = datatype.compiled.template_args[1].full_type_name

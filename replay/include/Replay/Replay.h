@@ -185,7 +185,7 @@ public:
   DataBlock * getFooterBlk() override {return &footer_blk;}
   IReplayReader * getReplayReader() override;
   IReplayReader *getCompressedReplayReader() override;
-  bool isValid() {return is_valid;}
+  bool isValid() override {return is_valid;}
   IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);
 };
 

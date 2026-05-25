@@ -29,7 +29,7 @@ namespace ecs {
     auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
     G_ASSERT(ptr);
     *ptr = before;
-    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before});
+    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before, false});
     mgr.swap_desc(before, after);
     last_direction = DIRECTION::Rewind;
   }
@@ -40,7 +40,7 @@ namespace ecs {
     auto ptr = mgr.getNullable<ecs::EntityId>(after, ECS_HASH("eid"));
     G_ASSERT(ptr);
     *ptr = before;
-    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before});
+    mgr.sendEventImmediate(after, EventEntityDestroyedBasic{before, true});
     mgr.swap_desc(before, after);
     last_direction = DIRECTION::Fastforward;
   }
@@ -184,7 +184,7 @@ namespace ecs {
 
         auto &old_ARCHETYPE = *this->arch_data.getArch(old_arch_id);
         auto &old_info = data_state->archetypes.archetypes[old_arch_id];
-        auto &old_archInfo = old_info.INFO;
+        //auto &old_archInfo = old_info.INFO;
         auto &old_ComponentInfo = data_state->archetypes.archetypeComponents[old_info.COMPONENT_OFS];
 
         for (auto comp_info = &old_ComponentInfo; comp_info != &old_ComponentInfo + old_info.COMPONENT_COUNT; comp_info++) {
@@ -289,7 +289,7 @@ namespace ecs {
       auto new_eid = creation_action->before;
       G_ASSERT(new_eid);
       eidToEventCreationMap.erase(eid);
-      sendEventImmediate(eid, EventEntityDestroyedBasic{new_eid}); 
+      sendEventImmediate(eid, EventEntityDestroyedBasic{new_eid, true});
       *this->getNullable<ecs::EntityId>(eid, ECS_HASH("eid")) = new_eid;
       ENTITY_LOGD2("Moving eid: {:#x} of template {} to {:#x}", eid.get_handle(), this->data_state->getTemplateName(desc->templ_id), new_eid.get_handle());
       swap_desc(eid, new_eid);
@@ -300,7 +300,7 @@ namespace ecs {
     }
 
     if(!this->entDescs.basic_destroyed.test(eid.index(), false))
-      sendEventImmediate(eid, EventEntityDestroyedBasic{ecs::INVALID_ENTITY_ID});
+      sendEventImmediate(eid, EventEntityDestroyedBasic{ecs::INVALID_ENTITY_ID, true});
 
     sendEventImmediate(eid, EventEntityDestroyed{});
     if(is_dtor) {
