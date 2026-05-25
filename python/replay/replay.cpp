@@ -97,9 +97,10 @@ void PyReplay::include(py::module_ &m) {
   py::class_<IReplay>(sub, "IReplay")
       .def("getHeaderBlk", &IReplay::getHeaderBlk, py::return_value_policy::reference)
       .def("getFooterBlk", &IReplay::getFooterBlk, py::return_value_policy::reference)
-      .def("getReplayReader", &IReplay::getReplayReader, py::return_value_policy::take_ownership)
-      .def("getCompressedReplayReader", &IReplay::getCompressedReplayReader, py::return_value_policy::take_ownership)
-      .def("getHeader", &IReplay::getHeader, py::return_value_policy::reference);
+      .def("getReplayReader", &IReplay::getReplayReader, py::return_value_policy::take_ownership, py::keep_alive<0, 1>())
+      .def("getCompressedReplayReader", &IReplay::getCompressedReplayReader, py::return_value_policy::take_ownership, py::keep_alive<0, 1>())
+      .def_property_readonly("getHeader", &IReplay::getHeader, py::return_value_policy::reference)
+      .def_property_readonly("isValid", &IReplay::isValid);
 
   py::class_<Replay, IReplay>(sub, "Replay")
       .def(py::init<const std::string &>());
