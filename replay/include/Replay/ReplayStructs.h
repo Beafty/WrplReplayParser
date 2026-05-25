@@ -9,31 +9,47 @@ struct ReplayHeader {
   uint32_t header;
   uint32_t magic; // changes each major version
   char level_path[128];
-  char mission_path[260];
+  char mission_file[260];
   char mission_name[128];
   char environment[128];
-  char visibility[32];
+  char weather[32];
   uint32_t footer_blk_offset;
-  uint8_t difficulty;
-  char unk0[35];
+  uint32_t difficulty_data[4];  // difficulty enum starts here
+  char unk0[20];
   uint32_t SessionType;
   uint32_t player_count;
   uint64_t session_id;
   uint8_t replay_part_number;
-  char unk2[3];
-  uint32_t MSetSize;
+  uint8_t unk1;
+  uint16_t segmentLengthSec;
+  uint32_t skiesInitialRandomSeed;
   uint16_t settings_blk_size;
-  char unk3[30];
+  char unk3[29];
+  bool isWorldWar;
   char location_name[128];
   uint32_t start_time;
   uint32_t time_limit;
   uint32_t score_limit;
-  char unk4[48];
-  char battle_class[128];
+  uint32_t killLimit;
+  uint32_t gameType;
+  uint32_t restoreType;
+  uint32_t playerNo; // ?????
+  uint32_t unk4;
+  uint32_t numAttempts;
+  uint32_t maxAttempts;
+  bool isAttempts;
+  bool isLimitedAmmo;
+  bool isLimitedFuel;
+  char unk5[13];
+  uint32_t gameMode;
+  char chapterName[128];
   char battle_kill_streak[128];
-  char unk5[10];
+  uint16_t snapshotPeriodSec;
+  uint64_t gameVersion;
 };
+static_assert(offsetof(ReplayHeader, weather) == 0x28c);
 #pragma pack(pop)
+static_assert(sizeof(ReplayHeader) == 1234);
 
 enum class ReplayPacketType : uint16_t {
   EndMarker = 0, // last packet in a replay
