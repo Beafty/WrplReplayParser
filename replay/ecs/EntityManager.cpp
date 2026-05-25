@@ -80,6 +80,7 @@ namespace ecs {
       getAction(curr_index)->forward(mgr);
       ++curr_index;
     }
+    mgr.broadcastEventImmediate(EventRewind{time_ms});
   }
 
   CompileTimeQueryDesc *CompileTimeQueryDesc::tail = nullptr;
