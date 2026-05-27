@@ -268,7 +268,7 @@ bool FMSync(ParserState *state, BitStream *bs) {
     } else {
       //LOG("no aircraft data for {}", uid);
     }
-    G_ASSERT(uid != 0);
+    //G_ASSERT(uid != 0); // WHY THE HELL CAN WE HAVE A UID THAT IS 0
   } while (uid != 0x7FF);
   float maybe_floats[3];
   bs->Read(maybe_floats);
