@@ -1,6 +1,5 @@
 add_executable(test_multiple_replays
         test_multiple_replays.cpp
-        Replay.cpp
 )
 target_link_libraries(test_multiple_replays
         LOGGER::LOGGER

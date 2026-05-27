@@ -56,6 +56,36 @@ namespace ecs {
     last_direction = DIRECTION::Rewind;
   }
 
+  ComponentUpdateAction::~ComponentUpdateAction() {
+    auto data_comp = g_ecs_data->getDataComponents()->getDataComponent(cidx);
+    auto comp = g_ecs_data->getComponentTypes()->getComponentData(data_comp->componentIndex);
+
+    if (is_pod(comp->flags)) {
+      free(ptr);
+      return;
+    } else {
+      comp->ctm->destroy(ptr);
+      free(ptr);
+    }
+  }
+
+  // swap is inherently reversible, so the only difference between these is the assert
+  void ComponentUpdateAction::forward(EntityManager &mgr) {
+    G_ASSERT(this->last_direction == DIRECTION::Rewind);
+    auto ref = mgr.getComponentRefCidx(eid, cidx);
+    G_ASSERT(!ref.isNull());
+    ref.swap(ptr);
+    last_direction = DIRECTION::Fastforward;
+  }
+
+  void ComponentUpdateAction::backward(EntityManager &mgr) {
+    G_ASSERT(this->last_direction == DIRECTION::Fastforward);
+    auto ref = mgr.getComponentRefCidx(eid, cidx);
+    G_ASSERT(!ref.isNull());
+    ref.swap(ptr);
+    last_direction = DIRECTION::Rewind;
+  }
+
   void RewindManager::rewindTo(uint32_t time_ms, EntityManager &mgr) {
     const int sz = (int)actions.size();
     if (sz == 0)
@@ -159,7 +189,6 @@ namespace ecs {
     chunk_index_t chunk_id;
     InstantiatedTemplate *instTempl = data_state->templates.getInstTemplate(templId);
     {
-      auto comp_types = &g_ecs_data->componentTypes;
       std::shared_lock arch_lock(this->data_state->archetypes.archetypes_mtx);
       std::shared_lock templ_lock(this->data_state->templates.template_mtx);
       G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
@@ -181,7 +210,7 @@ namespace ecs {
         auto &new_ARCHETYPE = *this->arch_data.getArch(new_arch_id);
         auto &new_info = data_state->archetypes.archetypes[new_arch_id];
         auto &new_archInfo = *archInfo;
-        auto &new_ComponentInfo = data_state->archetypes.archetypeComponents[new_info.COMPONENT_OFS];
+        //auto &new_ComponentInfo = data_state->archetypes.archetypeComponents[new_info.COMPONENT_OFS];
 
         auto &old_ARCHETYPE = *this->arch_data.getArch(old_arch_id);
         auto &old_info = data_state->archetypes.archetypes[old_arch_id];
@@ -199,10 +228,10 @@ namespace ecs {
           if (id != INVALID_ARCHETYPE_COMPONENT_ID) {
             auto curr_info = ComponentInfo[id];
             auto new_data = new_ARCHETYPE.getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-            ref.move(new_data, old_data, comp_types);
+            ref.move(new_data, old_data);
           }
           // we always destroy the old data.
-          ref.destructCopy(old_data, &data_state->componentTypes);
+          ref.destructCopy(old_data);
           // maybe debuglevel here?
           memset(old_data, 0xFF, old_comp->size);
 
@@ -219,7 +248,7 @@ namespace ecs {
         G_ASSERT(id != INVALID_ARCHETYPE_COMPONENT_ID); // component exists for us
         auto curr_info = ComponentInfo[id];
         auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-        comp.second.getComponentRef().move(data, comp.second.value, comp_types); // TODO, how does gaijin do it???
+        comp.second.getComponentRef().move(data, comp.second.value); // TODO, how does gaijin do it???
         this->wasInit.set(comp.cIndex, true);
       }
 
@@ -234,7 +263,7 @@ namespace ecs {
           auto curr_info = ComponentInfo[id];
           G_ASSERT(curr_info.INDEX == comp.comp_type_index);
           auto data = arch_inst->getCompDataUnsafe(curr_info.DATA_OFFSET, chunk_id, curr_info.DATA_SIZE);
-          comp.default_component.createCopy(data, &data_state->componentTypes, this, eid, comp.comp_type_index);
+          comp.default_component.createCopy(data, this, eid, comp.comp_type_index);
         }
       }
     }
@@ -357,7 +386,7 @@ namespace ecs {
       //  LOG("");
       //}
 
-      ref.destructCopy(data, &data_state->componentTypes);
+      ref.destructCopy(data);
       if (dataComp->hash == ECS_HASH("eid").hash)
         *(ecs::EntityId *) data = INVALID_ENTITY_ID; // needed for query system
     }
@@ -436,7 +465,7 @@ namespace ecs {
         ComponentRef ref{data, comp->hash, dataComp->componentIndex, comp->size};
         LOG("  ArchData: idx: {}; data_off: {}; chunk_id: {}; data_size: {}; ptr: {}", comp_info->INDEX,
             comp_info->DATA_OFFSET, desc->chunk_id, comp_info->DATA_SIZE, fmt::ptr(data));
-        LOG("  component {}({}) data: {}", dataComp->getName().data(), comp->name.data(), ref.toString(nullptr));
+        LOG("  component {}({}) data: {}", dataComp->getName().data(), comp->name.data(), ref.toString());
       }
       LOG("");
     }

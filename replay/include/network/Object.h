@@ -10,6 +10,7 @@ namespace net
     explicit Object(ecs::EntityId eid_);
     static Object *getByEid(ecs::EntityId, ecs::EntityManager*);
     bool deserializeComps(const BitStream &bs, Connection *conn);
+    bool operator==(const Object& other) const = default;
   protected:
     ecs::EntityId eid;
   };

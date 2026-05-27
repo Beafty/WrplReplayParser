@@ -67,7 +67,7 @@ void FileManager::find_vromfs_files_in_folder(std::vector<fs::path> &out_list, c
 
 SmartFSHandle FileManager::getObject(const fs::path& path) {
   SmartFSHandle curr_ptr;
-  for(auto &p : path)
+  for(const auto &p : path)
   {
     if(!curr_ptr)
     {

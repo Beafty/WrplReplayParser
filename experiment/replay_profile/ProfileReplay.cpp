@@ -83,13 +83,13 @@ int main()
       rpl = new Replay(rpl_path_str);
     }
   }
-  int timer_count = 20;
+  int timer_count = 15;
   for(int i = 0; i < timer_count; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     ZoneScopedN("loop")
     {
       ZoneScopedN("GetReader")
-      rdr = rpl->getCompressedReplayReader();
+      rdr = rpl->getReplayReader();
     }
 
     {
@@ -102,6 +102,11 @@ int main()
 
         ZoneScopedN("Parsing Only")
         while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
+      }
+      {
+        ZoneScopedN("Rewind")
+        state.rewindToMs(0);
+        state.rewindToMs(state.replay_length_ms);
       }
       {
         ZoneScopedN("Object destruction")

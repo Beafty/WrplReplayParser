@@ -7,7 +7,6 @@
 bool separateServerSideDetection_g = true;
 
 bool SensorsControlStates::deserialize(BitStream *bs) {
-  ZoneScoped;
   first_bool = bs->ReadBit();
   uint8_t sensor_type;
   bs->Read(sensor_type);
@@ -15,7 +14,6 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
   sensor_type >>= 4;
   switch (sensor_type) {
     case 1: {
-      ZoneScopedN("Took case 1")
       bool bool_2 = bs->ReadBit();
       if (!bool_2)
         return true;
@@ -35,12 +33,10 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
       some_data_4 = netutils::UNPACKS<int16_t>(packed_val_2, PI);
       some_data_5 = netutils::UNPACKS<int16_t>(packed_val_2, PI);
       if (bit_packed < 0) {
-        ZoneScopedN("Read some bit packed")
         bs->Read(some_data_6[0]);
       }
       bool bool_thing = bs->ReadBit();
       if (bool_thing) {
-        ZoneScopedN("did bool thing")
         uint8_t bVar7;
         bs->Read(bVar7);
         this->some_data_6[1] = bVar7 & 1;
@@ -50,9 +46,7 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
       break;
     }
     case 2: {
-      ZoneScopedN("Case 2")
       if (first_bool == 0) {
-        TracyMessage("exited early", strlen("exited early") + 1);
         return true;
       }
       field136_0x88 = bs->ReadBit();
@@ -66,15 +60,12 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
       break;
     }
     case 3: {
-      ZoneScopedN("Case 3")
       G_ASSERT(false); // uglugluglug
       break;
     }
     case 4: {
-      ZoneScopedN("Case 4")
       bool stuff_is_read = bs->ReadBit();
       if (stuff_is_read) {
-        ZoneScopedN("Case 4 read data")
         bs->ReadBits(reinterpret_cast<uint8_t *>(&some_data_1), 0x60);
       }
       break;
@@ -82,7 +73,6 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
   }
   bool stores_vec_thang = bs->ReadBit();
   if (stores_vec_thang) {
-    ZoneScopedN("Reading weird vec data")
     bs->ReadBits(&field132_0x84, 6);
     field4_0x4.resize(field132_0x84);
     for (int i = 0; i < field132_0x84; i++) {
@@ -95,21 +85,17 @@ bool SensorsControlStates::deserialize(BitStream *bs) {
 
 
 bool TargetDesignationControlState::deserialize(BitStream *bs) {
-  ZoneScoped;
   bs->Read(v1);
   bs->Read(v2);
   v3 = bs->ReadBit();
   if (v3) {
-    ZoneScopedN("Read v3 data")
     bs->Read(v4);
   }
   write_compressed = bs->ReadBit();
   if (write_compressed) {
-    ZoneScopedN("compressed vector read")
     bs->Read(v6);
     netutils::read_vector(*bs, v9, 4000.0f);
   } else {
-    ZoneScopedN("vector read")
     bs->Read(v7);
     bs->Read(v9);
   }
@@ -118,7 +104,6 @@ bool TargetDesignationControlState::deserialize(BitStream *bs) {
   v10 = bs->ReadBit();
   auto read_some_float = bs->ReadBit();
   if (read_some_float) {
-    ZoneScopedN("read some float")
     uint8_t temp;
     bs->Read(temp);
     v11 = netutils::UNPACK<uint8_t>(temp, 1);
@@ -127,7 +112,6 @@ bool TargetDesignationControlState::deserialize(BitStream *bs) {
   bool has_v14 = bs->ReadBit();
   v13 = bs->ReadBit();
   if (has_v14) {
-    ZoneScopedN("Reading v14")
     bs->Read(v14);
   } else
     v14 = 0;
@@ -143,7 +127,6 @@ G_STATIC_ASSERT(sizeof(TargetDesignationControlState) == 0x50);
 
 void DeserializeSeekerData(BitStream *bs) {
   // this will probably never be implemented unless if I actually go through and try to understand what this complex bullshit is
-  ZoneScoped
   uint32_t val;
   bs->Read(val);
   auto read_offs = bs->GetReadOffset();
@@ -168,9 +151,7 @@ bool FMSync(ParserState *state, BitStream *bs) {
       break;
     bool has_data = bs->ReadBit();
     if (!has_data) {
-      ZoneScopedN("Parsing aircraft")
       auto str = fmt::format("uid: {:#x}", uid);
-      TracyMessage(str.c_str(), str.size() + 1);
       //LOG("yes to data");
       if (separateServerSideDetection_g == false) {
         G_ASSERT(false); // be ready for if this ever happens

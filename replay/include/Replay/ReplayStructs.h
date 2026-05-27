@@ -14,7 +14,7 @@ struct ReplayHeader {
   char environment[128];
   char weather[32];
   uint32_t footer_blk_offset;
-  uint32_t difficulty_data[4];  // difficulty enum starts here
+  uint32_t difficulty_data[4];
   char unk0[20];
   uint32_t SessionType;
   uint32_t player_count;
@@ -33,7 +33,7 @@ struct ReplayHeader {
   uint32_t killLimit;
   uint32_t gameType;
   uint32_t restoreType;
-  uint32_t playerNo; // ?????
+  int playerNo; // player number of player who recorded the replay. if its a server replay, its 0x80000000 / 2147483648 (lmao)
   uint32_t unk4;
   uint32_t numAttempts;
   uint32_t maxAttempts;

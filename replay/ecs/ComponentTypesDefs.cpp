@@ -426,6 +426,8 @@ class BufferedHudDataSerializer : public ecs::ComponentSerializer {
     BufferedHudData * ptr = (BufferedHudData *)data;
     uint32_t arr_sz;
     bool is_ok = read_compressed(cb, arr_sz);
+    if (!is_ok)
+      return false;
     ptr->data.resize(arr_sz);
     is_ok &= cb.read(ptr->data.data(), arr_sz<<3, 0);
     return is_ok;
@@ -605,7 +607,7 @@ namespace ecs {
   ECS_REGISTER_CTM_TYPE(unit::UnitRef, nullptr);
   ECS_REGISTER_CTM_TYPE(ResizableDecals, nullptr);
   ECS_REGISTER_CTM_TYPE(UniqueBufHolder, nullptr);
-  ECS_REGISTER_MANAGED_TYPE(EnviEmitterId, nullptr, ecs::InplaceCreator<EnviEmitterId>);
+  ECS_REGISTER_CTM_TYPE(EnviEmitterId, nullptr);
   ECS_REGISTER_CTM_TYPE(EffectRef, nullptr);
   ECS_REGISTER_CTM_TYPE(pathfinder::CustomNav, nullptr);
   ECS_REGISTER_CTM_TYPE(walkerai::AgentObstacles, nullptr);

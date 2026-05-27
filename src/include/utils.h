@@ -62,12 +62,6 @@ inline int popcount(uint32_t val) {
 #define G_UNUSED(x)    ((void)(x))
 #define G_UNREFERENCED G_UNUSED
 
-struct Version {
-private:
-  uint8_t data[4];
-public:
-
-};
 
 /// Given a stream and a buffer, will attempt to write python like bytes to it
 /// \param oss

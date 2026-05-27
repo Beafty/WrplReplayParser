@@ -28,7 +28,7 @@ void log_handler::loadSinkFromDataBlock(DataBlock &blk) {
     if(p->type == DataBlock::TYPE_INT) {
       auto v = p->data.i;
       auto n = std::string(p->getName());
-      this->add_sink(n, true, true, v);
+      this->add_sink(n, true, true, (DEBUG_LEVEL)v);
     }
   }
   for(auto next = LoggerSinkRegister::tail; next != nullptr; next = next->next) {

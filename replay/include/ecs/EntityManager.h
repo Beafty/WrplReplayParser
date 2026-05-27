@@ -24,6 +24,7 @@
 #include "EASTL/vector_map.h"
 #include "EASTL/vector_set.h"
 
+
 DEFINE_HANDLE(handle_ecs)
 #define ECS_LOGI(format_, ...) ELOGI(handle_ecs, format_, __VA_ARGS__)
 #define ECS_LOGD1(format_, ...) ELOGD1(handle_ecs, format_, __VA_ARGS__)
@@ -356,21 +357,7 @@ namespace ecs {
 
   extern OnDemandInit<GState> g_ecs_data;
 
-  enum class DIRECTION {
-    Rewind,
-    Fastforward,
-  };
 
-  class RewindAction {
-    friend EntityManager;
-  public:
-    const uint32_t time_ms;
-    DIRECTION last_direction = DIRECTION::Fastforward;
-    RewindAction(const uint32_t time_ms) : time_ms(time_ms) {}
-    virtual ~RewindAction() = default;
-    virtual void forward(EntityManager &mgr) = 0; // we are going forward in time
-    virtual void backward(EntityManager &mgr) = 0; // we are going back in time
-  };
 
 
   class EntityCreatedAction : public RewindAction {
@@ -395,14 +382,30 @@ namespace ecs {
     void backward(EntityManager &mgr) override;
   };
 
-  constexpr size_t MAX_ACTION_SIZE = std::max(sizeof(EntityCreatedAction), sizeof(EntityDestroyedAction)); // basically useless but hehehe
+  // 18 bytes, wish it could be 10 bytes but this ain't 32 bit lmao
+  // when action is in fastforward mode, it holds a reference to the old version of the component
+  // when action is in rewind mode, it holds a reference to new version of the component
+  // we don't want to hold a reference to the entity ptr, as we want to allow an entity to be recreated at any time
+  // and a recreation action now no longer guarantees the entity will be in the same location (even if the recreation was reversed)
+  class ComponentUpdateAction : public RewindAction {
+    void * ptr=nullptr; // better to store it as a ptr so we don't make MAX_ACTION_SIZE too large
+    EntityId eid; // entity that received replicated component
+    ecs::component_index_t cidx; // component index of replicated component
+  public:
+    ComponentUpdateAction(const uint32_t time_ms, void *ptr, EntityId eid, ecs::component_index_t cidx) : RewindAction(time_ms), ptr(ptr), eid(eid), cidx(cidx) {}
+    // should only be called on emgr destruction
+    ~ComponentUpdateAction() override;
+    void forward(EntityManager &mgr) override;
+    void backward(EntityManager &mgr) override;
+  };
+
+  constexpr size_t MAX_ACTION_SIZE = std::max(sizeof(ComponentUpdateAction), std::max(sizeof(EntityCreatedAction), sizeof(EntityDestroyedAction))); // basically useless but hehehe
   using ACTION_ARRAY_CONTAINER =  std::array<uint8_t, MAX_ACTION_SIZE>;
 
   class RewindManager {
     // allocation is not really needed here, so lets try it inplace
     std::vector<ACTION_ARRAY_CONTAINER> actions;
     int curr_index{};
-    DIRECTION prev_direction = DIRECTION::Fastforward;
 
 
     inline RewindAction * getAction(uint32_t index) {
@@ -420,12 +423,14 @@ namespace ecs {
     }
 
     friend EntityManager;
+    friend net::Connection;
     RewindManager() {
       actions.reserve(1000);
     }
     uint32_t createCreationAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
       uint32_t action_idx = (uint32_t)actions.size();
   actions.emplace_back();
+      G_STATIC_ASSERT(sizeof(EntityCreatedAction) <= MAX_ACTION_SIZE);
       auto &base = actions.back();
       new (base.data()) EntityCreatedAction(time_ms, invalid_storage, valid_storage);
       curr_index = (uint32_t)actions.size();
@@ -436,7 +441,18 @@ namespace ecs {
       uint32_t action_idx = (uint32_t)actions.size();
   actions.emplace_back();
       auto &base = actions.back();
+      G_STATIC_ASSERT(sizeof(EntityDestroyedAction) <= MAX_ACTION_SIZE);
       new (base.data()) EntityDestroyedAction(time_ms, invalid_storage, valid_storage);
+      curr_index = (uint32_t)actions.size();
+      return action_idx;
+    }
+
+    uint32_t createComponentUpdateAction(uint32_t time_ms, void *ptr, EntityId eid, ecs::component_index_t cidx) {
+      uint32_t action_idx = (uint32_t)actions.size();
+      actions.emplace_back();
+      auto &base = actions.back();
+      G_STATIC_ASSERT(sizeof(ComponentUpdateAction) <= MAX_ACTION_SIZE);
+      new (base.data()) ComponentUpdateAction(time_ms, ptr, eid, cidx);
       curr_index = (uint32_t)actions.size();
       return action_idx;
     }
@@ -457,12 +473,10 @@ namespace ecs {
     std::deque<ecs::entity_id_t> freeIndices, freeIndicesReserved;
     ecs::entity_id_t nextReservedIndex=0;
 
-    RewindManager rewindManager;
-
     std::unordered_map<EntityId, uint32_t> eidToEventCreationMap;
 
     void swap_desc(EntityId e1, EntityId e2);
-
+    friend net::Connection;
   public:
 
     ParserState * owned_by=nullptr;
@@ -580,6 +594,8 @@ namespace ecs {
     EntityDescs entDescs;
     BitVector wasInit{false}; // used during entity creation
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
+
+    RewindManager rewindManager; // needs to be the first thing destroyed
 
   };
 }

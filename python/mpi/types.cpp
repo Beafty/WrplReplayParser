@@ -18,11 +18,11 @@ void PyMpiTypes::include(py::module_ &m) {
     py::class_<danet::Uid>(mpi, "Uid")
             .def_readonly("player_id", &danet::Uid::player_id)
             .def_property_readonly("player_name", &danet::Uid::get_player_name)
-            .def_property_readonly("as_bytes", [](danet::Uid &self) {
+            .def("as_bytes", [](danet::Uid &self) {
                     std::string payload{};
                     payload.resize(sizeof(danet::Uid));
                     memcpy(&payload[0], &self, sizeof(danet::Uid));
-                    return payload;
+                    return py::bytes(payload);
             });
     py::class_<danet::UnitId>(mpi, "UnitId")
             .def_readonly("val", &danet::UnitId::val);

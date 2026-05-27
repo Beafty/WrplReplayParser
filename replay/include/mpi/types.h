@@ -39,10 +39,19 @@ namespace danet {
 #include "codegen/types.h" // generated types
 
 namespace danet {
+
+  enum AccountType: uint8_t {
+    None = 0,
+    PC = 2,
+    Xbox = 12,
+    Psn = 15,
+  };
+
 #pragma pack(push, 1) // FUCK OFF COMPILER THIS IS 90 BYTES not 96 CAUSE GAIJIN SAID SO
   struct Uid {
     uint64_t player_id{};
-    char name[82]{};
+    char name[81]{};
+    AccountType account_type{};
 
     std::string_view get_player_name() const {
       return std::string_view(name, strnlen(name, sizeof(name)));

@@ -351,7 +351,7 @@ namespace danet
       int out = (*v->coder)(DANET_REFLECTION_OP_DECODE, v, this, &bs, state);
       if (!out)
       {
-        v->handler->removePreviousState();
+        v->resetVar();
         LOGE("(REFLECTION) can't decode value for var '{}' in obj {} (type = '{}')", v->getVarName(), fmt::ptr(this), getClassName());
         bs.SetReadOffset(ppp);
         idFieldSerializer.skipReadingField(j, bs); // skip
@@ -367,11 +367,11 @@ namespace danet
         // but WarShip fields really differ from those of HeavyVehicleModel
         bs.SetReadOffset(ppp);
         idFieldSerializer.skipReadingField(j, bs); // skip
-        v->handler->removePreviousState();
+        v->resetVar();
         //ret = false;
         continue;
       }
-      v->handler->checkPreviousState();
+      v->verifyVar();
       G_ASSERT(!(v->flags & RVF_DESERIALIZED));
       if (v->flags & RVF_NEED_DESERIALIZE)
         v->flags |= RVF_DESERIALIZED;

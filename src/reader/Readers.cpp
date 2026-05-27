@@ -61,7 +61,8 @@ bool BaseReader::seekto(int addr)
 bool BaseReader::seekrel(int addr)
 {
 
-    if (read_offset+addr >= this->data_size || read_offset+addr < 0) return false;
+    if (read_offset+addr > this->data_size || read_offset+addr < 0)
+        return false;
     read_offset+=addr;
     return true;
 }

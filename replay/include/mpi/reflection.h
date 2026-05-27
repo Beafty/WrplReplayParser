@@ -155,9 +155,9 @@ namespace danet {
   public:
     virtual ~ISpaceHandler() = default;
     virtual void* addState(uint32_t time_ms) = 0; // add state for this var at this time, return pointer to value
-    virtual void checkPreviousState() = 0; // checks if previous state is same as the one before it, deletes recent if so
+    virtual void* checkPreviousState() = 0; // checks if previous state is same as the one before it, deletes recent if so
     virtual void* goToTime(uint32_t time_ms) = 0; // does rewinding operation
-    virtual void removePreviousState() = 0; // call during a deserialize fail
+    virtual void* removePreviousState() = 0; // call during a deserialize fail
   };
 // vars of this type are linked in one list inside of ReflectableObject
   class ReflectionVarMeta {
@@ -191,6 +191,15 @@ namespace danet {
 
     void setNewVar(uint32_t time_ms) {
       setValuePtr(this->handler->addState(time_ms));
+    }
+
+    void verifyVar() {
+      setValuePtr(this->handler->checkPreviousState());
+    }
+
+    void resetVar() {
+      setValuePtr(this->handler->removePreviousState());
+
     }
   };
 
@@ -256,15 +265,16 @@ namespace danet {
         return &timeStates.back().value;
       }
 
-      void checkPreviousState()  override {
+      void *checkPreviousState()  override {
         if (timeStates.size() < 2)
-          return;
+          return &timeStates.back().value;
         auto prev = &timeStates.back();
         auto prev_prev = &timeStates[timeStates.size() - 2];
         if (prev->value == prev_prev->value) {
           timeStates.resize(timeStates.size() - 1);
           curr_index = timeStates.size() - 1;
         }
+        return &timeStates.back().value;
       }
 
       void* goToTime(uint32_t time_ms) override {
@@ -284,10 +294,12 @@ namespace danet {
 
         return &timeStates[curr_index].value;
       }
-      void removePreviousState() override {
+      void *removePreviousState() override {
         if (!timeStates.empty()) {
           timeStates.pop_back();
+          curr_index--;
         }
+        return &timeStates.back().value; // if we popped a value, lets make sure the code is using the correct one
       }
     };
 

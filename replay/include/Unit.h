@@ -80,7 +80,7 @@ enum UnitType : uint8_t {
 
 };
 
-class FieldSerializerDict;
+struct FieldSerializerDict;
 
 namespace unit {
   enum MessageEnum {
@@ -186,5 +186,6 @@ namespace unit {
 
   struct UnitRef {
     Unit *unit = nullptr;
+    bool operator==(const UnitRef& other) const {return unit == other.unit;}
   };
 }

@@ -1,13 +1,19 @@
 #ifndef MYEXTENSION_ENTITYCOMPONENTS_H
 #define MYEXTENSION_ENTITYCOMPONENTS_H
-#include "ecs/component.h"
+#include "ecs/Component.h"
 
+
+namespace net {
+  class Connection;
+}
 namespace ecs
 {
+
 
   /// a ComponentRef functions as a Component that doesnt hold ownership
   class ComponentRef
   {
+    friend net::Connection;
   public:
 
     ComponentRef(void *data, component_type_t type, type_index_t compIndex, uint32_t size);
@@ -27,9 +33,10 @@ namespace ecs
     ComponentRef &operator=(ComponentRef const &ref) = default;
     ~ComponentRef() = default;
 
-    void createCopy(void *data, ComponentTypes *types, ecs::EntityManager *mgr, EntityId eid=INVALID_ENTITY_ID, component_index_t cidx=INVALID_COMPONENT_INDEX) const;
-    void destructCopy(void *data, ComponentTypes *types) const;
-    void move(void * to, void * from, ComponentTypes *types) const;
+    void createCopy(void *data, ecs::EntityManager *mgr, EntityId eid=INVALID_ENTITY_ID, component_index_t cidx=INVALID_COMPONENT_INDEX) const;
+    void destructCopy(void *data) const;
+    void move(void * to, void * from) const;
+    void setNewValue(void * data, EntityManager &mgr);
 
 
     bool operator==(const ComponentRef &a) const;
@@ -43,11 +50,15 @@ namespace ecs
     component_index_t getComponentId() const { G_ASSERT(this->componentId != INVALID_COMPONENT_INDEX); return this->componentId; }
     const void *getRawData() const { return this->value; }
 
-    std::string toString(void *ext_data, ComponentTypes *types, int indent=0) const;
-    std::string toString(ComponentTypes *types, int indent=0) const;
+    std::string toString(void *ext_data, int indent=0) const;
+    std::string toString(int indent=0) const;
 
-    void print(void *ext_data, ComponentTypes *types) const; // prints external data
-    void print(ComponentTypes *types) const; // prints internal data
+    void print(void *ext_data) const; // prints external data
+    void print() const; // prints internal data
+
+    bool is_equal(void * ext_data) const;
+
+    void swap(void * ext_data);
 
     inline uint32_t getSize() const { return this->componentTypeSize;}
     template<typename T>

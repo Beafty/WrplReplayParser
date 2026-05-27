@@ -34,8 +34,8 @@ def codegen_reflection(force_gen: bool = False):
 
     file_paths = [*[inspect.getsourcefile(module) for module in obj_imports], *[inspect.getsourcefile(module) for module in type_imports]]
     file_paths.append(inspect.getsourcefile(custom_rw))
-    # if check_hash("ReflectionObjBindings", file_paths):
-    #     return
+    if check_hash("ReflectionObjBindings", file_paths):
+        return
 
 
     root_path = ROOT_PATH + "/"

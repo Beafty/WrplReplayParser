@@ -6,18 +6,22 @@
 #include "dag_assert.h"
 #include "EASTL/string.h"
 #include "utils.h"
-namespace ecs
-{
-  typedef std::string string; // would be std::string, but it doesnt like destruction for some reason
+#include "rewind.h"
+#include <utility>
+
+namespace ecs {
+  typedef std::string string;
 }
+
 #include "ComponentPrinting.h"
+
 namespace ecs {
 
   class ComponentTypeManager {
   public:
-
     virtual void
-    create(void *, EntityManager &, EntityId, component_index_t) {} // allocate (inplace new).
+    create(void *, EntityManager &, EntityId, component_index_t) {
+    } // allocate (inplace new).
 
 
     virtual void *
@@ -27,7 +31,8 @@ namespace ecs {
     // some 1.0/2.0 CMs need
     // that. This is called only
     // for NON_TRIVIAL_CREATE
-    virtual void destroy(void *) {} // doesn't make sense to pass EntityId, as it is already killed
+    virtual void destroy(void *) {
+    } // doesn't make sense to pass EntityId, as it is already killed
 
     /// copy assignment. This can be non-optimal implementated (destroy(to); return copy(to, from);).But has to has copy
     virtual bool
@@ -53,10 +58,14 @@ namespace ecs {
     //}
 
     virtual void move(void * /*to*/,
-                      void * /*from*/) const {} // move constructor. This is called only for NON_TRIVIAL_MOVE. Currently
+                      void * /*from*/) const {
+    } // move constructor. This is called only for NON_TRIVIAL_MOVE. Currently
     // we don't support non memcpy moveable types
 
-    virtual std::string toString(void *, int) const {return "";}
+    virtual void swap(void *, void *) {
+    } // swaps two pointers via std::swap
+
+    virtual std::string toString(void *, int) const { return ""; }
 
     virtual size_t getMemSize() {
       return sizeof(*this);
@@ -68,67 +77,68 @@ namespace ecs {
     virtual ~ComponentTypeManager() = default;
   };
 
-  template <bool cond, int v, int d = 0>
-  using select_int = std::conditional_t<cond, std::integral_constant<int, v>, std::integral_constant<int, d>>;
-  template <typename T>
-  struct CtorFlavorSelector
-  {
+  template<bool cond, int v, int d = 0>
+  using select_int = std::conditional_t<cond, std::integral_constant<int, v>, std::integral_constant<int, d> >;
+
+  template<typename T>
+  struct CtorFlavorSelector {
     static constexpr int value =
         std::disjunction<
-            select_int<std::is_constructible<T, EntityId, EntityManager &>::value, 2>,
-            select_int<std::is_constructible<T, EntityId>::value, 1>,
-            select_int<std::is_constructible<T>::value, 0>>::value;
+          select_int<std::is_constructible<T, EntityId, EntityManager &>::value, 2>,
+          select_int<std::is_constructible<T, EntityId>::value, 1>,
+          select_int<std::is_constructible<T>::value, 0> >::value;
   };
 
-  template <typename T>
-  struct ConstructInplaceType
-  {
-    template <class U = T>
-    static std::enable_if_t<CtorFlavorSelector<U>::value == 2, U *> constructInplaceCandidate(void *p, EntityManager &mgr, EntityId eid,
-                                                                                         ecs::component_index_t)
-    {
-      return new (p) U(eid, mgr);
+  template<typename T>
+  struct ConstructInplaceType {
+    template<class U = T>
+    static std::enable_if_t<CtorFlavorSelector<U>::value == 2, U *> constructInplaceCandidate(
+      void *p, EntityManager &mgr, EntityId eid,
+      ecs::component_index_t) {
+      return new(p) U(eid, mgr);
     }
-    template <class U = T>
-    static std::enable_if_t<CtorFlavorSelector<U>::value == 1, U *> constructInplaceCandidate(void *p, EntityManager &, EntityId eid,
-                                                                                         ecs::component_index_t)
-    {
-      return new (p) U(eid);
+
+    template<class U = T>
+    static std::enable_if_t<CtorFlavorSelector<U>::value == 1, U *> constructInplaceCandidate(
+      void *p, EntityManager &, EntityId eid,
+      ecs::component_index_t) {
+      return new(p) U(eid);
     }
-    template <class U = T>
-    static std::enable_if_t<CtorFlavorSelector<U>::value == 0, U *> constructInplaceCandidate(void *p, EntityManager &, EntityId,
-                                                                                         ecs::component_index_t)
-    {
-      return new (p) U;
+
+    template<class U = T>
+    static std::enable_if_t<CtorFlavorSelector<U>::value == 0, U *> constructInplaceCandidate(
+      void *p, EntityManager &, EntityId,
+      ecs::component_index_t) {
+      return new(p) U;
     } // Note: intentionally not zero init
 
-    template <class U = T>
+    template<class U = T>
     static std::enable_if_t<CtorFlavorSelector<U>::value == 2, U *> constructCandidate(EntityManager &mgr, EntityId eid,
-                                                                                                ecs::component_index_t)
-    {
+      ecs::component_index_t) {
       return new U(eid, mgr);
     }
-    template <class U = T>
+
+    template<class U = T>
     static std::enable_if_t<CtorFlavorSelector<U>::value == 1, U *> constructCandidate(EntityManager &, EntityId eid,
-                                                                                                ecs::component_index_t)
-    {
+      ecs::component_index_t) {
       return new U(eid);
     }
-    template <class U = T>
+
+    template<class U = T>
     static std::enable_if_t<CtorFlavorSelector<U>::value == 0, U *> constructCandidate(EntityManager &, EntityId,
-                                                                                                ecs::component_index_t)
-    {
+      ecs::component_index_t) {
       return new U();
     } // Note: intentionally not zero init
   };
+
   template<class T>
   class InplaceCreator : public ComponentTypeManager {
   public:
-
     size_t getMemSize() override {
       return sizeof(*this);
     }
-    void create(void *data, EntityManager & mgr, EntityId eid, component_index_t cidx) override {
+
+    void create(void *data, EntityManager &mgr, EntityId eid, component_index_t cidx) override {
       ConstructInplaceType<T>::constructInplaceCandidate(data, mgr, eid, cidx);
     } // allocate (inplace new).
     void *
@@ -147,26 +157,31 @@ namespace ecs {
 
     bool is_equal(const void *to, const void *from) const override {
       if constexpr (std::equality_comparable<T>) {
-        return *(const T *) to == *(const T *) from;
-      } else {
-        return true;
+        return *(const T *) to == *(const T *) from; // my plans will require that equality is checkable
       }
+      return false;
     }
 
     void destroy(void *p) override {
-          G_FAST_ASSERT(p);
+      G_FAST_ASSERT(p);
       std::destroy_at((T *) p);
     }
 
     void move(void *to, void *from) const override {
       G_STATIC_ASSERT(std::is_move_constructible<T>::value);
-      T * p_to = (T*)to, * p_from = (T*)from;
+      T *p_to = (T *) to, *p_from = (T *) from;
       std::construct_at(p_to, std::move(*p_from));
     }
 
 
-    std::string toString(void *p, int indent=0) const override {
-          G_FAST_ASSERT(p);
+    void swap(void *p1, void *p2) override {
+      //G_STATIC_ASSERT(std::is_swappable_v<T>);
+      std::swap(*static_cast<T*>(p1), *static_cast<T*>(p2));
+    }
+
+
+    std::string toString(void *p, int indent = 0) const override {
+      G_FAST_ASSERT(p);
       return toStringImpl<T>(p, indent);
       //ComponentPrinter<T>::print(static_cast<T*>(p));
     }
@@ -176,27 +191,36 @@ namespace ecs {
   template<class T>
   class ReducedCreator : public ComponentTypeManager {
   public:
-
     size_t getMemSize() override {
       return sizeof(*this);
     }
+
     void create(void *, EntityManager &, EntityId, component_index_t) override {
-      EXCEPTION("Called CTM for %s", typeid(T).name());
+      EXCEPTION("Called create1 CTM for %s", typeid(T).name());
     }
 
     void *
-    create(EntityManager &, EntityId, component_index_t) override { EXCEPTION("Called CTM for %s", typeid(T).name()); }
+    create(EntityManager &, EntityId, component_index_t) override { EXCEPTION("Called create2 CTM for %s", typeid(T).name()); }
 
     bool copy(void *, const void *, component_index_t, ecs::EntityId) const override {
-      EXCEPTION("Called CTM for %s", typeid(T).name());
+      EXCEPTION("Called copy CTM for %s", typeid(T).name());
     }
 
-    bool is_equal(const void *, const void *) const override { EXCEPTION("Called CTM for %s", typeid(T).name()); }
+    void move(void *, void *) const override {
+      EXCEPTION("Called move CTM for %s", typeid(T).name());
+    }
 
-    void destroy(void *) override { EXCEPTION("Called CTM for %s", typeid(T).name()); }
+    bool is_equal(const void *, const void *) const override { EXCEPTION("Called is_equal CTM for %s", typeid(T).name()); }
+
+    void destroy(void *) override { EXCEPTION("Called destroy CTM for %s", typeid(T).name()); }
+
+    void swap(void *p1, void *p2) override { // swap is implemented only because it makes the logic easier
+      G_STATIC_ASSERT(std::is_swappable_v<T>);
+      std::swap(*static_cast<T*>(p1), *static_cast<T*>(p2));
+    }
 
     std::string toString(void *p, int indent = 0) const override {
-          G_FAST_ASSERT(p);
+      G_FAST_ASSERT(p);
       return toStringImpl<T>(p, indent);
     }
   };
@@ -207,7 +231,5 @@ namespace ecs {
 
     static void destroy(ComponentTypeManager *ptr) { delete ptr; }
   };
-
-
 } // ecs
 #endif //MYEXTENSION_COMPONENTCONSTRUCTOR_H

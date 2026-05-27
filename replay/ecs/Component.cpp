@@ -108,9 +108,8 @@ namespace ecs {
     return memcmp(value, a.value, componentTypeSize) == 0;
   }
 
-  void ComponentRef::createCopy(void *data, ComponentTypes *types, ecs::EntityManager *mgr, EntityId eid, component_index_t cidx) const {
-    if (!types)
-      types = g_ecs_data->getComponentTypes();
+  void ComponentRef::createCopy(void *data, ecs::EntityManager *mgr, EntityId eid, component_index_t cidx) const {
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
     const auto typeInfo = types->getComponentData(componentTypeIndex);
     if (this->value) {
       if (is_pod(typeInfo->flags))
@@ -137,9 +136,8 @@ namespace ecs {
 
   }
 
-  void ComponentRef::destructCopy(void *data, ComponentTypes *types) const {
-    if (!types)
-      types = g_ecs_data->getComponentTypes();
+  void ComponentRef::destructCopy(void *data) const {
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
     const auto typeInfo = types->getComponentData(componentTypeIndex);
     // we only need to clean up the data, so we dont do anything with POD data.
     if (need_constructor(typeInfo->flags)) // we dont own the data
@@ -152,35 +150,50 @@ namespace ecs {
     }
   }
 
-  void ComponentRef::print(void *ext_data, ComponentTypes *types) const {
+  void ComponentRef::print(void *ext_data) const {
     if (!ext_data)
       return;
-    if (!types)
-      types = g_ecs_data->getComponentTypes();
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
     auto ctm = types->getCTM(this->componentTypeIndex);
     LOG("{}", ctm->toString(ext_data, 0));
   }
 
-  void ComponentRef::print(ComponentTypes *types) const {
-    print(this->value, types);
+  void ComponentRef::print() const {
+    print(this->value);
   }
 
-  std::string ComponentRef::toString(void *ext_data, ComponentTypes *types, int indent) const {
+  bool ComponentRef::is_equal(void *ext_data) const {
+    if (!ext_data)
+      return false;
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
+    auto comp = types->getComponentData(this->componentTypeIndex);
+    if (comp->flags & COMPONENT_TYPE_IS_POD)
+      return memcmp(this->value, ext_data, componentTypeSize) == 0;
+    return comp->ctm->is_equal(this->value, ext_data);
+  }
+
+  void ComponentRef::swap(void *ext_data) {
+    if (!ext_data)
+      return;
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
+    auto ctm = types->getCTM(this->componentTypeIndex);
+    ctm->swap(this->value, ext_data);
+  }
+
+  std::string ComponentRef::toString(void *ext_data, int indent) const {
     if (!ext_data)
       return "<NULLPTR>";
-    if (!types)
-      types = g_ecs_data->getComponentTypes();
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
     auto ctm = types->getCTM(this->componentTypeIndex);
     return ctm->toString(ext_data, indent);
   }
 
-  std::string ComponentRef::toString(ComponentTypes *types, int indent) const {
-    return this->toString(this->value, types, indent);
+  std::string ComponentRef::toString(int indent) const {
+    return this->toString(this->value, indent);
   }
 
-  void ComponentRef::move(void *to, void *from, ComponentTypes *types) const {
-    if (!types)
-      types = g_ecs_data->getComponentTypes();
+  void ComponentRef::move(void *to, void *from) const {
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
     const auto typeInfo = types->getComponentData(componentTypeIndex);
     if (need_constructor(typeInfo->flags)) // we dont own the data
     {
@@ -191,6 +204,20 @@ namespace ecs {
       ctm->move(to, from);
     } else {
       memcpy(to, from, this->componentTypeSize);
+    }
+  }
+
+  void ComponentRef::setNewValue(void *data, EntityManager &mgr) {
+    this->value = data;
+    ComponentTypes *types = g_ecs_data->getComponentTypes();
+    const auto typeInfo = types->getComponentData(componentTypeIndex);
+    if (need_constructor(typeInfo->flags)) // we dont own the data
+    {
+      ComponentTypeManager *ctm = types->getCTM(componentTypeIndex);
+      G_ASSERT(ctm);
+      ctm->create(value, mgr, INVALID_ENTITY_ID, this->componentId);
+    } else {
+      memset(this->value, 0, this->componentTypeSize);
     }
   }
 }

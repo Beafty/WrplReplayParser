@@ -95,6 +95,7 @@ struct FieldSerializerDict {
   std::string toString(int indent) const {
     return FormatHexToStream(std::span((char*)data.data(), data.size())).str();
   }
+  bool operator==(const FieldSerializerDict &other) const = default;
 };
 
 struct BarrageBalloonStorageComponent : FieldSerializerDict {
@@ -187,6 +188,8 @@ struct Rocket {
                        u8_1.toString(0));
     return oss.str();
   }
+
+  bool operator==(const Rocket &other) const = default;
 };
 
 struct Payload : Rocket {

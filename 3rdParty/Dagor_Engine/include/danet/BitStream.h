@@ -427,6 +427,14 @@ public:
     }
     return *this;
   }
+
+  bool operator==(const BitStream &other) const {
+    return this->bitsUsed == other.bitsUsed &&
+      this->bitsAllocated == other.bitsAllocated &&
+        this->readOffset == other.readOffset &&
+          this->dataOwner == other.dataOwner &&
+            memcmp(this->data, other.data, bits2bytes(bitsUsed)) == 0;
+  }
 protected:
   template<typename T>
   void writeCompressedUnsignedGeneric(T v) {

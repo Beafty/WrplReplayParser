@@ -65,9 +65,9 @@ private:
 
 
 public:
-  uint32_t replay_length_ms = 0;
-  uint32_t current_rewind_ms;
-  uint32_t curr_time_ms = 0;
+  uint32_t replay_length_ms = 0xFFFFFFFF;
+  uint32_t current_rewind_ms; // the time we have rewinded to
+  uint32_t curr_time_ms = 0; // the current time in the ECS / state. this wont always math current_rewind_time_ms
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
   net_delta_t NetDelta;
@@ -149,6 +149,10 @@ public:
   }
 
   inline void rewindToMs(uint32_t time_ms) {
+    if (replay_length_ms == 0xFFFFFFFF) {
+      LOGE("You cannot rewind until the replay has finshed parsing");
+      return;
+    }
     if (current_rewind_ms == time_ms)
       return;
     //LOGI("rewinding to {} from {}", time_ms, current_rewind_ms);
