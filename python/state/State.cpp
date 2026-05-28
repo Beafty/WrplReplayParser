@@ -33,13 +33,11 @@ void PyReplayState::include(py::module_ &m) {
     g_log_handler->flush_all();
   });
 
-
   py::enum_<ChatType>(m, "ChatTypeEnum")
       .value("Team", ChatType::Team)
       .value("All", ChatType::All)
       .value("Squad", ChatType::Squad)
       .value("Direct", ChatType::Direct);
-
 
   py::class_<ChatMessage>(m, "ChatMessage")
       .def_readonly("time_ms", &ChatMessage::time_ms)
@@ -94,12 +92,21 @@ void PyReplayState::include(py::module_ &m) {
                   }
                 } catch (py::error_already_set &e) {
                   eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
+                } catch (ExceptionException &e) {
+                  eptr = std::current_exception();
+                } catch (AssertException &e) {
+                  eptr = std::current_exception();
                 }
-
               } else {
-                while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
-              }
-            });
+                try {
+                  while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
+                } catch (ExceptionException &e) {
+                  eptr = std::current_exception();
+                } catch (AssertException &e) {
+                  eptr = std::current_exception();
+                }
+                          }
+          });
         temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
         if (eptr) {
           std::rethrow_exception(eptr);

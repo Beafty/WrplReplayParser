@@ -34,6 +34,17 @@
 #define DAGOR_UNLIKELY(x) (x)
 #endif
 #endif
+
+class AssertException : public std::runtime_error {
+public:
+  AssertException(std::string &&msg) : std::runtime_error(msg) {
+  }
+
+  const char *what() {
+    return std::runtime_error::what();
+  }
+};
+
 [[noreturn]] inline void
 assert_failed_ext(const char *file, int line, const char *function, const char *expression, std::string message) {
   std::cerr << "ASSERT FAILED CERR\n";
@@ -47,6 +58,14 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
   LOGE("{}", cpptrace::generate_trace().to_string());
   g_log_handler->wait_until_empty();
   g_log_handler->flush_all();
+  if (!message.empty()) {
+    throw AssertException(fmt::format("ASSERTION FAILED:\n {}:{}\nFunction: {} \nExpression: {} \nMessage: {}\n{}",
+                                      file, line, function, expression, message,
+                                      cpptrace::generate_trace().to_string()));
+  } else {
+    throw AssertException(fmt::format("ASSERTION FAILED:\n {}:{}\nFunction: {} \nExpression: {}\n{}",
+                                      file, line, function, expression, cpptrace::generate_trace().to_string()));
+  }
   std::exit(EXIT_FAILURE);
 }
 
