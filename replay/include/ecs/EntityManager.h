@@ -23,6 +23,7 @@
 #include <shared_mutex>
 #include "EASTL/vector_map.h"
 #include "EASTL/vector_set.h"
+#include "RewindMgr.h"
 
 
 DEFINE_HANDLE(handle_ecs)
@@ -402,11 +403,48 @@ namespace ecs {
   constexpr size_t MAX_ACTION_SIZE = std::max(sizeof(ComponentUpdateAction), std::max(sizeof(EntityCreatedAction), sizeof(EntityDestroyedAction))); // basically useless but hehehe
   using ACTION_ARRAY_CONTAINER =  std::array<uint8_t, MAX_ACTION_SIZE>;
 
+
+  class ECSRewindManager : public RewindMgr<ECSRewindManager, ACTION_ARRAY_CONTAINER> {
+    typedef RewindMgr<ECSRewindManager, ACTION_ARRAY_CONTAINER> BASE;
+    friend BASE;
+
+    void forward(BASE::TimeState &data, EntityManager *mgr) {
+      auto action = reinterpret_cast<RewindAction *>(&data);
+      action->forward(*mgr);
+    }
+
+    void backward(BASE::TimeState &data, EntityManager *mgr) {
+      auto action = reinterpret_cast<RewindAction *>(&data);
+      action->backward(*mgr);
+    }
+
+  public:
+    uint32_t createCreationAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
+      G_STATIC_ASSERT(sizeof(EntityCreatedAction) <= MAX_ACTION_SIZE);
+      auto &base = this->emplaceNew();
+      new(base.data.data()) EntityCreatedAction(time_ms, invalid_storage, valid_storage);
+      return this->timeStates.size() - 1;
+    }
+
+    uint32_t createDestroyAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
+      G_STATIC_ASSERT(sizeof(EntityDestroyedAction) <= MAX_ACTION_SIZE);
+      auto &base = this->emplaceNew();
+      new(base.data.data()) EntityDestroyedAction(time_ms, invalid_storage, valid_storage);
+      return this->timeStates.size() - 1;
+    }
+
+    uint32_t createComponentUpdateAction(uint32_t time_ms, void *ptr, EntityId eid, ecs::component_index_t cidx) {
+      auto &base = this->emplaceNew();
+      G_STATIC_ASSERT(sizeof(ComponentUpdateAction) <= MAX_ACTION_SIZE);
+      new(base.data.data()) ComponentUpdateAction(time_ms, ptr, eid, cidx);
+      return this->timeStates.size() - 1;
+    }
+  };
+
   class RewindManager {
     // allocation is not really needed here, so lets try it inplace
     std::vector<ACTION_ARRAY_CONTAINER> actions;
     int curr_index{};
-
 
     inline RewindAction * getAction(uint32_t index) {
       auto &base = actions[index];
@@ -478,6 +516,9 @@ namespace ecs {
     void swap_desc(EntityId e1, EntityId e2);
     friend net::Connection;
   public:
+    EntityManager &operator=(EntityManager &&) = delete;
+
+    EntityManager &operator=(EntityManager &) = delete;
 
     ParserState * owned_by=nullptr;
     uint32_t * curr_time_ms;
@@ -578,9 +619,10 @@ namespace ecs {
     {return this->data_state->performQueryStoppable(*this, h, fun, user_data);}
 
     inline void performQuery(QueryId h, const query_cb_t &fun, void *user_data)
-    {return this->data_state->performQuery(*this, h, fun, user_data);}
+    {return this->data_state->performQuery(*this, h, fun, user_data);
+    }
 
-    void rewindTo(uint32_t time) {rewindManager.rewindTo(time, *this);}
+    void rewindTo(uint32_t time) { rewindManager.rewindTo(time, this);}
 
   protected:
     friend Component;
@@ -595,7 +637,7 @@ namespace ecs {
     BitVector wasInit{false}; // used during entity creation
     MgrArchetypeStorage arch_data; // EntityManager now only owns raw entity storage
 
-    RewindManager rewindManager; // needs to be the first thing destroyed
+    ECSRewindManager rewindManager; // needs to be the first thing destroyed
 
   };
 }

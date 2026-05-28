@@ -51,6 +51,8 @@ void PyReplay::include(py::module_ &m) {
             .def_property_readonly("environment", [](ReplayHeader &header) { return getStr(header.environment); })
             .def_property_readonly("weather", [](ReplayHeader &header) { return getStr(header.weather); })
             .def_readonly("footer_blk_offset", &ReplayHeader::footer_blk_offset)
+            .def_readonly("difficulty_part_1", &ReplayHeader::difficulty_part_1)
+            .def_readonly("difficulty_part_2", &ReplayHeader::difficulty_part_2)
             .def_readonly("SessionType", &ReplayHeader::SessionType)
             .def_readonly("player_count", &ReplayHeader::player_count)
             .def_readonly("session_id", &ReplayHeader::session_id)
@@ -112,8 +114,8 @@ void PyReplay::include(py::module_ &m) {
     py::class_<ServerReplayReader<false>, IReplayReader>(sub, "FullDecompressServerReplayReader");
 
     py::class_<IReplay>(sub, "IReplay")
-            .def("getHeaderBlk", &IReplay::getHeaderBlk, py::return_value_policy::reference)
-            .def("getFooterBlk", &IReplay::getFooterBlk, py::return_value_policy::reference)
+            .def_property_readonly("headerBlk", &IReplay::getHeaderBlk, py::return_value_policy::reference)
+            .def_property_readonly("footerBlk", &IReplay::getFooterBlk, py::return_value_policy::reference)
             .def("getReplayReader", &IReplay::getReplayReader, py::return_value_policy::take_ownership,
                  py::keep_alive<0, 1>())
             .def("getCompressedReplayReader", &IReplay::getCompressedReplayReader,

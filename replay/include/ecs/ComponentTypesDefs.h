@@ -14,6 +14,7 @@
 #include "math/integer/dag_IPoint3.h"
 #include "math/integer/dag_IPoint4.h"
 #include "math/vecmath/dag_vecMath.h"
+#include "dag/dag_vector.h"
 
 #ifndef MYEXTENSION_COMPONENTTYPESDEFS_H
 #define MYEXTENSION_COMPONENTTYPESDEFS_H
@@ -66,12 +67,6 @@ POD_DEFS(ecs, Int64List, int64_t)
 
 typedef ecs::UInt8List ProjectilePhysObject;
 
-namespace dag {
-  template<typename T>
-  struct Vector : public std::vector<T> {
-  };
-}
-
 ECS_DECLARE_CREATABLE_TYPE(dag::Vector<dafg::NodeHandle>)
 
 #undef POP_DEFS
@@ -119,7 +114,12 @@ struct FlightModelWrapStorageComponent : FieldSerializerDict {
 
 
 struct Rocket {
-  uint32_t uleb_1;
+    std::vector<SpaceTime> positions;
+    uint32_t created_at_ms;
+    uint32_t destroyed_at_ms; // when a rocket 'dies / explodes'
+
+
+    uint32_t uleb_1;
   ecs::EntityId ownerEid;
   ecs::EntityId eid2;
   uint8_t u1_1;

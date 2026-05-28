@@ -14,7 +14,8 @@ struct ReplayHeader {
   char environment[128];
   char weather[32];
   uint32_t footer_blk_offset;
-  uint32_t difficulty_data[4];
+  uint64_t difficulty_part_1;
+  uint64_t difficulty_part_2;
   char unk0[20];
   uint32_t SessionType;
   uint32_t player_count;

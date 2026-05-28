@@ -8,6 +8,7 @@
 #include "math/dag_TMatrix.h"
 #include "math/dag_e3dColor.h"
 #include <pybind11/operators.h>
+#include "modules/mpi/bind_array.h"
 
 PyMath py_math;
 
@@ -171,6 +172,10 @@ void PyMath::include(py::module_ &m) {
         return p4[index];
       })
       .def("__str__", [](IPoint4 &self){return self.toString(0);});
+
+  bind_array<Point3, 4>(math, "Point3_4_Array");
+  bind_array<real, 12>(math, "Real_12_Array");
+
   py::class_<TMatrix>(math, "TMatrix")
       .def(py::init<>())
       .def(py::init<real>())

@@ -87,7 +87,7 @@ namespace ecs {
   }
 
   void RewindManager::rewindTo(uint32_t time_ms, EntityManager &mgr) {
-    const int sz = (int)actions.size();
+    const int sz = (int) actions.size();
     if (sz == 0)
       return;
 
@@ -96,6 +96,23 @@ namespace ecs {
     //   sz  = all actions applied
     //   k   = actions [0, k-1] applied, action k is next to apply forward
     curr_index = std::clamp(curr_index, 0, sz);
+    auto curr_time = getTime(curr_index - 1);
+    size_t test_size = 0;
+    if (curr_time < time_ms) {
+      auto iter = std::upper_bound(actions.begin() + curr_index, actions.end(), time_ms,
+                                   [](uint32_t val, const ACTION_ARRAY_CONTAINER &data) {
+                                     auto action = (RewindAction *) &data;
+                                     return val < action->time_ms;
+                                   });
+      test_size = std::distance(actions.begin(), iter);
+    } else {
+      auto iter = std::lower_bound(actions.begin(), actions.begin() + curr_index, time_ms,
+                                   [](const ACTION_ARRAY_CONTAINER &data, uint32_t val) {
+                                     auto action = (RewindAction *) &data;
+                                     return action->time_ms < val;
+                                   });
+      test_size = std::distance(actions.begin(), iter);
+    }
 
     // Undo actions whose time is strictly after target: action[curr_index-1] was last applied
     while (curr_index > 0 && getTime(curr_index - 1) > time_ms) {
@@ -110,6 +127,7 @@ namespace ecs {
       getAction(curr_index)->forward(mgr);
       ++curr_index;
     }
+    G_ASSERT(test_size == curr_index);
     mgr.broadcastEventImmediate(EventRewind{time_ms});
   }
 
@@ -312,10 +330,11 @@ namespace ecs {
 
     auto desc = this->entDescs.getEntityDesc(eid);
 
-    if(!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <= RESERVED_EID_RANGE) {
+    if (!force_destroy && !is_dtor && !eidsReservationMode && MoveServerDestroyedEntities && eid.index() <=
+        RESERVED_EID_RANGE) {
       G_ASSERT(!this->entDescs.basic_destroyed.test(eid.index(), false));
       //auto new_eid = this->allocateOneEid();
-      auto creation_action = (EntityCreatedAction*)this->rewindManager.actions[eidToEventCreationMap[eid]].data();
+      auto creation_action = (EntityCreatedAction*)this->rewindManager.getState(eidToEventCreationMap[eid]).data.data();
       auto new_eid = creation_action->before;
       G_ASSERT(new_eid);
       eidToEventCreationMap.erase(eid);
