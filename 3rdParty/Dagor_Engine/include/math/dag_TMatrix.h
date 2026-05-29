@@ -30,8 +30,8 @@ public:
   union
   {
     real m[4][3];
-    real array[12];
-    Point3 col[4];
+    std::array<real, 12> array;
+    std::array<Point3, 4> col;
   };
 
   /// identity and zero constant matrices

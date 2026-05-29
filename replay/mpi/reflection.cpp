@@ -101,8 +101,8 @@ namespace danet
       var->flags &= ~f;
   }
 
-  int ReflectableObject::serialize(BitStream &bs, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore, bool fti_all,
-                                   bool do_reset_changed_flag)
+  int ReflectableObject::serialize(BitStream &bs, ParserState *state, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore,
+                                   bool fti_all, bool do_reset_changed_flag)
   {
     checkWatermark();
 
@@ -165,7 +165,7 @@ namespace danet
         bs.Write((uint8_t)117);
 #endif
         BitSize_t pos_before_write = bs.GetWriteOffset();
-        (*v->coder)(DANET_REFLECTION_OP_ENCODE, v, this, &bs);
+        (*v->coder)(DANET_REFLECTION_OP_ENCODE, v, this, &bs, state);
         BitSize_t pos_after_write = bs.GetWriteOffset();
         G_ASSERTF(pos_after_write > pos_before_write, "{} in object '{}' var coder {} for var '{}' ({}) did not writed any data",
                   __FUNCTION__, getClassName(), fmt::ptr((void *)v->coder), v->getVarName(), fmt::ptr(v));
@@ -206,7 +206,7 @@ namespace danet
     return numSerializedVars;
   }
 
-  int serializeChangedReflectables(BitStream &bs, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore, bool fti_all,
+  int serializeChangedReflectables(BitStream &bs, ParserState *state, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore, bool fti_all,
                                    bool do_reset_changed_flag)
   {
     if (!changed_reflectables.head)
@@ -225,7 +225,7 @@ namespace danet
       {
         BitSize_t pos2_before_write = bs.GetWriteOffset();
         (void)pos2_before_write;
-        if (r->serialize(bs, flags_to_have, fth_all, flags_to_ignore, fti_all, do_reset_changed_flag))
+        if (r->serialize(bs, state, flags_to_have, fth_all, flags_to_ignore, fti_all, do_reset_changed_flag))
         {
           G_ASSERT(bs.GetWriteOffset() - pos2_before_write); // nothing was written, but returned true?
           bs.AlignWriteToByteBoundary();
@@ -249,8 +249,8 @@ namespace danet
     return numSerializedReflectables;
   }
 
-  int serializeAllReflectables(BitStream &bs, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore, bool fti_all,
-                               bool do_reset_changed_flag)
+  int serializeAllReflectables(BitStream &bs, ParserState *state, uint16_t flags_to_have, bool fth_all, uint16_t flags_to_ignore,
+                               bool fti_all, bool do_reset_changed_flag)
   {
     if (!all_reflectables.head)
       return 0;
@@ -267,7 +267,7 @@ namespace danet
       {
         BitSize_t pos2_before_write = bs.GetWriteOffset();
         (void)pos2_before_write;
-        if (r->serialize(bs, flags_to_have, fth_all, flags_to_ignore, fti_all, do_reset_changed_flag))
+        if (r->serialize(bs, state, flags_to_have, fth_all, flags_to_ignore, fti_all, do_reset_changed_flag))
         {
           G_ASSERT(bs.GetWriteOffset() - pos2_before_write); // nothing was written, but returned true?
           bs.AlignWriteToByteBoundary();
@@ -346,10 +346,12 @@ namespace danet
 
         continue;
       }
+      v->setNewVar(state->curr_time_ms);
       G_ASSERT(v->coder);
-      int out = (*v->coder)(DANET_REFLECTION_OP_DECODE, v, this, &bs);
+      int out = (*v->coder)(DANET_REFLECTION_OP_DECODE, v, this, &bs, state);
       if (!out)
       {
+        v->resetVar();
         LOGE("(REFLECTION) can't decode value for var '{}' in obj {} (type = '{}')", v->getVarName(), fmt::ptr(this), getClassName());
         bs.SetReadOffset(ppp);
         idFieldSerializer.skipReadingField(j, bs); // skip
@@ -365,10 +367,11 @@ namespace danet
         // but WarShip fields really differ from those of HeavyVehicleModel
         bs.SetReadOffset(ppp);
         idFieldSerializer.skipReadingField(j, bs); // skip
+        v->resetVar();
         //ret = false;
         continue;
       }
-
+      v->verifyVar();
       G_ASSERT(!(v->flags & RVF_DESERIALIZED));
       if (v->flags & RVF_NEED_DESERIALIZE)
         v->flags |= RVF_DESERIALIZED;

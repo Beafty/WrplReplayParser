@@ -4,8 +4,7 @@ extern "C" {
 #include "lz4.h"
 }
 #include "ecs/EntityManager.h"
-#include "BitStream.h"
-#include "basic_replay_structs.h"
+#include "danet/BitStream.h"
 #include "utils.h"
 #include "consts.h"
 #include "ecs/typesAndLimits.h"
@@ -112,6 +111,7 @@ namespace net
     void writeLastRecvdPacketAcks(BitStream &bs);
 
   private:
+    std::vector<uint8_t> construct_replication_into{}; // will hold temporary replicated data
     mutable InternedStrings objectKeys;
     std::vector<std::string> serverTemplates;
     std::vector<ecs::template_t> serverToClientTemplates;

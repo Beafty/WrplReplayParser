@@ -33,13 +33,11 @@ void PyReplayState::include(py::module_ &m) {
     g_log_handler->flush_all();
   });
 
-
   py::enum_<ChatType>(m, "ChatTypeEnum")
       .value("Team", ChatType::Team)
       .value("All", ChatType::All)
       .value("Squad", ChatType::Squad)
       .value("Direct", ChatType::Direct);
-
 
   py::class_<ChatMessage>(m, "ChatMessage")
       .def_readonly("time_ms", &ChatMessage::time_ms)
@@ -50,53 +48,70 @@ void PyReplayState::include(py::module_ &m) {
       .def_readonly("is_quick_message", &ChatMessage::is_quick_message)
       .def_readonly("complaints", &ChatMessage::complaints);
 
-  bind_readonly_vector_no_contain<std::vector<ChatMessage>>(m, "ChatMessageList");
-  bind_readonly_vector_no_contain<std::vector<const mpi::IBattleMessage*>>(m, "IBattleMessageList");
+  bind_readonly_vector_no_contain<std::vector<ChatMessage> >(m, "ChatMessageList");
+  bind_readonly_vector_no_contain<std::vector<const mpi::IBattleMessage *> >(m, "IBattleMessageList");
 
   py::class_<ParserState>(m, "ParserState")
       .def(py::init<>())
+      .def(py::init<IReplay *>())
       .def(py::init<Replay *>())
       .def(py::init<ServerReplay *>())
-      .def(py::init<MemoryEfficientServerReplay *>())
       .def_readonly("mgr", &ParserState::g_entity_mgr)
       .def_readonly("players", &ParserState::players)
       .def_readonly("teams", &ParserState::teams)
       .def_readonly("gen_state", &ParserState::gen_state)
       .def_readonly("glob_elo", &ParserState::glob_elo)
       .def_readonly("zones", &ParserState::Zones)
+      .def_readonly("areas", &ParserState::missionAreas2)
+      .def_readonly("replay_length_ms", &ParserState::replay_length_ms)
+      .def_readonly("current_rewind_ms", &ParserState::current_rewind_ms)
       .def_readonly("curr_time_ms", &ParserState::curr_time_ms)
+      .def("rewind_to", &ParserState::rewindToMs,
+           py::doc("Rewind the Parser state to any particular time in the replay. Not exact"))
       .def_readonly("current_packet_index", &ParserState::current_packet_index)
       .def_readonly("chat_messages", &ParserState::chatMessages)
       .def_readonly("battle_messages", &ParserState::BattleMessages)
       .def("LoadFromReader", [](ParserState &state,
                                 IReplayReader &rdr, const std::function<void(
-          ReplayPacket *)> &func) { // the temporary exists for the entire call of this function, unlike __iter__
+                                  ReplayPacket *)> &func) {
+        // the temporary exists for the entire call of this function, unlike __iter__
         //auto rdr = py_reader.cast<IReplayReader*>();
         py::gil_scoped_release release;
         std::exception_ptr eptr;
         std::thread temp_t(
-            [&]() { // this is done purely so python signal handler doesn't come into play and so my signal handler dumps stacktrace
-                          // although, this does make exception handling more complicated (python cant handle exceptions thrown from another thread
-              ReplayPacket pkt{};
-              bool cont = true;
-              if (func) {
-                py::gil_scoped_acquire gil;
-                try {
-                  while (cont && rdr.getNextPacket(&pkt)) {
-                    BitSize_t start_offs = pkt.stream.GetReadOffset();
-                    cont = state.ParsePacket(pkt);
-                    pkt.stream.SetReadOffset(start_offs);
-                    func(&pkt);
-                  }
-                } catch (py::error_already_set &e) {
-                  eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
+          [&]() {
+            // this is done purely so python signal handler doesn't come into play and so my signal handler dumps stacktrace
+            // although, this does make exception handling more complicated (python cant handle exceptions thrown from another thread
+            ReplayPacket pkt{};
+            bool cont = true;
+            if (func) {
+              py::gil_scoped_acquire gil;
+              try {
+                while (cont && rdr.getNextPacket(pkt)) {
+                  BitSize_t start_offs = pkt.stream.GetReadOffset();
+                  cont = state.ParsePacket(pkt);
+                  pkt.stream.SetReadOffset(start_offs);
+                  func(&pkt);
                 }
-
-              } else {
-                while (rdr.getNextPacket(&pkt) && state.ParsePacket(pkt));
+              } catch (py::error_already_set &e) {
+                eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
+              } catch (ExceptionException &e) {
+                eptr = std::current_exception();
+              } catch (AssertException &e) {
+                eptr = std::current_exception();
               }
-            });
-        temp_t.join(); // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
+            } else {
+              try {
+                while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
+              } catch (ExceptionException &e) {
+                eptr = std::current_exception();
+              } catch (AssertException &e) {
+                eptr = std::current_exception();
+              }
+            }
+          });
+        temp_t.join();
+        // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
         if (eptr) {
           std::rethrow_exception(eptr);
         }

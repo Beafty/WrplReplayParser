@@ -20,8 +20,8 @@ namespace unit {
 
 #define RET_FAIL(opt) if(!(opt)) return false
 
-  bool LoadFromStorage(Unit *unit, FieldSerializerDict *data) {
-    BitStream bs{data->data.data(), data->data.size(), false};
+  bool LoadFromStorage(Unit *unit, const FieldSerializerDict &data) {
+    BitStream bs{data.data.data(), data.data.size(), false};
     IdFieldSerializer255 IdFieldSerializer{};
     uint32_t end;
     uint16_t count = IdFieldSerializer.readFieldsSizeAndCount(bs, end);

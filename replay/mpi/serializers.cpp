@@ -5,10 +5,10 @@ namespace danet {
 
 
   int TranslatedCoder(DANET_ENCODER_SIGNATURE) {
-    return stringCoder(op, meta, ro, bs);
+    return stringCoder(op, meta, ro, bs, state);
   }
 
-  int WeirdFloatSerializer(int op, ReflectionVarMeta *meta, const ReflectableObject *ro, BitStream *bs) {
+  int WeirdFloatSerializer(DANET_ENCODER_SIGNATURE) {
     auto data = meta->getValue<uint8_t>(); // in reality, this maybe 2, 3, or even 4 floats
     G_ASSERT(meta->numBits%0x20 == 0 && meta->numBits <= 0x80); // must be alligned to 4 bytes and be less than 16 bytes (float and max 4 floats)
     if (op == DANET_REFLECTION_OP_ENCODE) {

@@ -7,15 +7,18 @@ extern "C" {
 #include "lz4.h"
 }
 #include "ecs/EntityManager.h"
-#include "BitStream.h"
-#include "basic_replay_structs.h"
+#include "danet/BitStream.h"
+#include "Replay/ReplayStructs.h"
 #include "utils.h"
 #include "consts.h"
 #include "ecs/typesAndLimits.h"
 #include "network/Connection.h"
 //#include "network/message.h"
+#ifdef _ECS_CODEGEN
+struct ENetPeer {};
+#else
 #include "enet/enet.h"
-
+#endif
 DEFINE_HANDLE(handle_cnet)
 #define CNET_LOGI(format_, ...) ELOGI(handle_cnet, format_, __VA_ARGS__)
 #define CNET_LOGD1(format_, ...) ELOGD1(handle_cnet, format_, __VA_ARGS__)

@@ -166,6 +166,10 @@ namespace ecs
         G_ASSERT(data[index]->entity_size == entitySize); // sanity check, should always match as we construct from Archetypes
       }
     }
+
+    bool hasArchetype(archetype_t index) {
+      return index < data.size() && data[index] != nullptr;
+    }
     // all construction of a specific archetype happens earlier, so no checks here
     Archetype *getArch(archetype_t index) const {
       G_ASSERT(data[index]);
@@ -183,8 +187,12 @@ namespace ecs
   {
   public:
     archetype_t size() const { return (archetype_t)archetypes.size(); }
-    inline void createArchetype(archetype_t archetype, MgrArchetypeStorage *storage) {
-      storage->constructArch(archetype, this->archetypes[archetype].ENTITY_SIZE);
+    inline void createArchetype(archetype_t archetype, MgrArchetypeStorage &storage) {
+      storage.constructArch(archetype, this->archetypes[archetype].ENTITY_SIZE);
+    }
+
+    inline bool archetypeExists(archetype_t archetype, MgrArchetypeStorage &storage) {
+      return storage.hasArchetype(archetype);
     }
 
 

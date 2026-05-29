@@ -355,7 +355,7 @@ namespace net
       }
       else
       {
-        EXCEPTION("Entity {:#x} already destroyed?", serverEid);
+        LOGE("Entity {:#x} already destroyed?", serverEid);
       }
     }
     return true;
@@ -601,22 +601,36 @@ namespace net
     if (clientCidx == ecs::INVALID_COMPONENT_INDEX) // we can't deserialize it, which means type was unknown!
       return false;
     auto datacomp = ecs::g_ecs_data->getDataComponents()->getDataComponent(clientCidx);
-
+    auto comps = ecs::g_ecs_data->getComponentTypes();
     BitSize_t beforeReadPos = bs.GetReadOffset();
     BitstreamDeserializer bsds(bs, mgr, &objectKeys);
     ecs::ComponentRef cref = mgr->getComponentRefCidx(eid, clientCidx);
+    auto old_ptr = cref.value;
+    this->construct_replication_into.resize(cref.getSize());
+    cref.setNewValue(this->construct_replication_into.data(), *this->mgr);
     bool crefIsNull = cref.isNull();
-
     if (DAGOR_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds, *mgr)))
     {
+
+      // create storage data
+      auto storage_ptr = malloc(cref.getSize());
+      // move new data into pointer
+      cref.move(storage_ptr, cref.value);
+      // swap entity data with new data (so storage_ptr now has old data, like intended)
+      cref.value = old_ptr;
+      cref.swap(storage_ptr);
+      // object must be initialized before we can do anything
+      mgr->rewindManager.createComponentUpdateAction(*mgr->curr_time_ms, storage_ptr, eid, clientCidx);
       CONN_LOGD2("Replicating Component {}({}) for entity {:#x} for template {}. data: {}",
           datacomp->getName(),
           ecs::g_ecs_data->getComponentTypes()->getName(cref.getTypeId()),
           eid.get_handle(),
-          this->mgr->getEntityTemplateName(eid), cref.toString(nullptr));
+          this->mgr->getEntityTemplateName(eid), cref.toString());
       //replicated_component_on_client_deserialize(eid, clientCidx);
       return true;
     }
+    // even if its the same value, we dont use it after this
+    cref.destructCopy(cref.value);
     const char *warn_type;
     if(crefIsNull) {
       // the warning is because this entity does not have that component

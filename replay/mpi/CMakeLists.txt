@@ -11,7 +11,7 @@ add_library(MPI STATIC
 
 
 target_link_libraries(MPI
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         BLK::BLK
         FS::FS
         VROMFS::VROMFS
@@ -38,4 +38,3 @@ target_include_directories(MPI
 
 
 SetGenFlags(MPI)
-add_dependencies(MPI CodeGeneration)

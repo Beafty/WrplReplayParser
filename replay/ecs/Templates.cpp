@@ -110,7 +110,7 @@ namespace ecs {
       {
         if(it==parent)
         {
-          EXCEPTION("Duplicate template {} found will build compound template '{}'", parts.c_str(), templ_name);
+          EXCEPTION("Duplicate template {} found while build compound template '{}'", parts.c_str(), templ_name);
         }
       }
       parents.push_back(it);

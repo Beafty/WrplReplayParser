@@ -5,6 +5,7 @@
 #include "danet/BitStream.h"
 #include "math/dag_Point3.h"
 #include "DataBlock.h"
+#include "ecs/entityId.h"
 //#include "mpi/mpi.h"
 //#include "mpi/codegen/ReflIncludes.h"
 
@@ -79,7 +80,7 @@ enum UnitType : uint8_t {
 
 };
 
-class FieldSerializerDict;
+struct FieldSerializerDict;
 
 namespace unit {
   enum MessageEnum {
@@ -135,7 +136,13 @@ namespace unit {
 
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
 
+    // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
+
+    uint32_t created_at_ms = 0;
+    uint32_t killed_at_ms = 0xFFFFFFFF; // when was killed
+    uint32_t destroyed_at_ms = 0xFFFFFFFF; // when was 'destroyed' in ecs
     uint16_t uid;
+    ecs::EntityId curr_eid;
     UnitType unitType; // make into an enum, maybe match with gaijin enum? I know they have one iirc
     std::string unit_name{};
     std::string player_internal_name{};
@@ -158,7 +165,7 @@ namespace unit {
   };
 
 
-  bool LoadFromStorage(Unit *unit, FieldSerializerDict *data);
+  bool LoadFromStorage(Unit *unit, const FieldSerializerDict &data);
 
   class Aircraft : public Unit {
   public:
@@ -177,12 +184,8 @@ namespace unit {
 
   };
 
-  class UnitRef {
-  public:
+  struct UnitRef {
     Unit *unit = nullptr;
-
-    ~UnitRef() {
-      delete unit;
-    }
+    bool operator==(const UnitRef& other) const {return unit == other.unit;}
   };
 }

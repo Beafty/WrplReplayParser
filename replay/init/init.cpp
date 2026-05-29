@@ -59,4 +59,5 @@ void initialize(const std::string &VromfsPath, const std::string &logfile_path, 
     wp_cost_f->loadBlk(ecs::g_ecs_data->wp_cost);
   //mpi::players.hello();
   ecs::g_ecs_data.get();
+  size_t pull_val = framework_primary_pulls;
 }

@@ -18,7 +18,7 @@ add_library(dagECS
 
 
 target_link_libraries(dagECS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         BLK::BLK
         FS::FS
         VROMFS::VROMFS

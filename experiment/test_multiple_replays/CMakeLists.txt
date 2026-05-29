@@ -1,6 +1,5 @@
 add_executable(test_multiple_replays
         test_multiple_replays.cpp
-        Replay.cpp
 )
 target_link_libraries(test_multiple_replays
         LOGGER::LOGGER
@@ -10,7 +9,7 @@ target_link_libraries(test_multiple_replays
         READER::READER
         FS::FS
         VROMFS::VROMFS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         NET::NET
         dagECS::dagECS
         INIT::INIT

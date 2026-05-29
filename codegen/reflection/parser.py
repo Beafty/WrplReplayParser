@@ -2,33 +2,21 @@ import inspect
 import io
 from io import StringIO
 
-import builtin_types
-import cpp_types
-import objects.ReflectableObjects as objects
-from objects.obj_base import ReflectableObject, ReplicatedObject, InstReflectable, InstReplicated
-from DataTypes import DataTypeManager, iterate_classes_in_source_order
-from write_header import write_header
-from hashCheck import HashChecker
+from . import builtin_types
+from . import cpp_types
+from .objects import ReflectableObjects as objects
+from .objects.obj_base import ReflectableObject, ReplicatedObject, InstReflectable, InstReplicated
+from .DataTypes import DataTypeManager, iterate_classes_in_source_order
+from .write_header import write_header
 
-def check_hash(hash_name: str, obj_imports, type_imports) -> bool:
-    with HashChecker("keyfile.json") as checker:
-        file_paths = [*[inspect.getsourcefile(module) for module in obj_imports], *[inspect.getsourcefile(module) for module in type_imports]]
-        hash_matches = checker.compute_hash(hash_name, file_paths)
-        if hash_matches:
-            print("Hash check passed for ReflectionGenerate, skipping code generation")
-            return True
-        else:
-            print("Hash Missmatch for ReflectionGenerate, running code generation")
-    return False
 
-def generate(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
 
+type_imports = [builtin_types, cpp_types]
+mgr = DataTypeManager(type_imports)
+
+def generate_reflectables(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
+    global mgr
     obj_imports = [objects]
-    type_imports = [builtin_types, cpp_types]
-    if not force_gen:
-        if check_hash("ReflectionGenerate", obj_imports, type_imports):
-            return
-    mgr = DataTypeManager(type_imports)
     refl_include_paths: list[str] = []
     for imp in obj_imports:
         for obj in iterate_classes_in_source_order(imp):
@@ -66,12 +54,8 @@ def generate(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = 
         f1.write("#include \"mpi/Replication.h\"\n")
 
 def generate_bindings(header_codegen_path: str, cpp_codegen_path: str, force_gen: bool = False):
+    global mgr
     obj_imports = [objects]
-    type_imports = [builtin_types, cpp_types]
-    if not force_gen:
-        if check_hash("PythonBindingsGenerate", obj_imports, type_imports):
-            return
-    mgr = DataTypeManager(type_imports)
     with open(f"{cpp_codegen_path}/codegen_objects.cpp", "w") as f:
         write_header(f)
         f.write("#include \"modules/mpi/codegen_objects.h\"\n")
@@ -103,15 +87,3 @@ def generate_bindings(header_codegen_path: str, cpp_codegen_path: str, force_gen
 
 
     mgr.compile_bindings(header_codegen_path, cpp_codegen_path)
-
-
-if __name__ == "__main__":
-    header_codegen_path = r"D:\ReplayParser\replay\include\mpi\codegen"
-    cpp_codegen_path = r"D:\ReplayParser\replay\mpi\codegen"
-    generate(header_codegen_path, cpp_codegen_path, force_gen=True)
-
-    header_codegen_path = r"D:\ReplayParser\python\include\modules\mpi"
-    cpp_codegen_path = r"D:\ReplayParser\python\mpi"
-
-    generate_bindings(header_codegen_path, cpp_codegen_path, True)
-    print("Codegen Completed")

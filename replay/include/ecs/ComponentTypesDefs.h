@@ -14,6 +14,7 @@
 #include "math/integer/dag_IPoint3.h"
 #include "math/integer/dag_IPoint4.h"
 #include "math/vecmath/dag_vecMath.h"
+#include "dag/dag_vector.h"
 
 #ifndef MYEXTENSION_COMPONENTTYPESDEFS_H
 #define MYEXTENSION_COMPONENTTYPESDEFS_H
@@ -66,12 +67,6 @@ POD_DEFS(ecs, Int64List, int64_t)
 
 typedef ecs::UInt8List ProjectilePhysObject;
 
-namespace dag {
-  template<typename T>
-  struct Vector : public std::vector<T> {
-  };
-}
-
 ECS_DECLARE_CREATABLE_TYPE(dag::Vector<dafg::NodeHandle>)
 
 #undef POP_DEFS
@@ -95,6 +90,7 @@ struct FieldSerializerDict {
   std::string toString(int indent) const {
     return FormatHexToStream(std::span((char*)data.data(), data.size())).str();
   }
+  bool operator==(const FieldSerializerDict &other) const = default;
 };
 
 struct BarrageBalloonStorageComponent : FieldSerializerDict {
@@ -118,7 +114,12 @@ struct FlightModelWrapStorageComponent : FieldSerializerDict {
 
 
 struct Rocket {
-  uint32_t uleb_1;
+    std::vector<SpaceTime> positions;
+    uint32_t created_at_ms;
+    uint32_t destroyed_at_ms; // when a rocket 'dies / explodes'
+
+
+    uint32_t uleb_1;
   ecs::EntityId ownerEid;
   ecs::EntityId eid2;
   uint8_t u1_1;
@@ -187,6 +188,8 @@ struct Rocket {
                        u8_1.toString(0));
     return oss.str();
   }
+
+  bool operator==(const Rocket &other) const = default;
 };
 
 struct Payload : Rocket {

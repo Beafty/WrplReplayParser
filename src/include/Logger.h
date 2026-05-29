@@ -20,6 +20,7 @@
 #include "fmt/base.h"
 #include "fmt/format.h"
 #include "onDemandInit.h"
+#include "thread"
 
 //internal handle for a specific sink, you get a sink handle when you create or query a sink
 typedef int16_t sink_handle_t;

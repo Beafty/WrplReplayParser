@@ -13,7 +13,7 @@ target_link_libraries(ProfileReplayParsing
         READER::READER
         FS::FS
         VROMFS::VROMFS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         NET::NET
         dagECS::dagECS
         INIT::INIT

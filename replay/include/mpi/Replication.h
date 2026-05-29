@@ -2,7 +2,10 @@
 
 #ifndef WTFILEUTILS_REPLICATED_DEFINE_H
 #define WTFILEUTILS_REPLICATED_DEFINE_H
+#include "ecs/query/event.h"
 
+
+ECS_UNICAST_EVENT_TYPE(EventNewMiniMap, TMatrix)
 
 DEFINE_HANDLE(handle_replication)
 #define REPLICATION_LOGI(format_, ...) ELOGI(handle_replication, format_, __VA_ARGS__)
@@ -56,12 +59,6 @@ public:
   DECL_REPLICATION(InteractiveObjectProxy, danet::ReplicatedObject)
 };
 
-// id 10
-class MissionArea : public danet::ReplicatedObject {
-public:
-  DECL_REPLICATION(MissionArea, danet::ReplicatedObject)
-};
-
 // id 11
 class MissionDrawing : public danet::ReplicatedObject {
 public:
@@ -72,12 +69,6 @@ public:
 class MissionObjective : public danet::ReplicatedObject {
 public:
   DECL_REPLICATION(MissionObjective, danet::ReplicatedObject)
-};
-
-// id 13
-class MissionZone : public danet::ReplicatedObject {
-public:
-  DECL_REPLICATION(MissionZone, danet::ReplicatedObject)
 };
 
 // id 14

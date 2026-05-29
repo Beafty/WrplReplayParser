@@ -68,7 +68,12 @@ namespace mpi {
       auto bs = (BitStream *)&m->payload;
       //LOG("Deserialzing for Reflection type: %0x\n", mid);
       switch(mid) {
-        case Kill:
+        case Kill: {
+          const KillMessage* kill_m = dynamic_cast<const KillMessage*>(m);
+          if (kill_m->offended_unit)
+            kill_m->offended_unit->killed_at_ms = this->state->curr_time_ms;
+          [[fallthrough]];
+        }
         case SevereDamage:
         case CriticalDamage:
         case Awards: {
@@ -190,6 +195,15 @@ namespace mpi {
         if(count < 3) { // max team count is 3
           return &state->teams[count];
         }
+        EXCEPTION("Invalid team index");
+      }
+      case 0x16: {
+        if (count < state->missionAreas2.size()) {
+          return state->missionAreas2[count];
+        } else {
+          LOGE("Invalid MissionArea index");
+        }
+        return nullptr;
       }
     }
     //LOG("unable to dispatch to oid: {:#x}; type: {}; index: {}", oid, obj, count);

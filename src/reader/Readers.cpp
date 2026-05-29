@@ -61,7 +61,8 @@ bool BaseReader::seekto(int addr)
 bool BaseReader::seekrel(int addr)
 {
 
-    if (read_offset+addr >= this->data_size || read_offset+addr < 0) return false;
+    if (read_offset+addr > this->data_size || read_offset+addr < 0)
+        return false;
     read_offset+=addr;
     return true;
 }
@@ -173,7 +174,7 @@ int ZstdReader::getSize() {
     return 0;
 }
 
-void ZstdLoadCB::open(IGenReader &in_crd, int in_size, const ZSTD_DDict_s *dict)
+void ZstdLoadCB::open(IReader &in_crd, int in_size, const ZSTD_DDict_s *dict)
 {
     assert(!loadCb && "already opened?");
     assert(in_size > 0);

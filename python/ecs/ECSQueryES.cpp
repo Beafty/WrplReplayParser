@@ -102,7 +102,7 @@ void on_callback(ecs::GState * state) {
       c->desc = std::make_unique<ecs::EntitySystemDesc>(
           c->es_name.c_str(),
           "python/ecs/ECSQueryES.cpp",
-          ecs::EntitySystemOps([&c](ecs::EntityManager *mgr, const ecs::Event &evt, const ecs::QueryView &components) {
+          ecs::EntitySystemOps([&c](ecs::EntityManager &mgr, const ecs::Event &evt, const ecs::QueryView &components) {
 
             auto compBegin = components.begin(), compEnd = components.end();
             G_ASSERT(compBegin != compEnd);
@@ -141,8 +141,7 @@ void on_callback(ecs::GState * state) {
           ecs::make_span(c->ro_descs.data(), c->ro_descs.size()),
           ecs::make_span(c->rq_descs.data(), c->rq_descs.size()),
           ecs::make_span(c->no_descs.data(), c->no_descs.size()),
-          std::move(c->events),
-          0
+          std::move(c->events)
       );
   continue_label:
     continue;

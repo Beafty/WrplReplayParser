@@ -58,35 +58,43 @@ struct ChatMessage {
 struct ParserState {
 
   explicit ParserState(int player_count=32) : players(player_count) {}
-  explicit ParserState(Replay *replay): players(replay->PlayerCount) {}
-  explicit ParserState(ServerReplay *replay): players(replay->replay_files[0].PlayerCount) {}
-  explicit ParserState(MemoryEfficientServerReplay *replay): players(replay->base_replay->PlayerCount) {}
+  explicit ParserState(IReplay *replay): players(replay->getHeader()->player_count) {}
 private:
 
   //friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);
+
+
 public:
+  uint32_t replay_length_ms = 0xFFFFFFFF;
+  uint32_t current_rewind_ms; // the time we have rewinded to
+  uint32_t curr_time_ms = 0; // the current time in the ECS / state. this wont always math current_rewind_time_ms
   net::CNetwork conn{this};
   mpi::GeneralObject main_dispatch{this};
   net_delta_t NetDelta;
   std::vector<MPlayer> players;
-  ecs::EntityManager g_entity_mgr{(ParserState*)this}; // this order is required as g_entity_mgr needs to be destroyed before players
-  std::vector<BaseZone*> Zones{};
+  ecs::EntityManager g_entity_mgr{this}; // this order is required as g_entity_mgr needs to be destroyed before players
+  std::vector<MissionZone*> Zones{};
   std::array<TeamData, 3> teams{}; // team[0] is global data, teams[1] is first team, teams[2] is second team
   std::vector<ChatMessage> chatMessages{};
   GlobalElo glob_elo{};
   GeneralState gen_state{};
   std::vector<const mpi::IBattleMessage*> BattleMessages{};
-  uint32_t curr_time_ms = 0;
+  std::vector<MissionArea*> missionAreas1{};
+  std::vector<MissionArea*> missionAreas2{};
   int current_packet_index=0;
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }
   ~ParserState() {
     ZoneScoped;
+    this->rewindToMs(0xFFFFFFFF);
     for(auto v : Zones) {
       delete v;
     }
     for(auto v : BattleMessages) {
+      delete v;
+    }
+    for (auto v : missionAreas1) {
       delete v;
     }
   }
@@ -96,8 +104,10 @@ public:
 
   inline bool ParsePacket(ReplayPacket &pkt) {
     curr_time_ms = pkt.timestamp_ms;
+    current_rewind_ms = curr_time_ms;
     switch (pkt.type) {
       case ReplayPacketType::EndMarker: {
+        replay_length_ms = pkt.timestamp_ms;
         return false;
       }
       case ReplayPacketType::StartMarker: {
@@ -122,7 +132,7 @@ public:
         break;
       }
       case ReplayPacketType::NextSegment: {
-        LOG("NextSegment");
+        //LOG("NextSegment");
         break;
       }
       case ReplayPacketType::ECS: {
@@ -136,6 +146,27 @@ public:
     }
     current_packet_index++;
     return true;
+  }
+
+  inline void rewindToMs(uint32_t time_ms) {
+    if (replay_length_ms == 0xFFFFFFFF) {
+      LOGE("You cannot rewind until the replay has finshed parsing");
+      return;
+    }
+    if (current_rewind_ms == time_ms)
+      return;
+    //LOGI("rewinding to {} from {}", time_ms, current_rewind_ms);
+    current_rewind_ms = time_ms;
+    this->g_entity_mgr.rewindTo(time_ms);
+    for (auto & p : players)
+      p.rewindToTime(time_ms);
+    for (auto & p : teams)
+      p.rewindToTime(time_ms);
+    for (auto & p : Zones)
+      p->rewindToTime(time_ms);
+    for (auto & p : missionAreas2)
+      p->rewindToTime(time_ms);
+    curr_time_ms = time_ms;
   }
 };
 

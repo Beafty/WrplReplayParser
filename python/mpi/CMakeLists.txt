@@ -3,7 +3,14 @@ add_library(PyMpi
         mpi.cpp
         types.cpp
         codegen_types.cpp
+        codegen_types_0.cpp
+        codegen_types_1.cpp
+        codegen_types_2.cpp
+        codegen_types_3.cpp
+        codegen_types_4.cpp
+        codegen_types_5.cpp
         battle_messages.cpp
+        unit.cpp
 )
 
 target_link_libraries(PyMpi

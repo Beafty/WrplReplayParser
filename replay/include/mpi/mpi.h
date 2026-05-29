@@ -5,7 +5,7 @@
 #pragma once
 
 #include "ecs/EntityManager.h"
-#include "BitStream.h"
+#include "danet/BitStream.h"
 #include <idFieldSerializer.h>
 #include "utils.h"
 #include "dag_assert.h"

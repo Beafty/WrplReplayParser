@@ -199,6 +199,7 @@ namespace ecs
 
   };
 
+  void split_on_plus(const std::string& input, std::vector<std::string>& output);
   class LoadContext;
 /// Represents a collection of templates
 

@@ -10,7 +10,7 @@ target_link_libraries(FieldSerializer
         BS::BS
 )
 
-add_library(FieldSerializer:FieldSerializer ALIAS FieldSerializer)
+add_library(FieldSerializer::FieldSerializer ALIAS FieldSerializer)
 
 set(INCLUDES
         "${BASE_DIR}/src/include"

@@ -1,274 +1,211 @@
 
 
-#ifndef MYEXTENSION_REPLAY_H
-#define MYEXTENSION_REPLAY_H
-
-#include "reader.h"
-#include <filesystem>
+#pragma once
+#include "ReplayStructs.h"
 #include "DataBlock.h"
-#include "Replay/ReplayReader.h"
+#include "ReplayReader.h"
+#include "writer.h"
 
-namespace fs = std::filesystem;
 
-struct ReplayData {
-  uint8_t *data;
-  std::size_t size;
 
-  ReplayData() {
-    data = nullptr;
-    size = 0;
-  }
 
-  template<typename T>
-  ReplayData(T *data, size_t size) {
-    assert(sizeof(T) == 1);
-    this->data = data;
-    this->size = size;
-  }
+class IReplay {
+public:
+  virtual ~IReplay() = default;
+  virtual ReplayHeader * getHeader() = 0;
+  virtual DataBlock * getHeaderBlk() = 0;
+  virtual DataBlock * getFooterBlk() = 0;
+  /// returns a IReplayReader object that will let you iterate over all the packets in a specified replay
+  /// getReplayReader() is faster, but also less memory efficient.
+  /// \return returns the object, you must delete it yourself
+  virtual IReplayReader * getReplayReader() = 0;
 
-  ReplayData(IGenReader &rdr) {
-    this->size = rdr.getSize() - rdr.readOffset();
-    this->data = (unsigned char *) malloc(this->size);
-    rdr.read(data, (int) size);
-  }
 
-  ReplayData(std::span<uint8_t> data) {
-    this->size = data.size();
-    auto t_ptr = (uint8_t *) malloc(this->size);
-    memcpy(t_ptr, data.data(), data.size());
-    this->data = t_ptr;
-  }
-
-  [[nodiscard]] std::span<uint8_t> getData() const {
-    return {(unsigned char *) data, size};
-  }
-
-  [[nodiscard]] std::span<uint8_t> getData(uint64_t offset) const {
-    G_ASSERT(data);
-    return {(uint8_t *) data + offset, size - offset};
-  }
-
-  [[nodiscard]] std::string_view getStr(uint64_t offset) const {
-    return {((char *) data + offset)};
-  }
-
-  template<typename T>
-  [[nodiscard]] T *getObj(uint64_t offset) {
-    return reinterpret_cast<T *>(data + offset);
-  }
-
-  ~ReplayData() {
-    if (data)
-      free(data);
-    data = nullptr;
-    size = 0;
-  }
+  /// returns a IReplayReader object that will let you iterate over all the packets in a specified replay
+  /// getCompressedReplayReader() is slower, but also more memory efficient.
+  /// \return returns the object, you must delete it yourself
+  virtual IReplayReader * getCompressedReplayReader() = 0;
+  virtual bool isValid() = 0;
 };
 
 
-class Replay {
-#define MAGIC_OFFS 0x00000003
-#define FOOTER_BLK_OFFSET_LOC 0x000002AC // where the integer that stores the footer blk offset is stored
-#define LEVEL_BIN_PATH_OFFS 0x00000008 // where xxx.bin starts
-#define MISSION_BLK_OFFS 0x00000088
-#define MAIN_DATA_START 0x000004D2 // where the 'replay' starts, can either be the header blk or the zlib data
-#define PLAYER_COUNT_OFFS 0x000002D8
-#define SESSION_ID_OFFS 0x000002DC
+class ServerReplay;
+class Replay final : public  IReplay  {
+  enum MemoryStorageType: uint8_t {
+    Invalid = 0,
+    Memory = 1,
+    File = 2,
+  };
 
-  fs::path replay_path;
-  ReplayData *data;
-  uint32_t footerBlkOffset;
-  uint32_t zlib_start = MAIN_DATA_START;
+  class IReplayData {
+    virtual ~IReplayData() {}
+    virtual std::span<uint8_t> getData(Replay *) {return {};}; // also basically BeforeParse
+    virtual void afterParse() {};
+    virtual bool ReadInto(uint8_t * data, size_t count, size_t offs) {return false;};
+    virtual int getRemainingSize(size_t from_offs) {return -1;}
+    friend Replay;
+  };
+
+  // when the replay was passed in memory
+  class InMemoryReplayData : public IReplayData {
+    std::span<uint8_t> data{};
+    bool owns{};
+    InMemoryReplayData(const std::span<uint8_t> data, bool own) : data(data), owns(own) {}
+
+    ~InMemoryReplayData() override {if(owns) free(data.data());}
+
+    std::span<uint8_t> getData(Replay * rpl) override;
+
+    void afterParse() override {};
+
+    bool ReadInto(uint8_t * ptr, size_t count, size_t offs) override;
+
+    int getRemainingSize(size_t from_offs) override;
+    friend Replay;
+  };
+
+  // when the replay is a location on the filesystem
+  // this does optimizations to reduce memory usage
+  class FileReplayData: public IReplayData {
+    FileReader reader;
+    std::vector<uint8_t> zlib_data{};
+    uint32_t ref_count = 0; // how many readers are using this data?
+
+    explicit FileReplayData(const std::string & path) : reader(path) {}
+
+    ~FileReplayData() override = default; // default dtor is fine
+
+    std::span<uint8_t> getData(Replay * rpl) override;
+
+    void afterParse() override;
+
+    bool ReadInto(uint8_t * data, size_t count, size_t offs) override;
+
+    int getRemainingSize(size_t from_offs) override;
+    friend Replay;
+  };
+
+  class ReplayDataStorage {
+    static constexpr size_t StorageSize =
+        std::max(sizeof(InMemoryReplayData), sizeof(FileReplayData));
+    static constexpr size_t StorageAlign =
+        std::max(alignof(InMemoryReplayData), alignof(FileReplayData));
+
+    alignas(StorageAlign) unsigned char storage_[StorageSize];
+    MemoryStorageType type_ = Invalid;
+
+    inline IReplayData *ptr() {return (IReplayData*)&storage_;}
+
+    inline bool valid() {return type_!=Invalid;}
+  public:
+    template<typename T>
+    T * asType() {
+      return (T*)ptr();
+    }
+
+    ReplayDataStorage() = default;
+
+    ~ReplayDataStorage() {
+      reset();
+    }
+
+    ReplayDataStorage(const ReplayDataStorage &) = delete;
+    ReplayDataStorage &operator=(const ReplayDataStorage &) = delete;
+
+    template <typename T, typename... Args>
+    void emplace(MemoryStorageType t, Args&&... args) {
+      reset();
+      static_assert(std::is_base_of_v<IReplayData, T>);
+      static_assert(sizeof(T) <= StorageSize);
+      static_assert(alignof(T) <= StorageAlign);
+
+      new (storage_) T(std::forward<Args>(args)...);
+      type_ = t;
+    }
+
+    void reset() {
+      if (type_ != Invalid) {
+        ptr()->~IReplayData();
+        type_ = Invalid;
+      }
+    }
+
+
+    std::span<uint8_t> getData(Replay* rpl) {
+      return valid() ? ptr()->getData(rpl) : std::span<uint8_t>{};
+    }
+
+    void afterParse() {
+      if (valid()) ptr()->afterParse();
+    }
+
+    bool ReadInto(uint8_t* data, size_t count, size_t offs) {
+      return valid() && ptr()->ReadInto(data, count, offs);
+    }
+
+    template<typename T>
+    bool ReadInto(T &data, size_t offs) {
+      return valid() && ptr()->ReadInto((uint8_t*)&data, sizeof(T), offs);
+    }
+
+    int getRemainingSize(size_t from_offs) {
+      if(!valid())
+        return -1;
+      return ptr()->getRemainingSize(from_offs);
+    }
+
+    [[nodiscard]] MemoryStorageType type() const {
+      return type_;
+    }
+  };
+
+  ReplayDataStorage Data{};
+
+  auto getData() {return Data.getData(this);}
+   void load();
+
+  uint32_t zlib_offs = 0xFFFFFFFF;
   uint32_t zlib_size = 0;
-  bool valid = false;
+
+  friend FullDecompressReplayReader;
+  friend CompressedReplayReader;
+  friend IReplayReader;
+  friend ServerReplay;
 public:
-  uint32_t magic;
-  const uint32_t current_magic = 0x18bfe10;
-  std::string_view level_bin; // 128 bytes
-  std::string_view level_blk; //260 bytes
-  DataBlock HeaderBlk;
-  DataBlock FooterBlk;
-  int PlayerCount;
-  uint64_t session_id;
+  ReplayHeader header;
+  DataBlock header_blk;
+  DataBlock footer_blk;
+  bool is_valid=true;
 
-
-  Replay(const std::string &path) {
-    replay_path = path;
-    FileReader rdr(path);
-    if (!rdr.isValid()) {
-      EXCEPTION("Replay given invalid file path: {}", path.data());
-    }
-    data = new ReplayData(rdr);
-    parse();
-  }
-
-  Replay(std::span<uint8_t> data) {
-    replay_path = "";
-    this->data = new ReplayData(data);
-    parse();
-  }
-
-
-  ReplayReader *getRplReader() {
-    auto dat = data->getData(zlib_start);
-    auto *rdr = new BaseReader(reinterpret_cast<char *>(dat.data()), zlib_size, false);
-    auto *payload = new ReplayReader(new ZlibLoadCB(*rdr, zlib_size), rdr);
-    return payload;
-  }
-
-  ReplayReader *getStreamReader(uint32_t time_wait = 10) {
-    auto *rdr = new FileStreamReader(this->replay_path.string(), time_wait);
-    rdr->seekto(zlib_start);
-    auto *payload = new ReplayReader(new ZlibLoadCB(*rdr, 0xFFFFFFF, false, false), rdr);
-    return payload;
-  }
-
-  // on average, you need 3x the buffer size to store the replay data for a normal client replay. a server replay overrides this to be 1.05.
-  FullDecompressReplayReader *getFullDecompressReplayReader(double growth_size=3) {
-    ZoneScoped;
-    auto dat = data->getData(zlib_start);
-    auto *rdr = new FullDecompressReplayReader(std::span(dat.data(), zlib_size), growth_size);
-    return rdr;
-  }
-
-  ~Replay() {
-    delete data;
-  }
-
-  bool check_magic() {
-    return this->magic == this->current_magic;
-  }
-
-private:
-  void parse() {
-    magic = *data->getObj<uint32_t>(MAGIC_OFFS);
-    valid = this->check_magic();
-    G_ASSERTF(valid, "Invalid magic, has {:#x} but expected {:#x}", this->magic, this->current_magic);
-    if(!valid)
-      return;
-    level_bin = data->getStr(LEVEL_BIN_PATH_OFFS);
-    level_blk = data->getStr(MISSION_BLK_OFFS);
-    PlayerCount = *data->getObj<int>(PLAYER_COUNT_OFFS);
-    footerBlkOffset = *data->getObj<uint32_t>(FOOTER_BLK_OFFSET_LOC);
-    session_id = *data->getObj<uint64_t>(SESSION_ID_OFFS);
-    if (*data->getObj<uint8_t>(MAIN_DATA_START) == 1) // the BLK always starts with 0x01, zlib 0x78
-    {
-      auto span = data->getData(MAIN_DATA_START);
-      BaseReader rdr(reinterpret_cast<char *>(span.data()), (int) span.size(), false);
-      HeaderBlk.loadFromStream(rdr, nullptr, nullptr);
-      zlib_start += rdr.readOffset();
-    }
-    //needed for reasons
-    while(*data->getObj<uint8_t>(zlib_start) == 0x0) {zlib_start++;}
-    if (footerBlkOffset) {
-      zlib_size = footerBlkOffset - zlib_start;
-      auto span = data->getData(footerBlkOffset);
-      BaseReader rdr(reinterpret_cast<char *>(span.data()), (int) span.size(), false);
-      FooterBlk.loadFromStream(rdr, nullptr, nullptr);
-    } else {
-      zlib_size = (uint32_t) data->size - zlib_start;
-    }
-  }
-
+  Replay(std::span<uint8_t> data, bool owns);
+  explicit Replay(const std::string &replay_path);
+  ~Replay() override = default;
+  ReplayHeader * getHeader() override {return &header;}
+  DataBlock * getHeaderBlk() override {return &header_blk;}
+  DataBlock * getFooterBlk() override {return &footer_blk;}
+  IReplayReader * getReplayReader() override;
+  IReplayReader *getCompressedReplayReader() override;
+  bool isValid() override {return is_valid;}
+  IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);
 };
 
-void readFilesFromDirectory(const fs::path &dirPath, std::vector<fs::path> &fileSet);
+class ServerReplay final : public IReplay {
 
-std::string file_exists(const std::string& path, const std::vector<fs::path> &paths);
-fs::path file_exists_fs(const std::string& path, const std::vector<fs::path> &paths);
-
-
-class ServerReplay {
-
-  void init_from_path(fs::path &path) {
-    std::vector<fs::path> files;
-    readFilesFromDirectory(path, files);
-    std::vector<std::string> repl_paths;
-    if (auto p = file_exists("0000.wrpl", files); !p.empty()) {
-      repl_paths.emplace_back(p);
-    } else {
-      EXCEPTION("Invalid MemoryEfficientServerReplay, unable to find 0000.wprl in supposed directory {}", path.string());
-    }
-    for (int i = 1; i > 0; i += 2) {
-      if (auto p = file_exists(fmt::format("{:0>4}.wrpl", i), files); !p.empty()) {
-        repl_paths.emplace_back(p);
-      } else {
-        break;
-      }
-    }
-    if (!repl_paths.empty()) {
-      replay_files.reserve(repl_paths.size());
-      for (auto &path_: repl_paths) {
-        replay_files.emplace_back(path_);
-      }
-    }
-  }
-  DataBlock *FooterBlk;
+  // don't feel like making Replay movable, // TODO
+  std::vector<Replay*> replay_files{};
+  friend ServerReplayReader<true>;
+  friend ServerReplayReader<false>;
 public:
-  std::vector<Replay> replay_files;
-  ServerReplay(fs::path &path) {
-    init_from_path(path);
-  }
 
-  DataBlock &GetFooterBlk() {
-    if(FooterBlk)
-      return *FooterBlk;
-    for(auto i = this->replay_files.size()-1; i >= 0; i--) {
-      if (!this->replay_files[i].FooterBlk.empty()) {
-        this->FooterBlk  = &this->replay_files[i].FooterBlk;
-        return *this->FooterBlk;
-      }
-    }
-  }
+  ReplayHeader * getHeader() override {return &replay_files[0]->header;}
+  DataBlock * getHeaderBlk() override {return &replay_files[0]->header_blk;}
+  DataBlock * getFooterBlk() override;
 
-  ServerReplay(const std::string &path) {
-    fs::path t_path{path};
-    init_from_path(t_path);
-  }
+  ServerReplay(std::vector<std::span<uint8_t>> &data, bool owns);
+  ~ServerReplay() override {for(auto p : replay_files) delete p;}
+  explicit ServerReplay(const std::string &path);
 
-  ServerReplay(std::span<std::span<uint8_t>> data) {
-    replay_files.reserve(data.size());
-    for(auto & spn : data) {
-      replay_files.emplace_back(spn);
-    }
-  }
-  ServerReplayReader *getRplReader() {
-    return new ServerReplayReader(this->replay_files);
-  }
+  IReplayReader * getReplayReader() override;
+  IReplayReader *getCompressedReplayReader() override;
+  bool isValid() override;
 };
-struct ParserState;
-class MemoryEfficientServerReplay {
-public:
-  explicit MemoryEfficientServerReplay(const std::string &path) {
-    std::vector<fs::path> temp_files{};
-    readFilesFromDirectory(path, temp_files);
-    if (auto p = file_exists_fs("0000.wrpl", temp_files); !p.empty()) {
-      file_paths.emplace_back(p);
-      this->base_replay = new Replay(p.string());
-    } else {
-      EXCEPTION("Invalid MemoryEfficientServerReplay, unable to find 0000.wprl in supposed directory {}", path);
-    }
-    for (int i = 1; i > 0; i += 2) {
-      if (auto p = file_exists_fs(fmt::format("{:0>4}.wrpl", i), temp_files); !p.empty()) {
-        file_paths.emplace_back(p);
-      } else {
-        break;
-      }
-    }
-  }
-  IReplayReader *getRplReader() {
-    return new MemoryEfficientServerReplayReader(this, this->file_paths, this->base_replay);
-  }
-  ~MemoryEfficientServerReplay() {
-    delete base_replay;
-  }
-  Replay *base_replay = nullptr;
-  DataBlock FooterBlk;
-protected:
-  std::vector<fs::path> file_paths{};
-  friend ParserState;
-  friend MemoryEfficientServerReplayReader;
-};
-
-
-#endif //MYEXTENSION_REPLAY_H

@@ -4,7 +4,8 @@ from .obj_base import SimpleVar as SVar
 
 class MPlayer(ReflectableObject):
     public = [
-        SVar("std::unordered_set<ecs::EntityId>", "ownedUnits")
+        SVar("std::unordered_set<unit::Unit*>", "currentOwnedUnits"),
+        SVar("std::vector<unit::Unit*>", "allOwnedUnits")
     ]
     uid = Var("danet::Uid", 2)
     invitedNickName = Var("std::string", 3)
@@ -60,7 +61,7 @@ class TeamData(ReflectableObject):
     orderCooldownTotal = Var("uint32_t", 4)
     orderCooldownLeft = Var("uint32_t", 5)
     spawnScore = Var("uint32_t", 6)
-    roundScore = Var("uint32_t", 7)
+    roundScore = Var("float", 7)
 
 class GlobalElo(ReflectableObject):
     teamAvgEloRatings = Var("danet::teamAvgEloRatings", 2)
@@ -80,25 +81,37 @@ class GeneralState(ReflectableObject):
     dummyForUnlimitedControlEvent = Var("bool", 0xb, "InvalidSerializer") # TODO dummy value
     customState = Var("DataBlock", 8)
 
-class BaseZone(ReplicatedObject):
+
+
+class MissionArea(ReplicatedObject):
+    public = [
+        SVar("TMatrix", "tm"),
+    ]
+    areaFlags = Var("danet::AreaFlagsEnum", 0x2)
+
+
+class MissionZone(ReplicatedObject):
+    public = [
+        SVar("MissionArea*", "area"),
+    ]
     armyNo = Var("uint8_t", 2)
     flags = Var("uint16_t", 3)
 
-class BombingZone(BaseZone):
+class BombingZone(MissionZone):
     curZoneIntegrity = Var("float", 0x43)
 
-class CaptureZone(BaseZone):
-    mpTimeX100 = Var("uint8_t", 0x43)
+class CaptureZone(MissionZone):
+    mpTimeX100 = Var("int8_t", 0x43)
     conqTeam = Var("uint8_t", 0x44)
     iconIdx = Var("uint8_t", 0x45)
     dummyVarForCapturers = Var("std::vector<danet::UnitId, uint8_t>", 0x46)
     dummyVarForCapturePart = Var("std::vector<danet::UnitIdStruct, uint8_t>", 0x47)
     dummyVarForNumOfActiveCapturers = Var("std::vector<uint8_t, uint8_t>", 0x48)
-class RearmZone(BaseZone):
+class RearmZone(MissionZone):
     pass
 
-class ExitZone(BaseZone):
+class ExitZone(MissionZone):
     pass
 
-class PickupZone(BaseZone):
+class PickupZone(MissionZone):
     showOnTacticalMap = Var("bool", 0x43)

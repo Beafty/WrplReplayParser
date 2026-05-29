@@ -43,13 +43,13 @@ namespace mpi {
             break;
           }
           case 3: {
-            RET_FAIL(bs->Read(killer_uid));
-            this->offender_entity = state->g_entity_mgr.getUnit(killer_uid);
+            RET_FAIL(bs->Read(victim_uid));
+            this->offended_unit = state->g_entity_mgr.getUnitObj(victim_uid);
             break;
           }
           case 4: {
-            RET_FAIL(bs->Read(victim_uid));
-            this->offended_entity = state->g_entity_mgr.getUnit(victim_uid);
+            RET_FAIL(bs->Read(killer_uid));
+            this->offender_unit = state->g_entity_mgr.getUnitObj(killer_uid);
             break;
           }
           case 5: {
@@ -113,7 +113,7 @@ namespace mpi {
       DISPATCHER_LOGD2("destroyed_weapon: {}", this->destroyed_weapon);
       DISPATCHER_LOGD2("newStr1: {}; newStr2: {}; newVal3: {}; newStr4: {}", this->weird_str_1, this->weird_str_2, this->weird_val_3, this->weird_str_4);
       ecs::string *killer_className, *killer_missionName, *victim_className, *victim_missionName;
-      if(this->offender_entity) {
+      /*if(this->offender_entity) {
         killer_className = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__className"));
         killer_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offender_entity, ECS_HASH("unit__missionName"));
         DISPATCHER_LOGD2("killer_className: {}; killer_missionName: {}", *killer_className, *killer_missionName);
@@ -122,7 +122,7 @@ namespace mpi {
         victim_className = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__className"));
         victim_missionName = state->g_entity_mgr.getNullable<ecs::string>(this->offended_entity, ECS_HASH("unit__missionName"));
         DISPATCHER_LOGD2("victim_className: {}; victim_missionName: {}", *victim_className, *victim_missionName);
-      }
+      }*/
     }
     return true;
   }
@@ -134,7 +134,7 @@ namespace mpi {
           case 1: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offended_eid = state->g_entity_mgr.getUnit(uid);
+            this->offended_unit = state->g_entity_mgr.getUnitObj(uid);
             break;
           }
           case 2: {
@@ -148,7 +148,7 @@ namespace mpi {
           case 4: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->player_eid = state->g_entity_mgr.getUnit(uid);
+            this->offender_unit = state->g_entity_mgr.getUnitObj(uid);
             break;
           }
           case 5: {
@@ -171,7 +171,7 @@ namespace mpi {
           case 1: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offended_eid = state->g_entity_mgr.getUnit(uid);
+            this->offended_unit = state->g_entity_mgr.getUnitObj(uid);
             break;
           }
           case 2: {
@@ -185,7 +185,7 @@ namespace mpi {
           case 4: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->player_eid = state->g_entity_mgr.getUnit(uid);
+            this->offender_unit = state->g_entity_mgr.getUnitObj(uid);
             break;
           }
           case 5: {

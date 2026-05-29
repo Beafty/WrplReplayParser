@@ -7,7 +7,6 @@
 
 #include <ctime>
 #include "Replay/Replay.h"
-#include "Replay/find_rpl_files.h"
 #include "mpi/ObjectDispatcher.h"
 #include "Logger.h"
 
@@ -48,7 +47,7 @@ int main()
   fs::path conf_dir = CONFIG_DIR;
   fs::path config_file = conf_dir / "dagor_replay_test.blk";
   DataBlock conf_blk;
-  G_ASSERT(load(conf_blk, config_file.string().c_str()));
+  G_ASSERT(dblk::load(conf_blk, config_file.string().c_str()));
   bool is_server_replay = conf_blk.getBool("is_server_replay", false);
   bool source_is_linux_path = conf_blk.getBool("source_is_linux_path", false);
   auto replay_path = conf_blk.getStr("source", nullptr);
@@ -68,87 +67,46 @@ int main()
 #endif
   std::string logfile_str = (conf_dir / "logfile.txt").string();
   initialize(bin_path_str, logfile_str);
-  g_log_handler.start_thread();
+  //g_log_handler.start_thread();
   //auto t = ecs::g_ecs_data->getTemplateDB()->getTemplate("attachable_wear_fast_sf_helmet_item");
   IReplayReader *rdr = nullptr;
-  ServerReplay *srv_rpl = nullptr;
-  Replay *rpl = nullptr;
+  IReplay * rpl = nullptr;
   double timer_sum = 0.0;
   {
     ZoneScopedN("Replay Load")
     if(is_server_replay)
     {
-      fs::path t{rpl_path_str};
-      srv_rpl = new ServerReplay(t);
+      rpl = new ServerReplay(rpl_path_str);
     }
     else
     {
       rpl = new Replay(rpl_path_str);
     }
   }
-  int timer_count = 5;
+  int timer_count = 15;
   for(int i = 0; i < timer_count; i++) {
     auto start = std::chrono::high_resolution_clock::now();
     ZoneScopedN("loop")
     {
       ZoneScopedN("GetReader")
-      if(is_server_replay) {
-        rdr = srv_rpl->getRplReader();
-      } else {
-        rdr = rpl->getFullDecompressReplayReader();
-      }
+      rdr = rpl->getReplayReader();
     }
 
     {
       ZoneScopedN("Parsing Overall")
       ReplayPacket pkt{};
-      ParserState *state_ptr = new ParserState{};
+      ParserState *state_ptr = new ParserState{rpl};
       ParserState &state = *state_ptr;
       //std::exit(0);
-      bool end = false;
       {
 
         ZoneScopedN("Parsing Only")
-        while (!end && rdr->getNextPacket(&pkt)) {
-
-          switch (pkt.type) {
-            case ReplayPacketType::EndMarker: {
-              LOG("Replay Ending at time {}", ((float) pkt.timestamp_ms) / 1000);
-              end = true;
-              break;
-            }
-            case ReplayPacketType::StartMarker: {
-              LOGD("Replay StartMarker");
-              break;
-            }
-            case ReplayPacketType::AircraftSmall: {
-              break;
-            }
-            case ReplayPacketType::Chat:
-              break;
-            case ReplayPacketType::MPI: {
-              auto m = mpi::dispatch(pkt.stream, &state, false);
-              if (m != nullptr) {
-                mpi::send(m);
-                delete m;
-              }
-              break;
-            }
-            case ReplayPacketType::NextSegment: {
-              LOG("NextSegment");
-              break;
-            }
-            case ReplayPacketType::ECS: {
-              state.onPacket(&pkt);
-              break;
-            }
-            case ReplayPacketType::Snapshot: // useless
-              break;
-            case ReplayPacketType::ReplayHeaderInfo:
-              break;
-          }
-          //std::cout.flush();
-        }
+        while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
+      }
+      {
+        ZoneScopedN("Rewind")
+        state.rewindToMs(0);
+        state.rewindToMs(state.replay_length_ms);
       }
       {
         ZoneScopedN("Object destruction")
@@ -173,7 +131,6 @@ int main()
 
   std::cout << "Average time: " << (timer_sum / (double) (timer_count)) << std::endl;
 
-  delete srv_rpl;
   delete rpl;
 
   //auto ptr = &mpi::players;

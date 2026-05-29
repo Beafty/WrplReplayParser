@@ -13,6 +13,8 @@ namespace danet {
 
   int uint16_tCoder(DANET_ENCODER_SIGNATURE);
 
+  int EntityIdCoder(DANET_ENCODER_SIGNATURE);
+
   int boolCoder(DANET_ENCODER_SIGNATURE);
 
   int floatCoder(DANET_ENCODER_SIGNATURE);
@@ -22,8 +24,6 @@ namespace danet {
   int UidCoder(DANET_ENCODER_SIGNATURE);
 
   int DataBlockCoder(DANET_ENCODER_SIGNATURE);
-
-  int EntityIdCoder(DANET_ENCODER_SIGNATURE);
 
   int ecsEntityId_20arrayCoder(DANET_ENCODER_SIGNATURE);
 
@@ -48,6 +48,10 @@ namespace danet {
   int intCoder(DANET_ENCODER_SIGNATURE);
 
   int WeatherEffectsCoder(DANET_ENCODER_SIGNATURE);
+
+  int AreaFlagsEnumCoder(DANET_ENCODER_SIGNATURE);
+
+  int int8_tCoder(DANET_ENCODER_SIGNATURE);
 
   int danetUnitId_uint8_tvectorCoder(DANET_ENCODER_SIGNATURE);
 
@@ -162,6 +166,16 @@ namespace danet {
   template <>
   struct DefaultEncoderChooser<danet::WeatherEffects> {
     static constexpr reflection_var_encoder coder = WeatherEffectsCoder;
+  };
+
+  template <>
+  struct DefaultEncoderChooser<danet::AreaFlagsEnum> {
+    static constexpr reflection_var_encoder coder = AreaFlagsEnumCoder;
+  };
+
+  template <>
+  struct DefaultEncoderChooser<int8_t> {
+    static constexpr reflection_var_encoder coder = int8_tCoder;
   };
 
   template <>

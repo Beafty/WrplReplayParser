@@ -10,7 +10,8 @@ void PyEntityManager::include(py::module_ &m) {
   auto ecs = m.def_submodule("ecs");
   py::class_<ecs::EntityManager>(ecs, "EntityManager")
       .def("getEntityTemplateName", &ecs::EntityManager::getEntityTemplateName, py::arg("eid"))
-      .def("getUnit", &ecs::EntityManager::getUnit, py::arg("uid"))
+      .def("getUnitEid", &ecs::EntityManager::getUnitEid, py::arg("uid"))
+      .def("getUnitRef", &ecs::EntityManager::getUnitObj, py::arg("uid"))
       .def("getEntity", [](ecs::EntityManager &mgr, ecs::EntityId &eid) -> std::optional<Entity> {
         if(mgr.doesEntityExist(eid)) {
           auto templ = mgr.getEntityTemplateId(eid);

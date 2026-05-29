@@ -72,10 +72,8 @@ public:
     G_UNUSED(hint);
     G_UNUSED(sz);
     char buf[ecs::MAX_STRING_LENGTH];
-    int len = ecs::read_string(cb, buf, sizeof(buf));
-    if (len < 0)
-      return false;
-    *((ecs::string *) data) = ecs::string(buf, len);
+    ecs::read_string(cb, buf, sizeof(buf));
+    *((ecs::string *) data) = ecs::string(buf);
     return true;
   }
 };
@@ -428,6 +426,8 @@ class BufferedHudDataSerializer : public ecs::ComponentSerializer {
     BufferedHudData * ptr = (BufferedHudData *)data;
     uint32_t arr_sz;
     bool is_ok = read_compressed(cb, arr_sz);
+    if (!is_ok)
+      return false;
     ptr->data.resize(arr_sz);
     is_ok &= cb.read(ptr->data.data(), arr_sz<<3, 0);
     return is_ok;
@@ -529,7 +529,7 @@ namespace ecs {
     ok &= cb.read(&Rocket_data.u8_1, sizeof(Rocket_data.u8_1) * 8, 0);
     //LOGE("{} : {}", (*mgr->curr_time_ms)/1000.f, Rocket_data.toString(0));
     auto ref = mgr->getNullable<unit::UnitRef>(Rocket_data.ownerEid, ECS_HASH("unit__ref"));
-    if(ref->unit) {
+    if(ref && ref->unit) {
       if(auto aircraft = ref->unit->AsAircraft()) {
         auto weap = aircraft->getWeapon(Rocket_data.weapon_ref);
         if(weap) {
@@ -607,7 +607,7 @@ namespace ecs {
   ECS_REGISTER_CTM_TYPE(unit::UnitRef, nullptr);
   ECS_REGISTER_CTM_TYPE(ResizableDecals, nullptr);
   ECS_REGISTER_CTM_TYPE(UniqueBufHolder, nullptr);
-  ECS_REGISTER_MANAGED_TYPE(EnviEmitterId, nullptr, ecs::InplaceCreator<EnviEmitterId>);
+  ECS_REGISTER_CTM_TYPE(EnviEmitterId, nullptr);
   ECS_REGISTER_CTM_TYPE(EffectRef, nullptr);
   ECS_REGISTER_CTM_TYPE(pathfinder::CustomNav, nullptr);
   ECS_REGISTER_CTM_TYPE(walkerai::AgentObstacles, nullptr);

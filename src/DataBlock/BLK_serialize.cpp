@@ -20,7 +20,7 @@ void DataBlock::saveToTextFile(const std::string &path) const {
   this->saveText(&input, 0);
 }
 
-void read_packed(DataBlockInfo &d, IGenReader &crd) {
+void read_packed(DataBlockInfo &d, IReader &crd) {
 
   crd.readCompressedUnsignedGeneric(d.nameId);
   crd.readCompressedUnsignedGeneric(d.paramsCount);
@@ -182,7 +182,7 @@ void DataBlock::printParams(const std::vector<Param> &params_to_print, std::basi
   }
 }
 
-bool NameMap::ReadNames(IGenReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount) {
+bool NameMap::ReadNames(IReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount) {
 
   uint32_t NameMapSize;
   crd.readCompressedUnsignedGeneric(NameMapSize);
@@ -195,7 +195,7 @@ bool NameMap::ReadNames(IGenReader &crd, std::shared_ptr<NameMap> &names, uint32
   return true;
 }
 
-bool DataBlock::loadFromBinDump(IGenReader &crd, const std::shared_ptr<NameMap> &names) {
+bool DataBlock::loadFromBinDump(IReader &crd, const std::shared_ptr<NameMap> &names) {
 
   uint32_t NamesInNameMap = 0;
   crd.readCompressedUnsignedGeneric(NamesInNameMap);
@@ -251,7 +251,7 @@ bool DataBlock::loadFromBinDump(IGenReader &crd, const std::shared_ptr<NameMap> 
 }
 
 
-bool DataBlock::loadFromStream(IGenReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict) {
+bool DataBlock::loadFromStream(IReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict) {
   bool valid = false;
   this->Clear();
   BLKTypes label;

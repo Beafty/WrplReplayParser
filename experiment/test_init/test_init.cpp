@@ -7,7 +7,6 @@
 
 #include <ctime>
 #include "Replay/Replay.h"
-#include "Replay/find_rpl_files.h"
 #include "mpi/ObjectDispatcher.h"
 #include "Logger.h"
 

@@ -7,7 +7,6 @@
 
 #include <ctime>
 #include "Replay/Replay.h"
-#include "Replay/find_rpl_files.h"
 #include "mpi/ObjectDispatcher.h"
 #include "Logger.h"
 
@@ -65,44 +64,43 @@ int main() {
   g_log_handler->start_thread();
   //auto t = ecs::g_ecs_data->getTemplateDB()->getTemplate("attachable_wear_fast_sf_helmet_item");
   IReplayReader *rdr = nullptr;
-  MemoryEfficientServerReplay *srv_rpl = nullptr;
-  Replay *rpl = nullptr;
-  ParserState *state_ptr = nullptr;
+  IReplay *rpl = nullptr;
   if (is_server_replay) {
     fs::path t{rpl_path_str};
-    srv_rpl = new MemoryEfficientServerReplay(t.string());
-    rdr = srv_rpl->getRplReader();
-    state_ptr = new ParserState{srv_rpl};
+    rpl = new ServerReplay(t.string());
+    rdr = rpl->getReplayReader();
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getRplReader();
-    state_ptr = new ParserState{rpl};
+    rdr = rpl->getReplayReader();
   }
-
-
-  auto *pkt = new ReplayPacket();
+  int idx;
   auto start = std::chrono::high_resolution_clock::now();
-  ParserState &state = *state_ptr;
-  //std::exit(0);
-  while (rdr->getNextPacket(pkt) && state.ParsePacket(*pkt)) {}
-  auto ended = std::chrono::high_resolution_clock::now();
-  for (auto &plr: state_ptr->players) {
-    auto owned_eid = plr.ownedUnitRef.data;
-    std::string * vehicle = nullptr;
-    if (owned_eid != ecs::INVALID_ENTITY_ID) {
-      vehicle = state.g_entity_mgr.getNullable<ecs::string>(owned_eid, ECS_HASH("unit__className"));
+  {
+    ParserState state{rpl};
+    ReplayPacket pkt{};
+    //std::exit(0);
+    while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
+    for (auto &plr: state.players) {
+      auto owned_eid = *plr.ownedUnitRef.data;
+      std::string * vehicle = nullptr;
+      if (owned_eid != ecs::INVALID_ENTITY_ID) {
+        vehicle = state.g_entity_mgr.getNullable<ecs::string>(owned_eid, ECS_HASH("unit__className"));
+      }
+      if(vehicle)
+        LOGE("Name: {}; team: {}; vehicle: {}", plr.uid.data->name, *plr.team.data, *vehicle);
+      else
+        LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data->name, *plr.team.data);
     }
-    if(vehicle)
-      LOGE("Name: {}; team: {}; vehicle: {}", plr.uid.data.name, plr.team.data, *vehicle);
-    else
-      LOGE("Name: {}; team: {}; no_vehicle", plr.uid.data.name, plr.team.data);
+    iterate_all_units(state);
+    idx = state.current_packet_index;
+    state.rewindToMs(105620);
+    state.rewindToMs(157507);
+    state.rewindToMs(156777);
+    delete rdr;
+    delete rpl;
+
   }
-  auto idx = state.current_packet_index;
-  delete state_ptr;
-  delete rdr;
-  delete srv_rpl;
-  delete rpl;
-  delete pkt;
+  auto ended = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> duration = ended - start;
   // Output the result
   std::cout << "profile time " << duration.count() << " " << idx << std::endl;

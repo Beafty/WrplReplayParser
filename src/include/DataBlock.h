@@ -89,7 +89,7 @@ private:
   }
 
 public:
-  static bool ReadNames(IGenReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount);
+  static bool ReadNames(IReader &crd, std::shared_ptr<NameMap> &names, uint32_t NamesCount);
 
   NameMap() {
     this->names_ = StringTableAllocator{};
@@ -803,9 +803,9 @@ public:
   }
 
 
-  bool loadFromStream(IGenReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict);
+  bool loadFromStream(IReader &crd, const std::shared_ptr<NameMap> &names, ZSTD_DDict_s *zstd_dict);
 
-  bool loadFromBinDump(IGenReader &crd, const std::shared_ptr<NameMap> &names);
+  bool loadFromBinDump(IReader &crd, const std::shared_ptr<NameMap> &names);
 
   bool loadText(std::span<char>& text);
   bool loadText(std::vector<char>& text)
@@ -867,6 +867,8 @@ public:
   DataBlock(DataBlock &&other) noexcept = default;
   DataBlock &operator=(const DataBlock &other) noexcept = default;
   DataBlock &operator=(DataBlock &&other) noexcept = default;
+
+  bool operator==(const DataBlock& other) const {return false;} // honestly probably faster for reflection
 
   static SharedPtr<DataBlock> makeAliasedBlock(const std::shared_ptr<DataBlockShared> &pool, DataBlock *ptr);
 

@@ -1,143 +1,59 @@
+#pragma once
+#include "ReplayStructs.h"
+#include "writer.h"
 
 
-#ifndef MYEXTENSION_REPLAYREADER_H
-#define MYEXTENSION_REPLAYREADER_H
+uint32_t getPacketSize(IReader &cb);
+void writePacketSize(IWriter &cb, uint32_t size);
+class IReplay;
+class Replay;
+class ServerReplay;
 
-#include "reader.h"
-#include "basic_replay_structs.h"
-#include "consts.h"
-#include "FileSystem.h"
-
-#include "tracy/Tracy.hpp"
-
-uint32_t getPacketSize(IGenReader &cb);
 class IReplayReader
 {
+protected:
+  IReplay * owner;
+  IReplayReader(Replay &owner);
+  IReplayReader(ServerReplay &owner);
 public:
-  virtual ~IReplayReader();
-  virtual bool getNextPacket(ReplayPacket *packet) = 0;
+  virtual ~IReplayReader(){}
+  virtual bool getNextPacket(ReplayPacket &packet) = 0;
 };
 
-class ReplayReader : public IReplayReader
+// decompress all the replay data into a buffer first
+// then create non allocation packets from that
+class FullDecompressReplayReader: public IReplayReader
 {
-  ZlibLoadCB *crd;
-  IGenReader *baseRdr;
-  uint32_t curr_time;
+  BaseReader crd;
+  uint32_t curr_time=0;
+  // expected_multiply_size is the expected compression ratio of the replay
+  explicit FullDecompressReplayReader(Replay &replay, double expected_multiply_size=3);
+  friend Replay;
 public:
-  explicit ReplayReader(ZlibLoadCB *crd)
-  {
-    this->crd = crd;
-    this->baseRdr = nullptr;
-  }
-
-  explicit ReplayReader(ZlibLoadCB *crd, IGenReader *rdr)
-  {
-    this->crd = crd;
-    this->baseRdr = rdr;
-  }
-  
-
-  bool getNextPacket(ReplayPacket *packet) override
-  {
-    uint32_t pkt_sz = getPacketSize(*crd);
-    if(pkt_sz == 0)
-      return false;
-    packet->stream = BitStream();
-    packet->stream.reserveBits(BYTES_TO_BITS(pkt_sz));
-    if(crd->tryRead(packet->stream.GetData(), (int)pkt_sz) != pkt_sz)
-      return false;
-    packet->stream.SetWriteOffset(BYTES_TO_BITS(pkt_sz));
-    uint16_t type_t = 0x0;
-    packet->stream.Read(type_t);
-    // if two packets have the same timestamp, then only the first one encodes the timestamp
-    if((type_t & 0x10) == 0)
-    {
-      packet->stream.Read(curr_time);
-    }
-    else
-    {
-      type_t ^= 0x10;
-    }
-    packet->timestamp_ms = curr_time;
-    packet->type = (ReplayPacketType)type_t;
-    return true;
-  }
-
-  ~ReplayReader() override
-  {
-    if(crd)
-    {
-      crd->ceaseReading();
-    }
-    delete crd;
-    delete baseRdr;
-  }
+  ~FullDecompressReplayReader() override;
+  bool getNextPacket(ReplayPacket &packet) override;
 };
 
-class FullDecompressReplayReader: public IReplayReader {
-  BaseReader *crd = nullptr;
-  uint32_t curr_time;
-public:
-  FullDecompressReplayReader(std::span<uint8_t> zlib_data, double expected_multiply_size=3);
-
-  bool getNextPacket(ReplayPacket *packet) override
-  {
-    uint32_t pkt_sz = getPacketSize(*crd);
-    if(pkt_sz == 0)
-      return false;
-    packet->stream.~BitStream();
-    packet->stream = BitStream(crd->getPtr(), pkt_sz, false);
-    if (!crd->seekrel((int)pkt_sz))
-      return false;
-    uint16_t type_t = 0x0;
-    packet->stream.Read(type_t);
-    // if two sequential packets have the same timestamp, then only the first one encodes the timestamp
-    if((type_t & 0x10) == 0)
-    {
-      packet->stream.Read(curr_time);
-    }
-    else
-    {
-      type_t ^= 0x10;
-    }
-    packet->timestamp_ms = curr_time;
-    packet->type = (ReplayPacketType)type_t;
-    return true;
-  }
-  ~FullDecompressReplayReader() {
-    delete crd;
-  }
-};
-
-class Replay;
-class ServerReplayReader : public IReplayReader
+class CompressedReplayReader: public IReplayReader
 {
-  std::vector<IReplayReader*> readers;
-  int index = 0;
+  ZlibLoadCB reader; // reads data from the base reader to stream decompress.  much more memory efficient compared to FullDecompress, but much slower
+  IReader * base_reader;
+  uint32_t curr_time=0;
+  bool acquired_lock=false;
+  explicit CompressedReplayReader(Replay &replay, IReader *base_reader, size_t in_size, bool acquired_lock=true);
+  friend Replay;
 public:
-  explicit ServerReplayReader(std::vector<Replay> &rdrs);
-  bool getNextPacket(ReplayPacket *packet) override;
-  ~ServerReplayReader() override;
+  ~CompressedReplayReader() override;
+  bool getNextPacket(ReplayPacket &packet) override;
 };
-class MemoryEfficientServerReplay;
-class MemoryEfficientServerReplayReader: public IReplayReader {
-  void setup_reader(int index);
-  void delete_curr_reader();
-  MemoryEfficientServerReplay * owner; // used for footer blk setting
-  Replay * current_replay = nullptr;
+
+template <bool streaming>
+class ServerReplayReader : public IReplayReader {
+  uint32_t replay_index=0;
   IReplayReader * curr_reader = nullptr;
-  std::vector<fs::path> * base_dir;
-  bool super_efficiency = false; // use zlib-ng stream compression instead of faster libdeflate full decompression
-  int curr_file_index = 1;
+  bool load_replay();
 public:
-  explicit MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir, bool memory_efficient=false) {
-    this->owner = owner;
-    this->super_efficiency = memory_efficient;
-    this->base_dir = &base_dir;
-    this->setup_reader(0);
-  }
-  explicit MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir, Replay * replay_0, bool memory_efficient=false);
-  bool getNextPacket(ReplayPacket *packet) override;
+  explicit ServerReplayReader(ServerReplay &replay);
+  bool getNextPacket(ReplayPacket &packet) override;
 };
 
-#endif //MYEXTENSION_REPLAYREADER_H

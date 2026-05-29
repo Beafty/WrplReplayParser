@@ -52,6 +52,7 @@ class ReflectionVarMeta(ABC):
 
 class InstReflectable:
     def __init__(self, obj: ReflectableObject, oss:StringIO, mgr: 'DataTypeManager'):
+        assert len(obj.__bases__) == 1
         self.obj = obj
         self.oss = oss
         self.vars: NullIndexList
@@ -130,12 +131,16 @@ class InstReflectable:
 
 
     def serialize_bindings(self):
+
         if hasattr(self.obj, "public"):
-            for v in self.obj.public:
-                self.oss.write(f"    .def_readonly(\"{v.name}\", &{self.obj_name}::{v.name})\n")
+            if self.parent_obj and hasattr(self.parent_obj.obj, "public") and self.parent_obj.obj.public == self.obj.public:
+                pass
+            else:
+                for v in self.obj.public:
+                    self.oss.write(f"    .def_readonly(\"{v.name}\", &{self.obj_name}::{v.name})\n")
 
         for v in self.vars.ls:
-            self.oss.write(f"    .def_property_readonly(\"{v[0]}\", []({self.obj_name}*ths){'{'}return &ths->{v[0]}.data;{'}'})\n")
+            self.oss.write(f"    .def_readonly(\"{v[0]}\", &{self.obj_name}::{v[0]})\n")
         self.oss.write("  ;\n")
 
     def getLastVar(self):
@@ -167,17 +172,25 @@ class InstReplicated(InstReflectable):
     def write_header(self):
         self.oss.write(f"class {self.obj_name} : public {self.parent_name} {'{'}\n")
         if hasattr(self.obj, "protected"):
-            self.oss.write("protected:\n")
-            for v in self.obj.protected:
-                self.oss.write(f"  {str(v)}\n")
+            if self.parent_obj and hasattr(self.parent_obj.obj, "protected") and self.parent_obj.obj.protected == self.obj.protected:
+                pass
+            else:
+                self.oss.write("protected:\n")
+                for v in self.obj.protected:
+                    self.oss.write(f"  {str(v)}\n")
         if hasattr(self.obj, "private"):
-            self.oss.write("private:\n")
-            for v in self.obj.private:
-                self.oss.write(f"  {str(v)}\n")
+            if self.parent_obj and hasattr(self.parent_obj.obj, "private") and self.parent_obj.obj.private == self.obj.private:
+                pass
+            else:
+                for v in self.obj.private:
+                    self.oss.write(f"  {str(v)}\n")
         self.oss.write("public:\n"f"  DECL_REPLICATION({self.obj_name}, {self.parent_name})\n")
         if hasattr(self.obj, "public"):
-            for v in self.obj.public:
-                self.oss.write(f"  {str(v)}\n")
+            if self.parent_obj and hasattr(self.parent_obj.obj, "public") and self.parent_obj.obj.public == self.obj.public:
+                pass
+            else:
+                for v in self.obj.public:
+                    self.oss.write(f"  {str(v)}\n")
 
     def write_footer(self):
         self.oss.write("};\n\n")

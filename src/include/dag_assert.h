@@ -8,7 +8,6 @@
 #endif
 
 #include <fmt/base.h>
-#include <iostream>
 #include <cstdlib>
 #include <cstdarg>  // for va_list, va_start, va_end
 #include <cstdint>
@@ -35,6 +34,17 @@
 #define DAGOR_UNLIKELY(x) (x)
 #endif
 #endif
+
+class AssertException : public std::runtime_error {
+public:
+  AssertException(std::string &&msg) : std::runtime_error(msg) {
+  }
+
+  const char *what() {
+    return std::runtime_error::what();
+  }
+};
+
 [[noreturn]] inline void
 assert_failed_ext(const char *file, int line, const char *function, const char *expression, std::string message) {
   std::cerr << "ASSERT FAILED CERR\n";
@@ -48,6 +58,14 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
   LOGE("{}", cpptrace::generate_trace().to_string());
   g_log_handler->wait_until_empty();
   g_log_handler->flush_all();
+  if (!message.empty()) {
+    throw AssertException(fmt::format("ASSERTION FAILED:\n {}:{}\nFunction: {} \nExpression: {} \nMessage: {}\n{}",
+                                      file, line, function, expression, message,
+                                      cpptrace::generate_trace().to_string()));
+  } else {
+    throw AssertException(fmt::format("ASSERTION FAILED:\n {}:{}\nFunction: {} \nExpression: {}\n{}",
+                                      file, line, function, expression, cpptrace::generate_trace().to_string()));
+  }
   std::exit(EXIT_FAILURE);
 }
 
@@ -57,12 +75,12 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
 #define DAGOR_DBGLEVEL 2
 #if DAGOR_DBGLEVEL < 1
 // No side-effects in release
-#define G_ASSERT_EX(expression, expr_str)            ((void)0)
-#define G_ASSERTF_EX(expression, expr_str, fmt, ...) ((void)0)
-#define G_ASSERT(expression)                         ((void)0)
-#define G_ASSERTF(expression, fmt, ...)              ((void)0)
-#define G_ASSERTF_ONCE(expression, fmt, ...)         ((void)0)
-#define G_FAST_ASSERT(expression)                    ((void)0)
+#define G_ASSERT_EX(expression, expr_str)            (expression)
+#define G_ASSERTF_EX(expression, expr_str, fmt, ...) (expression)
+#define G_ASSERT(expression)                         (expression)
+#define G_ASSERTF(expression, fmt, ...)              (expression)
+#define G_ASSERTF_ONCE(expression, fmt, ...)         (expression)
+#define G_FAST_ASSERT(expression)                    (expression)
 #define G_ASSERT_FAIL(fmt, ...)                      ((void)0)
 #else
 #define G_ASSERT_EX(expression, expr_str)                                 \
@@ -78,12 +96,12 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
   {                                                                                    \
     const bool g_assert_result_ = !!(expression);                                      \
     if (DAGOR_UNLIKELY(!g_assert_result_))                                             \
-        assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt, ##__VA_ARGS__); \
+        assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt __VA_OPT__(,) __VA_ARGS__); \
   } while (0)
 
 #define G_ASSERT_FAIL(fmt, ...)                                                    \
   {                                                                                \
-    assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt, ##__VA_ARGS__); \
+    assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt __VA_OPT__(,) __VA_ARGS__); \
   }
 
 #define G_ASSERTF_ONCE(expression, fmt, ...)                                         \
@@ -93,13 +111,13 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
     const bool g_assert_result_ = !!(expression);                                    \
     if (DAGOR_UNLIKELY(!g_assert_result_) && !showed_)                               \
     {                                                                                \
-      assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt, ##__VA_ARGS__); \
+      assert_failed(__FILE__, __LINE__, __FUNCTION__, expr_str, fmt __VA_OPT__(,) __VA_ARGS__); \
       showed_ = true;                                                                \
     }                                                                                \
   } while (0)
 
 #define G_ASSERT(expression)            G_ASSERT_EX(expression, #expression)
-#define G_ASSERTF(expression, fmt, ...) G_ASSERTF_EX(expression, #expression, fmt, ##__VA_ARGS__)
+#define G_ASSERTF(expression, fmt, ...) G_ASSERTF_EX(expression, #expression, fmt __VA_OPT__(,) __VA_ARGS__)
 
 // This assertion API is faster because it's won't do any function calls within, therefore not translating
 // functions that call it in non-leaf functions (and preventing optimizer to inline it for example)
@@ -177,7 +195,7 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
     bool g_verify_result_ = !!(expression);                                          \
     G_ANALYSIS_ASSUME(g_verify_result_);                                             \
     if (DAGOR_UNLIKELY(!g_verify_result_))                                           \
-      assert_failed(__FILE__, __LINE__, __FUNCTION__, #expression, fmt, ##__VA_ARGS__); \
+      assert_failed(__FILE__, __LINE__, __FUNCTION__, #expression, fmt __VA_OPT__(,) __VA_ARGS__); \
   } while (0)
 #endif
 
@@ -200,7 +218,7 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
 #define G_ASSERTF_AND_DO_UNHYGIENIC(expr, cmd, fmt, ...)          \
   {                                                               \
     const bool g_assert_result_do_ = !!(expr);                    \
-    G_ASSERTF_EX(g_assert_result_do_, #expr, fmt, ##__VA_ARGS__); \
+    G_ASSERTF_EX(g_assert_result_do_, #expr, fmt __VA_OPT__(,) __VA_ARGS__); \
     if (DAGOR_UNLIKELY(!g_assert_result_do_))                     \
       cmd;                                                        \
   }
@@ -212,16 +230,16 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
 
 #define G_ASSERTF_AND_DO(expr, cmd, fmt, ...)                  \
   do                                                           \
-    G_ASSERTF_AND_DO_UNHYGIENIC(expr, cmd, fmt, ##__VA_ARGS__) \
+    G_ASSERTF_AND_DO_UNHYGIENIC(expr, cmd, fmt __VA_OPT__(,) __VA_ARGS__) \
   while (0)
 
 #define G_ASSERT_RETURN(expr, returnValue) G_ASSERT_AND_DO(expr, return returnValue)
 #define G_ASSERT_BREAK(expr)               G_ASSERT_AND_DO_UNHYGIENIC(expr, break)
 #define G_ASSERT_CONTINUE(expr)            G_ASSERT_AND_DO_UNHYGIENIC(expr, continue)
 
-#define G_ASSERTF_RETURN(expr, returnValue, fmt, ...) G_ASSERTF_AND_DO(expr, return returnValue, fmt, ##__VA_ARGS__)
-#define G_ASSERTF_BREAK(expr, fmt, ...)               G_ASSERTF_AND_DO_UNHYGIENIC(expr, break, fmt, ##__VA_ARGS__)
-#define G_ASSERTF_CONTINUE(expr, fmt, ...)            G_ASSERTF_AND_DO_UNHYGIENIC(expr, continue, fmt, ##__VA_ARGS__)
+#define G_ASSERTF_RETURN(expr, returnValue, fmt, ...) G_ASSERTF_AND_DO(expr, return returnValue, fmt __VA_OPT__(,) __VA_ARGS__)
+#define G_ASSERTF_BREAK(expr, fmt, ...)               G_ASSERTF_AND_DO_UNHYGIENIC(expr, break, fmt __VA_OPT__(,) __VA_ARGS__)
+#define G_ASSERTF_CONTINUE(expr, fmt, ...)            G_ASSERTF_AND_DO_UNHYGIENIC(expr, continue, fmt __VA_OPT__(,) __VA_ARGS__)
 
 #if DAGOR_DBGLEVEL > 0
 #define G_DEBUG_BREAK G_DEBUG_BREAK_FORCED

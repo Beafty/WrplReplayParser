@@ -22,14 +22,28 @@ extern bool DO_VERBOSE;
 #define MAKE4C(a, b, c, d) ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
 #define _MAKE4C(x) MAKE4C((int(x) >> 24) & 0xFF, (int(x) >> 16) & 0xFF, (int(x) >> 8) & 0xFF, int(x) & 0xFF)
 
+
+class ExceptionException : public std::runtime_error {
+public:
+  ExceptionException(std::string &&msg) : std::runtime_error(msg) {
+  }
+
+  const char *what() {
+    return std::runtime_error::what();
+  }
+};
+
 [[noreturn]] inline void fatal(const char *file, int line, const char *function, std::string message) {
   std::cerr << "fatal CERR\n";
   LOGE("Fatal error at {}:{}\nFunction: {} \nMessage: {}", file, line, function, message);
   g_log_handler->wait_until_empty();
   g_log_handler->flush_all();
-  LOGE("{}", cpptrace::generate_trace().to_string());
+  auto trace = cpptrace::generate_trace().to_string();
+  LOGE("{}", trace);
   g_log_handler->wait_until_empty();
   g_log_handler->flush_all();
+  throw ExceptionException(fmt::format("Fatal error at {}:{}\nFunction: {} \nMessage: {}\n{}", file, line, function,
+                                       message, trace));
   std::exit(EXIT_FAILURE);
 }
 
@@ -62,12 +76,6 @@ inline int popcount(uint32_t val) {
 #define G_UNUSED(x)    ((void)(x))
 #define G_UNREFERENCED G_UNUSED
 
-struct Version {
-private:
-  uint8_t data[4];
-public:
-
-};
 
 /// Given a stream and a buffer, will attempt to write python like bytes to it
 /// \param oss

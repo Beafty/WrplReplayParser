@@ -1,7 +1,7 @@
 #pragma once
 #include "Module.h"
 #include "ecs/typesAndLimits.h"
-#include "ecs/component.h"
+#include "ecs/Component.h"
 #include "modules/bind_readonly_vector.h"
 
 namespace ecs {
@@ -19,9 +19,9 @@ py::object casterTemplate(const void*data) {
 template <>
 inline py::object casterTemplate<ecs::string>(const void* data) {
   ecs::string ptr = *(ecs::string*)data;
-  if(ptr.size() > 0) {
-    ptr.resize(ptr.size()-1);
-  }
+  //if(ptr.size() > 0) {
+  //  ptr.resize(ptr.size()-1);
+  //}
   return py::cast(ptr);
 }
 

@@ -1,25 +1,22 @@
-#include "replay/Replay.h"
+#include <danet/daNetTypes.h>
+#include "Replay/Replay.h"
 #include "libdeflate.h"
+#include "Replay/ReplayReader.h"
 
-uint32_t getPacketSize(IGenReader &cb) {
+
+uint32_t getPacketSize(IReader &cb) {
   uint8_t first_byte;
-  if(!cb.readInto(first_byte))
+  if (!cb.readInto(first_byte))
     return 0;
-  if(first_byte & 0x80)
-  {
+  if (first_byte & 0x80) {
     return first_byte & 0x7f;
-  }
-  else
-  {
+  } else {
     uint8_t byte_count = 1;
-    if((first_byte & 0x40) == 0)
-    {
+    if ((first_byte & 0x40) == 0) {
       byte_count = 2;
-      if ((first_byte & 0x20) == 0)
-      {
+      if ((first_byte & 0x20) == 0) {
         byte_count = 3;
-        if ((first_byte & 0x10) == 0)
-        {
+        if ((first_byte & 0x10) == 0) {
           byte_count = 4;
         }
       }
@@ -28,190 +25,198 @@ uint32_t getPacketSize(IGenReader &cb) {
       uint8_t payload[4];
       uint32_t raw = 0;
     };
-    if(!cb.tryRead(&payload, byte_count))
-    {
+    if (!cb.tryRead(&payload, byte_count)) {
       return 0;
     }
 
-    if((first_byte & 0x40) == 0)
-    {
-      if ((first_byte & 0x20) == 0)
-      {
-        if ((first_byte & 0x10) == 0)
-        {
+    if ((first_byte & 0x40) == 0) {
+      if ((first_byte & 0x20) == 0) {
+        if ((first_byte & 0x10) == 0) {
           return payload[0] + (payload[1] << 8) + (payload[2] << 16) + (payload[3] << 24);
+        } else {
+          return ((raw >> 0x10 & 0xff) | (first_byte << 0x18) | ((raw & 0xff) << 0x10) | (payload[1] << 0x8)) ^
+                 0x10000000;
         }
-        else
-        {
-          return ((raw>>0x10 & 0xff) | (first_byte<<0x18) | ((raw&0xff) << 0x10) | (payload[1] << 0x8)) ^ 0x10000000;
-        }
-      }
-      else
-      {
+      } else {
         return (payload[1] + (first_byte << 0x10) + (payload[0] << 0x8)) ^ 0x200000;
       }
-    }
-    else
-    {
+    } else {
       return ((first_byte << 8) + payload[0]) ^ 0x4000;
     }
   }
 }
 
-void readFilesFromDirectory(const fs::path& dirPath, std::vector<fs::path>& fileSet) {
-  if (!fs::exists(dirPath) || !fs::is_directory(dirPath)) {
-    return;
+void writePacketSize(IWriter &cb, uint32_t size) {
+  uint8_t buff[5];
+  uint8_t sz = 0;
+
+  if (size < 0x80) {
+    buff[0] = 0x80 | (size & 0x7F);
+    sz = 1;
+  } else if (size < 0x4000) {
+    uint32_t v = 0x4000 ^ size;
+    buff[0] = (v >> 8) & 0xFF;
+    buff[1] = v & 0xFF;
+    sz = 2;
+  } else if (size < 0x200000) {
+    uint32_t v = 0x200000 ^ size;
+    buff[0] = (v >> 16) & 0xFF;
+    buff[1] = (v >> 8) & 0xFF;
+    buff[2] = v & 0xFF;
+    sz = 3;
+  } else if (size < 0x10000000) {
+    uint32_t v = 0x10000000 ^ size;
+    buff[0] = (v >> 24) & 0xFF;
+    buff[1] = (v >> 16) & 0xFF;
+    buff[2] = (v >> 8) & 0xFF;
+    buff[3] = v & 0xFF;
+    sz = 4;
+  } else {
+    buff[0] = 0;
+    memcpy(buff + 1, &size, 4);
+    sz = 5;
   }
 
-  for (const auto& entry : fs::directory_iterator(dirPath)) {
-    if (fs::is_regular_file(entry.status())) {
-      fileSet.emplace_back(fs::absolute(entry.path()));
-    }
-  }
+  cb.write(buff, sz);
 }
 
-
-std::string file_exists(std::string path, const std::vector<fs::path>& paths)
-{
-  for(auto &path_ : paths)
-  {
-    if(path_.filename().string() == path)
-      return path_.string();
-  }
-  return {};
+IReplayReader::IReplayReader(Replay &owner) {
+  this->owner = &owner;
 }
 
-ServerReplayReader::ServerReplayReader(std::vector<Replay> &rdrs) {
-  ZoneScoped;
-  this->readers.reserve(rdrs.size());
-  for(auto &rpl : rdrs)
-  {
-
-    this->readers.push_back(rpl.getFullDecompressReplayReader());
-  }
+IReplayReader::IReplayReader(ServerReplay &owner) {
+  this->owner = &owner;
 }
 
-ServerReplayReader::~ServerReplayReader() {
-  for(auto &rpl : this->readers)
-  {
-    delete rpl;
-  }
+FullDecompressReplayReader::~FullDecompressReplayReader() {
+  ((Replay *) this->owner)->Data.afterParse();
 }
 
-bool ServerReplayReader::getNextPacket(ReplayPacket *packet) {
-  if(this->index >= this->readers.size())
+bool FullDecompressReplayReader::getNextPacket(ReplayPacket &packet) {
+  uint32_t pkt_sz = getPacketSize(crd);
+  if (pkt_sz == 0)
     return false;
-  auto curr_rpl = this->readers[this->index];
-  if(curr_rpl->getNextPacket(packet))
-    return true;
-  this->index++;
-  return this->getNextPacket(packet);
+  packet.stream.~BitStream();
+  packet.stream = BitStream(crd.getPtr(), pkt_sz, false);
+  if (!crd.seekrel((int) pkt_sz))
+    return false;
+  uint16_t type_t = 0x0;
+  packet.stream.Read(type_t);
+  // if two sequential packets have the same timestamp, then only the first one encodes the timestamp
+  if ((type_t & 0x10) == 0) {
+    packet.stream.Read(curr_time);
+  } else {
+    type_t ^= 0x10;
+  }
+  packet.timestamp_ms = curr_time;
+  packet.type = (ReplayPacketType) type_t;
+  return true;
 }
 
-
-IReplayReader::~IReplayReader() = default;
-
-FullDecompressReplayReader::FullDecompressReplayReader(std::span<uint8_t> zlib_data, double expected_multiply_size)  {
-  ZoneScoped;
-  size_t decomp_size = (size_t)(((double)zlib_data.size())*expected_multiply_size);
-  auto ptr = (uint8_t*)malloc(decomp_size);
+FullDecompressReplayReader::FullDecompressReplayReader(Replay &replay, double expected_multiply_size) : IReplayReader(
+  replay) {
+  auto zlib_data = replay.getData();
+  auto decomp_size = (size_t) (((double) zlib_data.size()) * expected_multiply_size);
+  auto ptr = (uint8_t *) malloc(decomp_size);
   size_t dest_len;
   auto ctx = libdeflate_alloc_decompressor();
-  libdeflate_result ret;
-  {
+  libdeflate_result ret; {
     ZoneScopedN("Replay uncompress")
     ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, decomp_size, &dest_len);
     //ret = uncompress(ptr, reinterpret_cast<unsigned long *>(&dest_len), zlib_data.data(), zlib_data.size());
   }
-  if (ret == LIBDEFLATE_INSUFFICIENT_SPACE) { // double it
+  if (ret == LIBDEFLATE_INSUFFICIENT_SPACE) {
+    // double it
     ZoneScopedN("Replay uncompress");
     libdeflate_free_decompressor(ctx); // do I need to do this? dont know
     ctx = libdeflate_alloc_decompressor();
-    decomp_size *=2;
+    decomp_size *= 2;
     free(ptr);
-    ptr = (uint8_t*)malloc(decomp_size);
+    ptr = (uint8_t *) malloc(decomp_size);
     ret = libdeflate_zlib_decompress(ctx, zlib_data.data(), zlib_data.size(), ptr, decomp_size, &dest_len);
   }
   G_ASSERT(ret == LIBDEFLATE_SUCCESS);
   libdeflate_free_decompressor(ctx);
-  crd = new BaseReader(reinterpret_cast<char *>(ptr), dest_len, true);
+
+  auto new_ptr = (uint8_t *) malloc(dest_len);
+  memcpy(new_ptr, ptr, dest_len);
+  free(ptr);
+  new(&crd) BaseReader(reinterpret_cast<char *>(new_ptr), (int) dest_len, true);
 }
 
-bool MemoryEfficientServerReplayReader::getNextPacket(ReplayPacket *packet) {
-  if(this->curr_reader) {
-    if (this->curr_reader->getNextPacket(packet)) {
-      return true;
-    }
-    delete_curr_reader();
-  }
-  if(this->curr_file_index >= this->base_dir->size()) {
+
+CompressedReplayReader::CompressedReplayReader(Replay &replay, IReader *base_reader, size_t in_size,
+                                               bool acquired_lock) : IReplayReader(replay),
+                                                                     reader(*base_reader, std::abs((int) in_size)),
+                                                                     base_reader(base_reader),
+                                                                     acquired_lock(acquired_lock) {
+}
+
+
+bool CompressedReplayReader::getNextPacket(ReplayPacket &packet) {
+  uint32_t pkt_sz = getPacketSize(reader);
+  if (pkt_sz == 0)
     return false;
-  }
-  setup_reader(this->curr_file_index);
-  this->curr_file_index++;
-  auto ret = this->curr_reader->getNextPacket(packet);
-  G_ASSERT(ret);
-  return ret;
-}
-
-void MemoryEfficientServerReplayReader::setup_reader(int index) {
-  if(this->super_efficiency) {
-    this->current_replay = new Replay(this->base_dir->operator[](index).string());
-    if(!this->current_replay->FooterBlk.empty()) {
-      this->owner->FooterBlk = std::move(this->current_replay->FooterBlk);
-    }
-    this->curr_reader = this->current_replay->getRplReader();
+  packet.stream = BitStream();
+  packet.stream.reserveBits(BYTES_TO_BITS(pkt_sz));
+  if (reader.tryRead(packet.stream.GetData(), (int) pkt_sz) != pkt_sz)
+    return false;
+  packet.stream.SetWriteOffset(BYTES_TO_BITS(pkt_sz));
+  uint16_t type_t = 0x0;
+  packet.stream.Read(type_t);
+  // if two packets have the same timestamp, then only the first one encodes the timestamp
+  if ((type_t & 0x10) == 0) {
+    packet.stream.Read(curr_time);
   } else {
-    Replay t_rpl(this->base_dir->operator[](index).string());
-    if(!t_rpl.FooterBlk.empty()) {
-      this->owner->FooterBlk = std::move(t_rpl.FooterBlk);
-    }
-    this->curr_reader = t_rpl.getFullDecompressReplayReader(1.05);
+    type_t ^= 0x10;
   }
+  packet.timestamp_ms = curr_time;
+  packet.type = (ReplayPacketType) type_t;
+  return true;
 }
 
-void MemoryEfficientServerReplayReader::delete_curr_reader() {
-  if(this->super_efficiency) {
-    delete this->curr_reader;
-    delete this->current_replay;
-    this->curr_reader = nullptr;
-    this->current_replay = nullptr;
+
+CompressedReplayReader::~CompressedReplayReader() {
+  if (this->acquired_lock)
+    ((Replay *) this->owner)->Data.afterParse();
+  this->reader.ceaseReading();
+  delete base_reader;
+}
+
+
+template<bool streaming>
+bool ServerReplayReader<streaming>::load_replay() {
+  delete this->curr_reader;
+  this->curr_reader = nullptr;
+  auto s_owner = (ServerReplay *) this->owner;
+
+  if (this->replay_index >= s_owner->replay_files.size())
+    return false;
+  if constexpr (streaming) {
+    this->curr_reader = s_owner->replay_files[replay_index]->getCompressedReplayReader();
   } else {
-    delete this->curr_reader;
-    this->current_replay = nullptr;
+    this->curr_reader = s_owner->replay_files[replay_index]->getReplayReader();
   }
+  this->replay_index++;
+  return true;
 }
 
-MemoryEfficientServerReplayReader::MemoryEfficientServerReplayReader(MemoryEfficientServerReplay * owner, std::vector<fs::path> &base_dir,
-                                                                     Replay *replay_0, bool memory_efficient) {
-  this->owner = owner;
-  this->super_efficiency = memory_efficient;
-  this->base_dir = &base_dir;
-  this->current_replay = nullptr;
-  if(!replay_0->FooterBlk.empty()) {
-    this->owner->FooterBlk = std::move(replay_0->FooterBlk);
-  }
-  if(this->super_efficiency) {
-    this->curr_reader = replay_0->getRplReader();
-  } else {
-    this->curr_reader = replay_0->getFullDecompressReplayReader(1.05);
-  }
-  this->curr_file_index = 1;
+template<bool streaming>
+ServerReplayReader<streaming>::ServerReplayReader(ServerReplay &replay) : IReplayReader(replay) {
+  G_ASSERT(load_replay()); // should always succeed
+  // done to remove extra checks in getNextPacket
 }
 
 
-std::string file_exists(const std::string& path, const std::vector<fs::path> &paths) {
-  for (auto &path_: paths) {
-    if (path_.filename().string() == path)
-      return path_.string();
-  }
-  return {};
+template<bool streaming>
+bool ServerReplayReader<streaming>::getNextPacket(ReplayPacket &packet) {
+  if (this->curr_reader->getNextPacket(packet))
+    return true;
+  if (!load_replay())
+    return false;
+  return this->curr_reader->getNextPacket(packet);
 }
 
-fs::path file_exists_fs(const std::string& path, const std::vector<fs::path> &paths) {
-  for (auto &path_: paths) {
-    if (path_.filename().string() == path)
-      return path_;
-  }
-  return {};
-}
+
+template class ServerReplayReader<false>;
+template class ServerReplayReader<true>;

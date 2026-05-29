@@ -12,6 +12,7 @@
 #include "ThreadPool.h"
 #include "utils.h"
 #include <filesystem>
+#include "dag_assert.h"
 
 namespace fs = std::filesystem;
 
@@ -519,7 +520,7 @@ public:
   }
 
   void loadFromOsPath(const fs::path &os_path) {
-    assert(fs::exists(os_path) && fs::is_directory(os_path));
+    G_ASSERT(fs::exists(os_path) && fs::is_directory(os_path));
 
     for (const auto &entry: fs::recursive_directory_iterator(os_path)) {
       fs::path relative = fs::relative(entry.path(), os_path);

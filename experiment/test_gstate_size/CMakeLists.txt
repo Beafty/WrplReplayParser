@@ -9,7 +9,7 @@ target_link_libraries(test_gstate_size
         READER::READER
         FS::FS
         VROMFS::VROMFS
-        FieldSerializer:FieldSerializer
+        FieldSerializer::FieldSerializer
         NET::NET
         dagECS::dagECS
         INIT::INIT

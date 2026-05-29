@@ -72,11 +72,11 @@ namespace mpi {
     std::string offender_vehicle; // case 2
     std::string used_weapon; // case 0xa
     std::string destroyed_weapon; // case 0xc
-    ecs::EntityId offended_entity; // case 3
-    ecs::EntityId offender_entity; // case 4
+    unit::Unit* offended_unit; // case 3
+    unit::Unit* offender_unit; // case 4
     int DeathType; //case 0xb
     int offender_pid; // case 1
-    int VictimPid; // some player index
+    int VictimPid; // only filled when a weapon is destroyed
     WeaponType some_enum;
     uint8_t unitType;
     bool maybe_is_burav_kill; // bit
@@ -93,10 +93,10 @@ namespace mpi {
   public:
     CriticalDamageMessage(IObject *o) : IBattleMessage(o, GeneralObject::CriticalDamage) {}
 
-    ecs::EntityId offended_eid;
+    unit::Unit* offended_unit;
     int player_pid;
     std::string vehicle;
-    ecs::EntityId player_eid;
+    unit::Unit* offender_unit;
     uint8_t is_fire{}; // when doesn't equal 0, still an u8 for whatever reason
     uint8_t unitType; // enum value
 
@@ -106,10 +106,10 @@ namespace mpi {
     bool readPayload(ParserState *state) override;
   public:
     SevereDamageMessage(IObject *o) : IBattleMessage(o, GeneralObject::SevereDamage) {}
-    ecs::EntityId offended_eid;
+    unit::Unit* offended_unit;
     int player_pid;
     std::string vehicle;
-    ecs::EntityId player_eid;
+    unit::Unit* offender_unit;
     uint8_t unitType; // enum value
   };
 
