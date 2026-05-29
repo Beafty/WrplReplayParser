@@ -165,6 +165,13 @@ namespace danet {
       char* raw = reinterpret_cast<char*>(this) + sizeof(ReflectionVarMeta);
       std::memcpy(raw, &ptr, sizeof(ptr));
     }
+
+    void **getPtrPtr() {
+      const char *raw = reinterpret_cast<const char *>(this) + sizeof(ReflectionVarMeta);
+      const void *const*storedPtr = reinterpret_cast<const void * const*>(raw);
+      return const_cast<void **>(storedPtr);
+    }
+
     friend ReflectableObject;
   public:
     uint8_t persistentId;
@@ -238,71 +245,30 @@ namespace danet {
     friend class pybind11::class_;
   public:
     // so pybind11 can see it
-    struct SpaceHandler : public ISpaceHandler  {
-      struct TimeState {
-        uint32_t time_ms = 0;
-        T value{};
+    struct SpaceHandler : public RewindMgr<SpaceHandler, T, true>, public ISpaceHandler {
+      typedef RewindMgr<SpaceHandler, T, true> BASE;
+      friend BASE;
 
-        bool operator==(const TimeState& other) const {
-          return time_ms == other.time_ms && value == other.value;
-        }
-      };
-
-      std::vector<TimeState> timeStates{};
-      size_t curr_index = 0;
-
-      template <typename type_, typename... options>
-      friend class pybind11::class_;
-    public:
-
-      const std::vector<const TimeState> *getStates() {
-        return &timeStates;
-      }
-
+      void forward(BASE::TimeState &data) {
+      } // dummy implementation
+      void backward(BASE::TimeState &data) {
+      } // dummy implementation
       void* addState(uint32_t time_ms) override {
-        timeStates.push_back(TimeState{time_ms, T{}});
-        curr_index = timeStates.size() - 1;
-        return &timeStates.back().value;
+        return &this->emplaceNew(time_ms).data;
       }
 
-      void *checkPreviousState()  override {
-        if (timeStates.size() < 2)
-          return &timeStates.back().value;
-        auto prev = &timeStates.back();
-        auto prev_prev = &timeStates[timeStates.size() - 2];
-        if (prev->value == prev_prev->value) {
-          timeStates.resize(timeStates.size() - 1);
-          curr_index = timeStates.size() - 1;
-        }
-        return &timeStates.back().value;
+      void *checkPreviousState() override {
+        return &this->CompareToPrevious().data;
       }
 
-      void* goToTime(uint32_t time_ms) override {
-        if (timeStates.empty())
-          return nullptr;
-        if (timeStates.size() == 1)
-          return &timeStates[0].value;
-
-        if (time_ms < timeStates[curr_index].time_ms) {
-          while (curr_index > 0 && timeStates[curr_index].time_ms > time_ms)
-            --curr_index;
-        } else {
-          while (curr_index + 1 < timeStates.size() &&
-                 timeStates[curr_index + 1].time_ms <= time_ms)
-            ++curr_index;
-        }
-
-        return &timeStates[curr_index].value;
+      void *goToTime(uint32_t time_ms) override {
+        return &this->rewindTo(time_ms).data;
       }
+
       void *removePreviousState() override {
-        if (!timeStates.empty()) {
-          timeStates.pop_back();
-          curr_index--;
-        }
-        return &timeStates.back().value; // if we popped a value, lets make sure the code is using the correct one
+        return &this->RemovePrevious().data;
       }
     };
-
 
     const auto& get_history() const { return spaceHandler.timeStates; }
 

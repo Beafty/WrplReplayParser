@@ -409,32 +409,32 @@ namespace ecs {
     friend BASE;
 
     void forward(BASE::TimeState &data, EntityManager *mgr) {
-      auto action = reinterpret_cast<RewindAction *>(&data);
+      auto action = reinterpret_cast<RewindAction *>(&data.data);
       action->forward(*mgr);
     }
 
     void backward(BASE::TimeState &data, EntityManager *mgr) {
-      auto action = reinterpret_cast<RewindAction *>(&data);
+      auto action = reinterpret_cast<RewindAction *>(&data.data);
       action->backward(*mgr);
     }
 
   public:
     uint32_t createCreationAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
       G_STATIC_ASSERT(sizeof(EntityCreatedAction) <= MAX_ACTION_SIZE);
-      auto &base = this->emplaceNew();
+      auto &base = this->emplaceNew(time_ms);
       new(base.data.data()) EntityCreatedAction(time_ms, invalid_storage, valid_storage);
       return this->timeStates.size() - 1;
     }
 
     uint32_t createDestroyAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
       G_STATIC_ASSERT(sizeof(EntityDestroyedAction) <= MAX_ACTION_SIZE);
-      auto &base = this->emplaceNew();
+      auto &base = this->emplaceNew(time_ms);
       new(base.data.data()) EntityDestroyedAction(time_ms, invalid_storage, valid_storage);
       return this->timeStates.size() - 1;
     }
 
     uint32_t createComponentUpdateAction(uint32_t time_ms, void *ptr, EntityId eid, ecs::component_index_t cidx) {
-      auto &base = this->emplaceNew();
+      auto &base = this->emplaceNew(time_ms);
       G_STATIC_ASSERT(sizeof(ComponentUpdateAction) <= MAX_ACTION_SIZE);
       new(base.data.data()) ComponentUpdateAction(time_ms, ptr, eid, cidx);
       return this->timeStates.size() - 1;
