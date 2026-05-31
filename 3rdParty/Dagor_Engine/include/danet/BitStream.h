@@ -328,7 +328,7 @@ public:
 
   void Write(char *t) { writeString(t, (t && *t) ? strlen(t) : size_t(0)); }
 
-  bool ReadZigZag(int &v) {
+  bool ReadZigZag(int &v) const {
     uint32_t val;
     if(!this->ReadCompressed(val))
       return false;

@@ -78,8 +78,9 @@ void PyReplayState::include(py::module_ &m) {
         //auto rdr = py_reader.cast<IReplayReader*>();
         py::gil_scoped_release release;
         std::exception_ptr eptr;
-        std::thread temp_t(
-          [&]() {
+        //std::thread temp_t(
+        //  [&]()
+        {
             // this is done purely so python signal handler doesn't come into play and so my signal handler dumps stacktrace
             // although, this does make exception handling more complicated (python cant handle exceptions thrown from another thread
             ReplayPacket pkt{};
@@ -109,8 +110,9 @@ void PyReplayState::include(py::module_ &m) {
                 eptr = std::current_exception();
               }
             }
-          });
-        temp_t.join();
+        }
+        //   );
+        //temp_t.join();
         // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
         if (eptr) {
           std::rethrow_exception(eptr);

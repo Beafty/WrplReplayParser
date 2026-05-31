@@ -114,8 +114,8 @@ public:
         break;
       }
       case ReplayPacketType::AircraftSmall: {
-        FMSync(this, &pkt.stream);
-        break;
+          FMSync(*this, pkt.stream);
+          break;
       }
       case ReplayPacketType::Chat: {
         this->chatMessages.resize(this->chatMessages.size()+1);

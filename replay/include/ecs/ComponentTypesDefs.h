@@ -115,8 +115,8 @@ struct FlightModelWrapStorageComponent : FieldSerializerDict {
 
 struct Rocket {
     std::vector<SpaceTime> positions;
-    uint32_t created_at_ms;
-    uint32_t destroyed_at_ms; // when a rocket 'dies / explodes'
+    uint32_t created_at_ms = 0xFFFFFFFF;
+    uint32_t destroyed_at_ms = 0xFFFFFFFF; // when a rocket 'dies / explodes'
 
 
     uint32_t uleb_1;

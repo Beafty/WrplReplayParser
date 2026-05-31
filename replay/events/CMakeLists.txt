@@ -2,6 +2,7 @@ add_library(WTEvents
         STATIC
         BaseEntityES.gen.es.cpp
         UpdateMPlayerES.gen.es.cpp
+        RocketryES.gen.es.cpp
         ecsPull.cpp
 )
 

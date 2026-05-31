@@ -595,15 +595,17 @@ extern PyCodegenObjects py_codegen_objects;
                 #write TimeState instance
                 io.write(f"  py::class_<{state_str}>(gen, \"{full_substituted}_ts\")\n")
                 io.write(f"  .def_readonly(\"time_ms\", &{state_str}::time_ms)\n")
-                io.write(f"  .def_readonly(\"value\", &{state_str}::value);\n\n")
+                io.write(f"  .def_readonly(\"value\", &{state_str}::data);\n\n")
 
                 # write TimeState vector instance
-                io.write(f"  bind_readonly_vector<std::vector<{state_str}>>(gen, \"{full_substituted}_ts_vector\");\n\n")
+                io.write(
+                    f"  bind_readonly_vector<dag::Vector<{state_str}>>(gen, \"{full_substituted}_ts_vector\");\n\n")
 
 
                 io.write(f"  py::class_<danet::ReflectionVar<{full}>>(gen, \"{full_substituted}_var\")\n")
                 io.write(f"  .def_readonly(\"data\", &danet::ReflectionVar<{full}>::data)\n")
-                io.write(f"  .def_property_readonly(\"history\", [](danet::ReflectionVar<{full}> &self){{return &self.get_history();}});\n\n\n")
+                io.write(
+                    f"  .def_property_readonly(\"history\", [](danet::ReflectionVar<{full}> &self){{return &self.get_history();}}, py::return_value_policy::reference_internal);\n\n\n")
                 all_written_objects.append(io)
 
             f.write("include_types_0(gen);\n}")

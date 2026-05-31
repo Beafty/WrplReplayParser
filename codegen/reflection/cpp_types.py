@@ -128,3 +128,6 @@ class UnitIdStruct_reg(DataTypeRegister):
         "uint8_t thang;"
     ]
 
+
+class WeaponMask_reg(DataTypeRegister):
+    name = "danet::WeaponMask"

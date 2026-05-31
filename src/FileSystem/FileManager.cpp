@@ -29,7 +29,7 @@ std::shared_ptr<File> FileManager::getFile(const fs::path& path, bool lower, boo
   if(lower)
   {
     std::string tmp = path.string();
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
+    std::ranges::transform(tmp, tmp.begin(), [](char c) { return ::tolower((unsigned char) c); });
     to_use = fs::path(tmp);
   }
   else

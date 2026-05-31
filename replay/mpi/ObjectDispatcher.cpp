@@ -5,9 +5,9 @@
 #include "mpi/GeneralObject.h"
 
 CREATE_HANDLE(handle_object_dispatcher, "ObjectDispatcher")
+
 namespace mpi {
   void zstd_decompress(BitStream &in, BitStream &out) {
-
     uint32_t comp_size;
     uint32_t decomp_size;
     in.ReadCompressed(comp_size);
@@ -21,116 +21,127 @@ namespace mpi {
     ZSTD_decompress(out.GetData(), decomp_size, inData.data(), inData.size());
   }
 
-    Message *GeneralObject::dispatchMpiMessage(MessageID mid) {
-      //LOG("incoming mid: 0x%x\n", mid);
-      switch(mid) {
-        case Replication:
-        case Reflection1:
-        case Reflection2:
-        case ReflectionNoDecompress: {
-          return new Message(this, mid);
-          break;
-        }
-        case Kill: {
-          return new KillMessage(this);
-          DISPATCHER_LOGD1("KILL");
-          break;
-        }
-        case Awards: {
-          return new AwardMessage(this);
-          DISPATCHER_LOGD1("Awards");
-          break;
-
-        }
-        case SevereDamage: {
-          return new SevereDamageMessage(this);
-          DISPATCHER_LOGD1("SevereDamage");
-          break;
-
-        }
-        case CriticalDamage: {
-          return new CriticalDamageMessage(this);
-          DISPATCHER_LOGD1("CriticalDamage");
-          break;
-        }
-        case Tank1:
-        case Tank2: {
-          DISPATCHER_LOGD1("Tank");
-          return new TankMessage(this, mid);
-        }
-
+  Message *GeneralObject::dispatchMpiMessage(MessageID mid) {
+    //LOG("incoming mid: 0x%x\n", mid);
+    switch (mid) {
+      case Replication:
+      case Reflection1:
+      case Reflection2:
+      case ReflectionNoDecompress: {
+        return new Message(this, mid);
+        break;
       }
-      //LOG("no mid found\n");
-      return nullptr;
+      case Kill: {
+        return new KillMessage(this);
+        DISPATCHER_LOGD1("KILL");
+        break;
+      }
+      case Awards: {
+        return new AwardMessage(this);
+        DISPATCHER_LOGD1("Awards");
+        break;
+      }
+      case SevereDamage: {
+        return new SevereDamageMessage(this);
+        DISPATCHER_LOGD1("SevereDamage");
+        break;
+      }
+      case CriticalDamage: {
+        return new CriticalDamageMessage(this);
+        DISPATCHER_LOGD1("CriticalDamage");
+        break;
+      }
+      case Tank1:
+      case Tank2: {
+        DISPATCHER_LOGD1("Tank");
+        return new TankMessage(this, mid);
+      }
+      case Rocket1:
+      case Rocket2: {
+        return new BSMessage(this, mid);
+      }
     }
-    void GeneralObject::applyMpiMessage(const Message *m) {
-      auto mid = m->id;
-      auto bs = (BitStream *)&m->payload;
-      //LOG("Deserialzing for Reflection type: %0x\n", mid);
-      switch(mid) {
-        case Kill: {
-          const KillMessage* kill_m = dynamic_cast<const KillMessage*>(m);
-          if (kill_m->offended_unit)
-            kill_m->offended_unit->killed_at_ms = this->state->curr_time_ms;
-          [[fallthrough]];
+    //LOG("no mid found\n");
+    return nullptr;
+  }
+
+  void GeneralObject::applyMpiMessage(const Message *m) {
+    auto mid = m->id;
+    auto bs = (BitStream *) &m->payload;
+    //LOG("Deserialzing for Reflection type: %0x\n", mid);
+    switch (mid) {
+      case Kill: {
+        const KillMessage *kill_m = dynamic_cast<const KillMessage *>(m);
+        if (kill_m->offended_unit)
+          kill_m->offended_unit->killed_at_ms = this->state->curr_time_ms;
+        [[fallthrough]];
+      }
+      case SevereDamage:
+      case CriticalDamage:
+      case Awards: {
+        m->delete_message = false;
+        const IBattleMessage *battle_m = dynamic_cast<const IBattleMessage *>(m);
+        this->state->BattleMessages.push_back(battle_m);
+        break;
+      }
+      case ReflectionNoDecompress: {
+        danet::deserializeReflectables(*bs, obj_dispatcher, this->state);
+        break;
+      }
+      case Reflection1:
+      case Reflection2: {
+        uint8_t tmp = 0;
+        bs->Read(tmp);
+        bool isCompressed = tmp == 1;
+        BitStream *outBs;
+        BitStream t{};
+        if (isCompressed) {
+          zstd_decompress(*bs, t);
+          outBs = &t;
+        } else {
+          outBs = bs;
         }
-        case SevereDamage:
-        case CriticalDamage:
-        case Awards: {
-          m->delete_message = false;
-          const IBattleMessage* battle_m = dynamic_cast<const IBattleMessage*>(m);
-          this->state->BattleMessages.push_back(battle_m);
-          break;
-        }
-        case ReflectionNoDecompress: {
-          danet::deserializeReflectables(*bs, obj_dispatcher, this->state);
-          break;
-        }
-        case Reflection1:
-        case Reflection2: {
-          uint8_t tmp = 0;
-          bs->Read(tmp);
-          bool isCompressed = tmp == 1;
-          BitStream * outBs;
+        danet::deserializeReflectables(*outBs, obj_dispatcher, this->state);
+        break;
+      }
+      case Replication: {
+        uint8_t do_weird_check;
+        bs->Read(do_weird_check);
+        int16_t sorta_confirms_is_compressed;
+        bs->Read(sorta_confirms_is_compressed);
+        if (sorta_confirms_is_compressed > -1) {
+          danet::ReplicatedObject::onRecvReplicationEvent(*bs, this->state);
+        } else {
           BitStream t{};
-          if(isCompressed) {
-            zstd_decompress(*bs, t);
-            outBs = &t;
-          }
-          else
-          {
-            outBs = bs;
-          }
-          danet::deserializeReflectables(*outBs, obj_dispatcher, this->state);
-          break;
+          zstd_decompress(*bs, t);
+          danet::ReplicatedObject::onRecvReplicationEvent(t, this->state);
         }
-        case Replication: {
-          uint8_t do_weird_check;
-          bs->Read(do_weird_check);
-          int16_t sorta_confirms_is_compressed;
-          bs->Read(sorta_confirms_is_compressed);
-          if(sorta_confirms_is_compressed > -1) {
-            danet::ReplicatedObject::onRecvReplicationEvent(*bs, this->state);
-          }
-          else {
-            BitStream t{};
-            zstd_decompress(*bs, t);
-            danet::ReplicatedObject::onRecvReplicationEvent(t, this->state);
-          }
-          break;
+        break;
+      }
+      case Tank1:
+      case Tank2: {
+        auto tankM = (TankMessage *) m;
+        auto ret = GMSync(*state, tankM->data);
+        if (!ret) {
+          LOGE("Failed to read TankMessage payload");
         }
-        case Tank1:
-        case Tank2: {
-          auto tankM = (TankMessage*)m;
-          GMSync(state, &tankM->data);
+        return;
+      }
+      case Rocket1:
+      case Rocket2: {
+        auto bsM = (BSMessage *) m;
+        bool ret = WeaponSync(*state, bsM->data);
+        if (!ret) {
+          LOGE("Failed to read TankMessage payload");
         }
+        return;
       }
     }
+  }
 
 
-  IObject * UnitRef_Dispatch(ObjectID oid, ObjectExtUID extUid, ecs::EntityManager *mgr) {
-    if(!extUid)
-    {
+  IObject *UnitRef_Dispatch(ObjectID oid, ObjectExtUID extUid, ecs::EntityManager *mgr) {
+    if (!extUid) {
       EXCEPTION("dispatch: extended mpi uid is not set for object of type {}", oid>>0xb);
     }
     //auto eid = ecs::EntityId(extUid << 0x16 | extUid >> 8);
@@ -138,10 +149,11 @@ namespace mpi {
     // TODO
     return nullptr;
   }
+
   IObject *ObjectDispatcher(ObjectID oid, ObjectExtUID extUid, ParserState *state) {
     uint16_t count = oid & 0x7ff;
-    uint8_t obj = (uint8_t)(oid >> 0xb);
-    switch(obj) {
+    uint8_t obj = (uint8_t) (oid >> 0xb);
+    switch (obj) {
       case 0:
       case 1:
       case 2:
@@ -159,17 +171,17 @@ namespace mpi {
         //LOGE("Getting Zone with id {}", count);
         if (count < state->Zones.size()) {
           return state->Zones[count];
-        }
-        else {
+        } else {
           DISPATCHER_LOGE("Warning, Zone with id {} doesn't exist in Zone array", count);
         }
         break;
       }
-      case 0x8: { // something to do with mission objectives, lookup "extendedEnding"
+      case 0x8: {
+        // something to do with mission objectives, lookup "extendedEnding"
         return nullptr;
       }
       case 0xb: {
-        switch(count) {
+        switch (count) {
           case 0x2: {
             return &state->main_dispatch;
           }
@@ -187,12 +199,13 @@ namespace mpi {
       }
       case 0xe: {
         //LOG("Getting Player id %i\n", count);
-        if(count < state->players.size())
+        if (count < state->players.size())
           return &state->players[count];
         break;
       }
       case 0xf: {
-        if(count < 3) { // max team count is 3
+        if (count < 3) {
+          // max team count is 3
           return &state->teams[count];
         }
         EXCEPTION("Invalid team index");
@@ -217,7 +230,6 @@ namespace mpi {
   void TankMessage::writePayload() {
     this->payload.Write(this->data);
   }
-
 }
 
 ECS_REGISTER_CTM_TYPE(MPlayer, nullptr);

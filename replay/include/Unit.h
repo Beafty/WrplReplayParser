@@ -25,8 +25,8 @@ struct SpaceTime {
 
 
 struct SensorsControlStates {
-  // a whole bunch of this is probably a union actually
-  bool v1 = 0;
+    // a bunch of this is probably a union actually
+    bool v1 = 0;
   bool v2 = 0;
   bool first_bool = false; // maybe is turned on?
   float unpacked_1 = 0;
@@ -50,7 +50,7 @@ struct SensorsControlStates {
   int some_data_7;
   float field147_0xa8;
 
-  bool deserialize(BitStream *bs);
+    bool deserialize(BitStream &bs);
 };
 
 struct TargetDesignationControlState {
@@ -71,7 +71,7 @@ struct TargetDesignationControlState {
   uint8_t v14;
   uint32_t v15;
 
-  bool deserialize(BitStream *bs);
+  bool deserialize(BitStream &bs);
 };
 
 enum UnitType : uint8_t {
@@ -169,9 +169,10 @@ namespace unit {
 
   class Aircraft : public Unit {
   public:
-    Aircraft(uint16_t uid) : Unit(uid, AircraftType) {}
+      explicit Aircraft(uint16_t uid) : Unit(uid, AircraftType) {
+      }
 
-    virtual ~Aircraft() = default;
+      ~Aircraft() override = default;
     void Load() override;
 
     Weapon *getWeapon(uint32_t ref);
@@ -179,9 +180,10 @@ namespace unit {
 
   class Tank : public Unit {
   public:
-    Tank(uint16_t uid) : Unit(uid, TankType) {}
-    virtual ~Tank() = default;
+      explicit Tank(uint16_t uid) : Unit(uid, TankType) {
+      }
 
+      ~Tank() override = default;
   };
 
   struct UnitRef {

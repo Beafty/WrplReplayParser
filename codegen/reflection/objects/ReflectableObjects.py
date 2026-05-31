@@ -115,3 +115,7 @@ class ExitZone(MissionZone):
 
 class PickupZone(MissionZone):
     showOnTacticalMap = Var("bool", 0x43)
+
+
+class UnitWeaponsMask(ReflectableObject):
+    dummyVarForAmmoPartsMask = Var("danet::WeaponsMask", 0x2, "WeaponsCoder")

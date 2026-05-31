@@ -407,6 +407,7 @@ namespace ecs {
   class ECSRewindManager : public RewindMgr<ECSRewindManager, ACTION_ARRAY_CONTAINER> {
     typedef RewindMgr<ECSRewindManager, ACTION_ARRAY_CONTAINER> BASE;
     friend BASE;
+    friend ParserState;
 
     void forward(BASE::TimeState &data, EntityManager *mgr) {
       auto action = reinterpret_cast<RewindAction *>(&data.data);
@@ -417,8 +418,14 @@ namespace ecs {
       auto action = reinterpret_cast<RewindAction *>(&data.data);
       action->backward(*mgr);
     }
-
   public:
+    ~ECSRewindManager() {
+        for (auto &obj: this->timeStates) {
+            auto action = reinterpret_cast<RewindAction *>(&obj.data);
+            action->~RewindAction();
+        }
+    }
+
     uint32_t createCreationAction(uint32_t time_ms, EntityId invalid_storage, EntityId valid_storage) {
       G_STATIC_ASSERT(sizeof(EntityCreatedAction) <= MAX_ACTION_SIZE);
       auto &base = this->emplaceNew(time_ms);

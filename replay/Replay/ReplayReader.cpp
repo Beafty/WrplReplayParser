@@ -202,6 +202,11 @@ bool ServerReplayReader<streaming>::load_replay() {
 }
 
 template<bool streaming>
+ServerReplayReader<streaming>::~ServerReplayReader() {
+  delete this->curr_reader;
+}
+
+template<bool streaming>
 ServerReplayReader<streaming>::ServerReplayReader(ServerReplay &replay) : IReplayReader(replay) {
   G_ASSERT(load_replay()); // should always succeed
   // done to remove extra checks in getNextPacket

@@ -1014,14 +1014,16 @@ namespace dag {
 #endif
             n = eastl::max(size_type(min_allocate_size_bytes / sizeof(value_type)), n);
 
-            auto *p = (T *) eastl::allocate_memory(internalAllocator(), size_t(n) * sizeof(T), EASTL_ALIGN_OF(T), 0);
+            //auto *p = (T *) eastl::allocate_memory(internalAllocator(), size_t(n) * sizeof(T), EASTL_ALIGN_OF(T), 0);
+            auto *p = (T *) malloc(size_t(n) * sizeof(T));
             EASTL_ASSERT_MSG(p != nullptr, "the behaviour of eastl::allocators that return nullptr is not defined.");
             return p;
         }
 
         void DoFree(T *p, size_type n) {
             if (p)
-                EASTLFree(internalAllocator(), p, n * sizeof(T));
+                free(p);
+            //EASTLFree(internalAllocator(), p, n * sizeof(T));
         }
     };
 

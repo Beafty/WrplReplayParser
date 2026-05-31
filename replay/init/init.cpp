@@ -4,6 +4,9 @@
 #include "mpi/ObjectDispatcher.h"
 #include "state/ParserState.h"
 #include "mpi/codegen/ReflIncludes.h"
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 namespace mpi {
   class BaseListener : public IMessageListener {
@@ -25,9 +28,19 @@ namespace mpi {
 
 bool TranslationAllowed = false;
 
+void print_all_files_full_paths(const fs::path &root = fs::current_path()) {
+    for (const auto &entry: fs::recursive_directory_iterator(root)) {
+        if (entry.is_regular_file()) {
+            std::cout << fs::absolute(entry.path()).string() << '\n';
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+}
+
 // runs basic init steps
 void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
   ZoneScoped;
+  //print_all_files_full_paths();
   if(!logfile_path.empty())
     g_log_handler->set_default_sink_logfile(logfile_path);
   register_default_sigsev_handler();
@@ -45,7 +58,7 @@ void initialize(const std::string &VromfsPath, const std::string &logfile_path, 
   }
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "{} does not exist", p1);
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "{} does not exist", p2);
-  EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p5), "{} does not exist", p2);
+  EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p5), "{} does not exist", p5);
   if(mis)
     file_mgr.loadVromfs(p3); // optional
   if (lang)

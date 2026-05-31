@@ -13,7 +13,7 @@ mplayer_add_entity_es(const ecs::EventEntityCreated &evt, const int &unit__playe
   if (unit__playerId == -1) { // not owned by a player
     return;
   }
-  G_ASSERT(unit__playerId < manager.owned_by->players.size());
+  G_ASSERTF(unit__playerId < manager.owned_by->players.size(), "Invalid PLayer index {}", unit__playerId);
   if (unit__ref.unit) {
     manager.owned_by->players[unit__playerId].allOwnedUnits.emplace_back(unit__ref.unit);
   }
@@ -26,7 +26,7 @@ mplayer_add_entity_es(const ecs::EventEntityCreatedBasic &evt, const ecs::Entity
   if (unit__playerId == -1) { // not owned by a player
     return;
   }
-  G_ASSERT(unit__playerId < manager.owned_by->players.size());
+  G_ASSERTF(unit__playerId < manager.owned_by->players.size(), "Invalid PLayer index {}", unit__playerId);
   if (unit__ref.unit) {
     manager.owned_by->players[unit__playerId].currentOwnedUnits.emplace(unit__ref.unit);
   }
@@ -40,7 +40,7 @@ mplayer_add_entity_es(const ecs::EventEntityDestroyedBasic &evt, const ecs::Enti
   if (unit__playerId == -1) { // not owned by a player
     return;
   }
-  G_ASSERT(unit__playerId < manager.owned_by->players.size());
+  G_ASSERTF(unit__playerId < manager.owned_by->players.size(), "Invalid PLayer index {}", unit__playerId);
   if (unit__ref.unit) {
     manager.owned_by->players[unit__playerId].currentOwnedUnits.erase(unit__ref.unit);
 

@@ -53,6 +53,8 @@ class ServerReplayReader : public IReplayReader {
   IReplayReader * curr_reader = nullptr;
   bool load_replay();
 public:
+  ~ServerReplayReader() override;
+
   explicit ServerReplayReader(ServerReplay &replay);
   bool getNextPacket(ReplayPacket &packet) override;
 };

@@ -11,10 +11,6 @@
 
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IPoint2.h>
-#include <math/dag_Point3.h>
-#include <math/integer/dag_IPoint3.h>
-#include <math/dag_Point4.h>
-#include <math/integer/dag_IPoint4.h>
 
 #include "mpi.h"
 
@@ -249,9 +245,9 @@ namespace danet {
       typedef RewindMgr<SpaceHandler, T, true> BASE;
       friend BASE;
 
-      void forward(BASE::TimeState &data) {
+      void forward(BASE::TimeState &) {
       } // dummy implementation
-      void backward(BASE::TimeState &data) {
+      void backward(BASE::TimeState &) {
       } // dummy implementation
       void* addState(uint32_t time_ms) override {
         return &this->emplaceNew(time_ms).data;
@@ -270,7 +266,7 @@ namespace danet {
       }
     };
 
-    const auto& get_history() const { return spaceHandler.timeStates; }
+    const auto &get_history() const { return spaceHandler.getStates(); }
 
     T * data = nullptr; // MUST BE FIRST VAR
   private:
@@ -364,7 +360,7 @@ namespace danet {
 // Note: explicit padding to defeat tail padding optimization (same layout across majority of platforms for compat with das aot
 // compiler)
 #if !_TARGET_PC_LINUX && _TARGET_64BIT          // Linux have it's own das aot compiler
-    char _pad[sizeof(void *) - sizeof(uint32_t)]; //-V730_NOINIT
+    char _pad[sizeof(void *) - sizeof(uint32_t)]{}; //-V730_NOINIT
 #endif
 
     // dummy mpi implementation
