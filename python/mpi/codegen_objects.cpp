@@ -113,4 +113,7 @@ void PyCodegenObjects::include(py::module_ &m) {
   py::class_<PickupZone, MissionZone, std::unique_ptr<PickupZone, py::nodelete>>(mpi, "PickupZone")
     .def_readonly("showOnTacticalMap", &PickupZone::showOnTacticalMap)
   ;
+  py::class_<UnitWeaponsMask, danet::ReflectableObject, std::unique_ptr<UnitWeaponsMask, py::nodelete> >(
+              mpi, "UnitWeaponsMask")
+          .def_readonly("dummyVarForAmmoPartsMask", &UnitWeaponsMask::dummyVarForAmmoPartsMask);
 }

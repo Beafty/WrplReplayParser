@@ -130,4 +130,5 @@ class UnitIdStruct_reg(DataTypeRegister):
 
 
 class WeaponMask_reg(DataTypeRegister):
-    name = "danet::WeaponMask"
+    name = "danet::WeaponsMask"
+    is_pod = True  # not actually, this type is only ever used in once place, so that coder will be defined externally in cpp

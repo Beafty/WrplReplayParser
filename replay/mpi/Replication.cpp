@@ -260,6 +260,9 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
     state->missionAreas1.resize(index+1, nullptr);
   }
   state->missionAreas1[index] = x;
+  if (state->missionAreas2[idx]) {
+    delete state->missionAreas2[idx];
+  }
   state->missionAreas2[idx] = x;
   REPLICATION_LOGD2("Parsing Replicated MissionArea");
   return nullptr;

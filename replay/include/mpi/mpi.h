@@ -96,6 +96,10 @@ namespace mpi // message passing interface
     return true;
   }
 
+  inline void write_object_ext_uid(BitStream &bs, const IObject *obj) {
+    return write_object_ext_uid(bs, obj->getUID(), obj->mpiObjectExtUID);
+  }
+
 #define SWITCH_MESSAGE_INDEXES(fields) \
 while(fields != 0) {                \
   uin8_t curr_index = 0;               \

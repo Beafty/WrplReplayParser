@@ -39,7 +39,7 @@ class ReplicatedObject(ReflectableObject):
 
 
 # we get var name from defined class, so we only need the var_id and optionally the special encoder this var may need, default is often enough though
-class ReflectionVarMeta(ABC):
+class ReflectionVarMeta:
     def __init__(self, data_type: str, var_id: int, EncoderName=""):
         self.data_type = data_type
         self.var_id = var_id

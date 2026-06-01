@@ -10,6 +10,7 @@
 #include "Replay/Replay.h"
 #include "mpi/PositionSync.h"
 #include "danet/delta/deltaCompression.h"
+#include "Unit.h"
 
 struct net_delta_t {
   net::DeltaComp netDelta{5, 0xd};
@@ -42,29 +43,32 @@ struct ChatMessage {
   bool is_local_message{}; // a message that only ur client sees (ex: chat spamming message)
   bool is_quick_message{}; // is a message created through the quick message menu
   std::string complaints; // this is basically useless information
-  inline bool FromBS(BitStream &bs) {
-    bool ok = true;
-    ok &= bs.Read(player_name);
-    ok &=bs.Read(message);
-    ok &=bs.Read(channel);
-    ok &=bs.Read(is_local_message);
-    ok &=bs.Read(is_quick_message);
-    ok &=bs.Read(complaints);
-    return ok;
-  }
+  inline bool FromBS(BitStream &bs);
 };
-
 
 struct ParserState {
 
   explicit ParserState(int player_count=32) : players(player_count) {}
   explicit ParserState(IReplay *replay): players(replay->getHeader()->player_count) {}
-private:
+protected:
+  mpi::MpiQueueObject mpi_queue{};
+  friend mpi::MpiQueueObject;
 
-  //friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);
+  friend mpi::IObject *mpi::ObjectDispatcher(mpi::ObjectID oid, mpi::ObjectExtUID extUid, ParserState *state);
 
+
+  // could replace with a tuple vector, basically the same thing with less space
+  std::vector<ecs::EntityId> uid_lookup{};
+  std::vector<unit::Unit *> uid_unit_lookup{};
 
 public:
+  std::vector<mpi::MpiQueueObject::QueueData> *get_queued_data(ecs::EntityId eid) {
+    auto it = mpi_queue.dispatched_objects.find(eid);
+    if (it == mpi_queue.dispatched_objects.end())
+      return nullptr;
+    return &it->second;
+  }
+
   uint32_t replay_length_ms = 0xFFFFFFFF;
   uint32_t current_rewind_ms; // the time we have rewinded to
   uint32_t curr_time_ms = 0; // the current time in the ECS / state. this wont always math current_rewind_time_ms
@@ -81,93 +85,29 @@ public:
   std::vector<const mpi::IBattleMessage*> BattleMessages{};
   std::vector<MissionArea*> missionAreas1{};
   std::vector<MissionArea*> missionAreas2{};
+
   int current_packet_index=0;
+
+
+  ecs::EntityId getUnitEid(uint16_t uid);
+
+  unit::Unit *getUnitObj(uint16_t uid);
+
+  void setUnitData(uint16_t uid, unit::Unit *unit, ecs::EntityId eid);
+
   void setPlayerCount(int player_count) {
     players.resize(player_count);
   }
-  ~ParserState() {
-    ZoneScoped;
-    this->rewindToMs(0xFFFFFFFF);
-    for(auto v : Zones) {
-      delete v;
-    }
-    for(auto v : BattleMessages) {
-      delete v;
-    }
-    for (auto v : missionAreas1) {
-      delete v;
-    }
-  }
+
+  ~ParserState();
+
   void onPacket(ReplayPacket *pkt) {
     conn.onPacket(pkt, pkt->timestamp_ms);
   }
 
-  inline bool ParsePacket(ReplayPacket &pkt) {
-    curr_time_ms = pkt.timestamp_ms;
-    current_rewind_ms = curr_time_ms;
-    switch (pkt.type) {
-      case ReplayPacketType::EndMarker: {
-        replay_length_ms = pkt.timestamp_ms;
-        return false;
-      }
-      case ReplayPacketType::StartMarker: {
-        break;
-      }
-      case ReplayPacketType::AircraftSmall: {
-          FMSync(*this, pkt.stream);
-          break;
-      }
-      case ReplayPacketType::Chat: {
-        this->chatMessages.resize(this->chatMessages.size()+1);
-        this->chatMessages[this->chatMessages.size()-1].FromBS(pkt.stream);
-        this->chatMessages[this->chatMessages.size()-1].time_ms = this->curr_time_ms;
-      }
-      case ReplayPacketType::MPI: {
-        auto m = mpi::dispatch(pkt.stream, this, false);
-        if (m != nullptr) {
-          mpi::send(m);
-          if(m->delete_message)
-            delete m;
-        }
-        break;
-      }
-      case ReplayPacketType::NextSegment: {
-        //LOG("NextSegment");
-        break;
-      }
-      case ReplayPacketType::ECS: {
-        onPacket(&pkt);
-        break;
-      }
-      case ReplayPacketType::Snapshot:
-        break;
-      case ReplayPacketType::ReplayHeaderInfo:
-        break;
-    }
-    current_packet_index++;
-    return true;
-  }
+  bool ParsePacket(ReplayPacket &pkt);
 
-  inline void rewindToMs(uint32_t time_ms) {
-    if (replay_length_ms == 0xFFFFFFFF) {
-      LOGE("You cannot rewind until the replay has finshed parsing");
-      return;
-    }
-    if (current_rewind_ms == time_ms)
-      return;
-    //LOGI("rewinding to {} from {}", time_ms, current_rewind_ms);
-    current_rewind_ms = time_ms;
-    this->g_entity_mgr.rewindTo(time_ms);
-    for (auto & p : players)
-      p.rewindToTime(time_ms);
-    for (auto & p : teams)
-      p.rewindToTime(time_ms);
-    for (auto & p : Zones)
-      p->rewindToTime(time_ms);
-    for (auto & p : missionAreas2)
-      p->rewindToTime(time_ms);
-    curr_time_ms = time_ms;
-  }
+  inline void rewindToMs(uint32_t time_ms);
 };
 
 

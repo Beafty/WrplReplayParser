@@ -388,7 +388,6 @@ namespace danet
 
     return ret;
   }
-
   int deserializeReflectables(BitStream &bs, mpi::object_dispatcher resolver, ParserState *state)
   {
     G_ASSERT(resolver);

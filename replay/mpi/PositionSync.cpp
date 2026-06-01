@@ -162,8 +162,8 @@ bool FMSync(ParserState &state, BitStream &bs) {
         bool cVar4NE0 = bs.ReadBit();
         // if both true, then we do nothing
         if (!(lVar30lessThan0 && cVar4NE0)) {
-          auto ref = state.g_entity_mgr.uid_unit_lookup[uid];
-          if (!ref) return false;
+            auto ref = state.getUnitObj(uid);
+            if (!ref) return false;
           auto unit = ref->AsAircraft();
           if (!unit) return false;
           bool fVar41LessThan0p5 = bs.ReadBit();
@@ -546,10 +546,10 @@ bool GMSync(ParserState &state, BitStream &bs) {
     bool bool1;
     RET_FAIL(bs.Read(bool1));
     if (bool1) {
-      auto curr_unit = state.g_entity_mgr.uid_lookup[uid_lower];
-      //G_ASSERT(curr_unit); // this can apparently fucking happen
-      ref.ref_1 = ref.ref_2 = state.g_entity_mgr.uid_unit_lookup[uid_lower];
-      //std::string_view name = *state.g_entity_mgr.getNullable<ecs::string>(curr_unit, ECS_HASH("unit__className"));
+        auto curr_unit = state.getUnitEid(uid_lower);
+        //G_ASSERT(curr_unit); // this can apparently fucking happen
+        ref.ref_1 = ref.ref_2 = state.getUnitObj(uid_lower);
+        //std::string_view name = *state.g_entity_mgr.getNullable<ecs::string>(curr_unit, ECS_HASH("unit__className"));
       bool bool2;
       uint8_t some_val_idk;
       bool bool4;

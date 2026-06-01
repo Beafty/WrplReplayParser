@@ -9,7 +9,8 @@ namespace mpi {
   struct GeneralObject : public IObject {
     ParserState *state;
     GeneralObject(ParserState *state) : IObject(0x5802) { this->state=state;}
-    enum MainEnum {
+
+    enum MainEnum: uint16_t {
       SevereDamage = 0xf157,
       CriticalDamage = 0xf056,
       Kill = 0xf058,

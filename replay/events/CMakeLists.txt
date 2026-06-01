@@ -8,6 +8,7 @@ add_library(WTEvents
 
 
 target_link_libraries(WTEvents
+        ParserState::ParserState
         dagECS::dagECS
         FieldSerializer::FieldSerializer
         BLK::BLK

@@ -12,4 +12,5 @@
 #include "mpi/codegen/ReflectableObjects/RearmZone.h"
 #include "mpi/codegen/ReflectableObjects/ExitZone.h"
 #include "mpi/codegen/ReflectableObjects/PickupZone.h"
+#include "mpi/codegen/ReflectableObjects/UnitWeaponsMask.h"
 #include "mpi/Replication.h"

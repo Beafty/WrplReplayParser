@@ -19,11 +19,11 @@
 #include "ecs/query/eventsDB.h"
 #include "ecs/internal/ecsQueryInternal.h"
 #include "ecs/internal/ArchetypesQuery.h"
-#include "Unit.h"
 #include <shared_mutex>
 #include "EASTL/vector_map.h"
 #include "EASTL/vector_set.h"
 #include "RewindMgr.h"
+#include "DataBlock.h"
 
 
 DEFINE_HANDLE(handle_ecs)
@@ -531,8 +531,6 @@ namespace ecs {
     uint32_t * curr_time_ms;
     uint32_t * curr_rewind_time_ms;
     // for ease of access
-    std::array<ecs::EntityId, 2048> uid_lookup{};
-    std::array<unit::Unit*, 2048> uid_unit_lookup{};
 
     explicit EntityManager(ParserState*owned_by);
 
@@ -617,10 +615,6 @@ namespace ecs {
     void broadcastEventImmediate(Event &&evt);
 
     void add_sub_template(ecs::EntityId eid, const std::string &sub_template);
-
-    ecs::EntityId getUnitEid(uint16_t uid);
-
-    unit::Unit * getUnitObj(uint16_t uid);
 
     inline QueryCbResult performQueryStoppable(QueryId h, const stoppable_query_cb_t &fun, void *user_data)
     {return this->data_state->performQueryStoppable(*this, h, fun, user_data);}

@@ -1,5 +1,4 @@
 
-#include "mpi/GeneralObject.h"
 #include "state/ParserState.h"
 
 
@@ -44,12 +43,12 @@ namespace mpi {
           }
           case 3: {
             RET_FAIL(bs->Read(victim_uid));
-            this->offended_unit = state->g_entity_mgr.getUnitObj(victim_uid);
+            this->offended_unit = state->getUnitObj(victim_uid);
             break;
           }
           case 4: {
             RET_FAIL(bs->Read(killer_uid));
-            this->offender_unit = state->g_entity_mgr.getUnitObj(killer_uid);
+            this->offender_unit = state->getUnitObj(killer_uid);
             break;
           }
           case 5: {
@@ -134,7 +133,7 @@ namespace mpi {
           case 1: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offended_unit = state->g_entity_mgr.getUnitObj(uid);
+            this->offended_unit = state->getUnitObj(uid);
             break;
           }
           case 2: {
@@ -148,7 +147,7 @@ namespace mpi {
           case 4: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offender_unit = state->g_entity_mgr.getUnitObj(uid);
+            this->offender_unit = state->getUnitObj(uid);
             break;
           }
           case 5: {
@@ -171,7 +170,7 @@ namespace mpi {
           case 1: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offended_unit = state->g_entity_mgr.getUnitObj(uid);
+            this->offended_unit = state->getUnitObj(uid);
             break;
           }
           case 2: {
@@ -185,7 +184,7 @@ namespace mpi {
           case 4: {
             uint16_t uid;
             RET_FAIL(bs->Read(uid));
-            this->offender_unit = state->g_entity_mgr.getUnitObj(uid);
+            this->offender_unit = state->getUnitObj(uid);
             break;
           }
           case 5: {

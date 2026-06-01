@@ -8,7 +8,6 @@
 
 #include "ecs/ComponentTypes.h"
 #include "ecs/typesAndLimits.h"
-#include "BitVector.h"
 #include "ecs/componentsMap.h"
 #include "ecs/archetypes.h"
 #include <algorithm>

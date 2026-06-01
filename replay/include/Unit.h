@@ -6,6 +6,8 @@
 #include "math/dag_Point3.h"
 #include "DataBlock.h"
 #include "ecs/entityId.h"
+#include "mpi/types.h"
+#include "mpi/codegen/ReflIncludes.h"
 //#include "mpi/mpi.h"
 //#include "mpi/codegen/ReflIncludes.h"
 
@@ -158,6 +160,8 @@ namespace unit {
     std::vector<CameraTime> camera_pos;
     std::vector<Weapon> weapons{};
     std::vector<SpaceTime> positions{};
+
+    UnitWeaponsMask weapons_mask{};
 
     Tank *AsTank();
 

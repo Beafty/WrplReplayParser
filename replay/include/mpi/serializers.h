@@ -12,6 +12,8 @@ namespace danet {
   int WeirdFloatSerializer(DANET_ENCODER_SIGNATURE);
   int InvalidSerializer(DANET_ENCODER_SIGNATURE);
 
+  int WeaponsCoder(DANET_ENCODER_SIGNATURE);
+
   template <>
   struct DefaultEncoderChooser<Invalid> {
     static constexpr reflection_var_encoder coder = InvalidSerializer;

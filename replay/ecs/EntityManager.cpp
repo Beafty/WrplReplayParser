@@ -148,9 +148,6 @@ namespace ecs {
     this->owned_by = owned_by;
     this->curr_time_ms = &owned_by->curr_time_ms;
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
-    for (auto &eid: this->uid_lookup) {
-      eid = ecs::INVALID_ENTITY_ID;
-    }
     wasInit.resize(10000, false);
   }
 
@@ -602,23 +599,6 @@ namespace ecs {
 
   void EntityManager::broadcastEventImmediate(Event &&evt) {
     return broadcastEventImmediate(evt);
-  }
-
-  ecs::EntityId EntityManager::getUnitEid(uint16_t uid) {
-    uid &= 0x7FF;
-    if (uid == 0x7FF) {
-      return INVALID_ENTITY_ID;
-    }
-    return this->uid_lookup[uid];
-  }
-
-  unit::Unit * EntityManager::getUnitObj(uint16_t uid) {
-    uid &= 0x7FF;
-    if (uid == 0x7FF) {
-      return nullptr;
-    }
-    return this->uid_unit_lookup[uid];
-
   }
 
   void

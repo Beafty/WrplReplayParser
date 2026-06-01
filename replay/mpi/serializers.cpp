@@ -25,4 +25,30 @@ namespace danet {
   int InvalidSerializer(DANET_ENCODER_SIGNATURE) {
     return 2;
   }
+
+  int WeaponsCoder(DANET_ENCODER_SIGNATURE) {
+    auto data = meta->getValue<danet::WeaponsMask>();
+    if (op == DANET_REFLECTION_OP_ENCODE) {
+      for (auto &weapon: data->weapons) {
+        bs->WriteCompressed(weapon.get_weapon_index());
+        bs->WriteCompressed(weapon.get_num_weapons());
+        bs->WriteBits(weapon.get_mask_c(), weapon.get_num_weapons());
+      }
+      uint16_t end_idx = 0xFFFF;
+      bs->WriteCompressed(end_idx);
+      return true;
+    } else if (op == DANET_REFLECTION_OP_DECODE) {
+      while (true) {
+        uint16_t weap_index, weap_count;
+        REPL_VER(bs->ReadCompressed(weap_index));
+        if (weap_index == 0xFFFF)
+          break;
+        REPL_VER(bs->ReadCompressed(weap_count));
+        auto &back = data->weapons.emplace_back(weap_count, weap_index);
+        REPL_VER(bs->ReadBits(back.get_mask(), weap_count));
+      }
+      return true;
+    }
+    return false;
+  }
 }

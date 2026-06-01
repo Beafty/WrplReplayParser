@@ -13,13 +13,13 @@ void include_types_4(py::module &gen) {
   .def_readonly("value", &danet::ReflectionVar<danet::WeatherEffects>::SpaceHandler::TimeState::data);
 
   bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::WeatherEffects>::SpaceHandler::TimeState> >(
-    gen, "danet_WeatherEffects_ts_vector");
+      gen, "danet_WeatherEffects_ts_vector");
 
   py::class_<danet::ReflectionVar<danet::WeatherEffects>>(gen, "danet_WeatherEffects_var")
   .def_readonly("data", &danet::ReflectionVar<danet::WeatherEffects>::data)
   .def_property_readonly(
-    "history", [](danet::ReflectionVar<danet::WeatherEffects> &self) { return &self.get_history(); },
-    py::return_value_policy::reference_internal);
+      "history", [](danet::ReflectionVar<danet::WeatherEffects> &self) { return &self.get_history(); },
+      py::return_value_policy::reference_internal);
 
 
   //danet::ReflectionVar<Point2> bindings
@@ -45,7 +45,8 @@ void include_types_4(py::module &gen) {
   py::class_<danet::ReflectionVar<danet::AreaFlagsEnum>>(gen, "danet_AreaFlagsEnum_var")
   .def_readonly("data", &danet::ReflectionVar<danet::AreaFlagsEnum>::data)
   .def_property_readonly(
-    "history", [](danet::ReflectionVar<danet::AreaFlagsEnum> &self) { return &self.get_history(); }, py::return_value_policy::reference_internal);
+      "history", [](danet::ReflectionVar<danet::AreaFlagsEnum> &self) { return &self.get_history(); },
+      py::return_value_policy::reference_internal);
 
 
   //danet::ReflectionVar<int8_t> bindings
@@ -57,20 +58,23 @@ void include_types_4(py::module &gen) {
 
   py::class_<danet::ReflectionVar<int8_t>>(gen, "int8_t_var")
   .def_readonly("data", &danet::ReflectionVar<int8_t>::data)
-  .def_property_readonly("history", [](danet::ReflectionVar<int8_t> &self) { return &self.get_history();}, py::return_value_policy::reference_internal);
+  .def_property_readonly("history", [](danet::ReflectionVar<int8_t> &self) { return &self.get_history(); },
+                         py::return_value_policy::reference_internal);
 
 
   //danet::ReflectionVar<std::vector<danet::UnitId>> bindings
   py::class_<danet::ReflectionVar<std::vector<danet::UnitId>>::SpaceHandler::TimeState>(gen, "std_vector_danet_UnitId__ts")
-  .def_readonly("time_ms", &danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState::time_ms)
-  .def_readonly("value", &danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState::data);
+          .def_readonly("time_ms", &danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState::time_ms)
+          .def_readonly("value", &danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState::data);
 
-  bind_readonly_vector<dag::Vector<danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState>>(gen, "std_vector_danet_UnitId__ts_vector");
+  bind_readonly_vector<dag::Vector<danet::ReflectionVar<std::vector<danet::UnitId> >::SpaceHandler::TimeState> >(
+      gen, "std_vector_danet_UnitId__ts_vector");
 
   py::class_<danet::ReflectionVar<std::vector<danet::UnitId>>>(gen, "std_vector_danet_UnitId__var")
-  .def_readonly("data", &danet::ReflectionVar<std::vector<danet::UnitId> >::data)
-  .def_property_readonly("history", [](danet::ReflectionVar<std::vector<danet::UnitId> > &self) {
-    return &self.get_history();}, py::return_value_policy::reference_internal);
+          .def_readonly("data", &danet::ReflectionVar<std::vector<danet::UnitId> >::data)
+          .def_property_readonly("history", [](danet::ReflectionVar<std::vector<danet::UnitId> > &self) {
+              return &self.get_history();
+          }, py::return_value_policy::reference_internal);
 
 
   //danet::ReflectionVar<danet::UnitIdStruct> bindings
@@ -82,19 +86,40 @@ void include_types_4(py::module &gen) {
 
   py::class_<danet::ReflectionVar<danet::UnitIdStruct>>(gen, "danet_UnitIdStruct_var")
   .def_readonly("data", &danet::ReflectionVar<danet::UnitIdStruct>::data)
-  .def_property_readonly("history", [](danet::ReflectionVar<danet::UnitIdStruct> &self) { return &self.get_history();}, py::return_value_policy::reference_internal);
+  .def_property_readonly("history", [](danet::ReflectionVar<danet::UnitIdStruct> &self) { return &self.get_history(); },
+                         py::return_value_policy::reference_internal);
 
 
   //danet::ReflectionVar<std::vector<danet::UnitIdStruct>> bindings
   py::class_<danet::ReflectionVar<std::vector<danet::UnitIdStruct>>::SpaceHandler::TimeState>(gen, "std_vector_danet_UnitIdStruct__ts")
-  .def_readonly("time_ms", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState::time_ms)
-  .def_readonly("value", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState::data);
+          .def_readonly(
+              "time_ms", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState::time_ms)
+          .def_readonly(
+              "value", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState::data);
 
-  bind_readonly_vector<dag::Vector<danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState>>(gen, "std_vector_danet_UnitIdStruct__ts_vector");
+  bind_readonly_vector<dag::Vector<danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::SpaceHandler::TimeState> >(
+      gen, "std_vector_danet_UnitIdStruct__ts_vector");
 
   py::class_<danet::ReflectionVar<std::vector<danet::UnitIdStruct>>>(gen, "std_vector_danet_UnitIdStruct__var")
-  .def_readonly("data", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::data)
-  .def_property_readonly("history", [](danet::ReflectionVar<std::vector<danet::UnitIdStruct> > &self) { return &self.get_history();}, py::return_value_policy::reference_internal);
+          .def_readonly("data", &danet::ReflectionVar<std::vector<danet::UnitIdStruct> >::data)
+          .def_property_readonly("history", [](danet::ReflectionVar<std::vector<danet::UnitIdStruct> > &self) {
+              return &self.get_history();
+          }, py::return_value_policy::reference_internal);
+
+
+  //danet::ReflectionVar<danet::WeaponsMask> bindings
+  py::class_<danet::ReflectionVar<danet::WeaponsMask>::SpaceHandler::TimeState>(gen, "danet_WeaponsMask_ts")
+          .def_readonly("time_ms", &danet::ReflectionVar<danet::WeaponsMask>::SpaceHandler::TimeState::time_ms)
+          .def_readonly("value", &danet::ReflectionVar<danet::WeaponsMask>::SpaceHandler::TimeState::data);
+
+  bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::WeaponsMask>::SpaceHandler::TimeState> >(
+      gen, "danet_WeaponsMask_ts_vector");
+
+  py::class_<danet::ReflectionVar<danet::WeaponsMask> >(gen, "danet_WeaponsMask_var")
+          .def_readonly("data", &danet::ReflectionVar<danet::WeaponsMask>::data)
+          .def_property_readonly("history", [](danet::ReflectionVar<danet::WeaponsMask> &self) {
+              return &self.get_history();
+          }, py::return_value_policy::reference_internal);
 
 
   include_types_5(gen);
