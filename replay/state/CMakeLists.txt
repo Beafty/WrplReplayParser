@@ -5,10 +5,9 @@ add_library(ParserState STATIC
 
 target_link_libraries(ParserState
         FieldSerializer::FieldSerializer
-        BLK::BLK
+        dagBlk::dagBlk
         FS::FS
         VROMFS::VROMFS
-        BLK::BLK
         # REGEX::REGEX
         XXH3
         NET::NET

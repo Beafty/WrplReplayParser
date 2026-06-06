@@ -97,7 +97,7 @@ namespace ecs {
     auto combined_name = std::string(templ_name);
     split_on_plus(combined_name, template_parts);
     if(template_parts.size() == 1) // not a compound template and we couldnt find it earlier so bad
-      EXCEPTION("Template %s not in database", template_parts[0].c_str());
+        EXCEPTION("Template {} not in database", template_parts[0].c_str());
     parents.reserve(template_parts.size());
     for (const auto &parts : template_parts)
     {

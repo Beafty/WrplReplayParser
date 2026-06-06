@@ -6,8 +6,7 @@
 
 #include <danet/bitStream.h>
 #include "danet/daNetTypes.h"
-#include <DataBlock.h>
-#include "reader.h"
+#include <ioSys/dag_dataBlock.h>
 #include "consts.h"
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>

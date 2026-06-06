@@ -1,8 +1,10 @@
+#include "math/dag_TMatrix.h"
 #include "mpi/ObjectDispatcher.h"
 #include "ecs/EntityManager.h"
 #include "zstd.h"
 #include "state/ParserState.h"
 #include "mpi/GeneralObject.h"
+#include "Unit.h"
 
 CREATE_HANDLE(handle_object_dispatcher, "ObjectDispatcher")
 
@@ -130,9 +132,10 @@ namespace mpi {
       case Rocket1:
       case Rocket2: {
         auto bsM = (BSMessage *) m;
-        bool ret = WeaponSync(*state, bsM->data);
+        //bool ret = WeaponSync(*state, bsM->data);
+        bool ret = true;
         if (!ret) {
-          LOGE("Failed to read TankMessage payload");
+            LOGE("Failed to read We payload");
         }
         return;
       }
@@ -160,7 +163,7 @@ namespace mpi {
     UFX = 13,
     T_14 = 14,
     T_15 = 15,
-    FM_DVN = 16,
+    FM_DVN = 16, // fm and gm have it in the same place,
     GM_DVM = 17,
     CUD = 18,
     T_19 = 19,
@@ -192,6 +195,13 @@ namespace mpi {
       return nullptr;
     auto unit = ref->unit;
     auto obj_type = oid >> 0xb;
+    if (obj_type == FMW && unit->unitType == UnitType::AircraftType) {
+        return unit->base_data;
+    }
+    // should also later include fortifications?
+    if (obj_type == GM && unit->unitType == UnitType::TankType) {
+        return unit->base_data;
+    }
     if (obj_type == WEAP) {
       return &unit->weapons_mask;
     }
@@ -230,7 +240,6 @@ namespace mpi {
     auto &queue_data = this->dispatched_objects[eid].emplace_back();
     auto &bs = queue_data.bs;
     bs.reserveBits(BYTES_TO_BITS(data_size) + 8 + 32);
-    auto before_header_write = bs.GetWriteOffset();
 
     uint32_t write_offs = data_size | REFL;
     bs.Write(write_offs);

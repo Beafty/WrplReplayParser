@@ -142,28 +142,30 @@ namespace unit {
   }
 
   void blkPrint(DataBlock &blk) {
-    blk.printBlock(0, std::cout);
-    std::cout.flush();
+      blk.printBlock(std::cout);
+      std::cout.flush();
   }
 
-  bool getWeaponPresetAndSlot(DataBlock &weapons, int WeaponSlotNid, int WeaponPresetNid, DataBlock &custom_weapons, int custom_blk_index, DataBlock **WeaponSlot, DataBlock **WeaponPreset, int &tier, int &slot) {
-    auto curr_custom_weapon = custom_weapons.getBlock(custom_blk_index);
+  bool getWeaponPresetAndSlot(const DataBlock &weapons, int WeaponSlotNid, int WeaponPresetNid,
+                              DataBlock &custom_weapons, int custom_blk_index, DataBlock const **WeaponSlot,
+                              DataBlock const **WeaponPreset, int &tier, int &slot) {
+      auto curr_custom_weapon = custom_weapons.getBlock(custom_blk_index);
 
     if(!curr_custom_weapon) return false;
     slot = curr_custom_weapon->getInt("slot", -1);
     auto preset = curr_custom_weapon->getStr("preset", nullptr);
     if (slot == -1 || preset == nullptr)
       return false;
-    DataBlock * currentSlot = nullptr;
-    DataBlock * currentPreset = nullptr;
-    for(int i = 0; i < weapons.blockCount(); i++) {
+      const DataBlock *currentSlot = nullptr;
+      const DataBlock *currentPreset = nullptr;
+      for(int i = 0; i < weapons.blockCount(); i++) {
       auto curr_block = weapons.getBlock(i);
 
       if(curr_block->getBlockNameId() == WeaponSlotNid) {
         auto index = curr_block->getInt("index", -1);
         if (index == slot) {
-          currentSlot = curr_block.get();
-          break;
+            currentSlot = curr_block;
+            break;
         }
       }
     }
@@ -175,7 +177,7 @@ namespace unit {
       if(curr_block->getBlockNameId() == WeaponPresetNid) {
         auto name= curr_block->getStr("name", "");
         if(strcmp(name, preset) == 0) {
-          currentPreset = curr_block.get();
+            currentPreset = curr_block;
         }
       }
     }
@@ -190,15 +192,13 @@ namespace unit {
     int order = -1;
     int slot= -1;
     int tier= -1;
-    DataBlock *blk = nullptr;
+    const DataBlock *blk = nullptr;
   };
 
   void Aircraft::Load() {
     //blkPrint(this->custom_weapons_blk);
     DataBlock empty_blk{};
-    auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlock(this->unit_name, 0).get();
-    if(!wp_cost_blk)
-      wp_cost_blk = &empty_blk;
+    auto wp_cost_blk = ecs::g_ecs_data->wp_cost.getBlockByNameEx(this->unit_name);
     if(this->unit_name == "dummy_plane") // fuck the bitch
       return;
     auto vehicle_blk = fmt::format("gamedata/flightmodels/{}.blk", this->unit_name);
@@ -215,8 +215,8 @@ namespace unit {
     else if(this->loadout_name.starts_with("custom")) {
       weapon_preset = &this->custom_weapons_blk;
     } else {
-      auto presets_blk = blk.getBlock("weapon_presets", 0);
-      auto preset_nid = blk.getNameId("preset");
+        auto presets_blk = blk.getBlockByNameEx("weapon_presets");
+        auto preset_nid = blk.getNameId("preset");
       for(int i = 0; i < presets_blk->blockCount(); i++) {
         auto preset_blk = presets_blk->getBlock(i);
         if(preset_blk->getBlockNameId() == preset_nid) {
@@ -235,18 +235,18 @@ namespace unit {
     }
     DataBlock modules_data{};
     DataBlock default_modules{};
-    auto modifications_block = blk.getBlock("modifications", 0).get();
+    auto modifications_block = blk.getBlockByNameEx("modifications");
     if(!modifications_block) {
       modifications_block = &default_modules;
       return;
     }
     for(auto &mod : this->weapon_mods) {
-      if (auto mod_blk = modifications_block->getBlock(mod, 0)) {
-        if(auto effects = mod_blk->getBlock("effects", 0)) {
-          for(int i = 0; i < effects->blockCount(); i++) {
+        if (auto mod_blk = modifications_block->getBlockByNameEx(mod)) {
+            if (auto effects = mod_blk->getBlockByNameEx("effects")) {
+                for(int i = 0; i < effects->blockCount(); i++) {
             auto effect = effects->getBlock(i);
-            modules_data.addBlock(effect);
-          }
+            modules_data.addNewBlock(effect);
+                }
         }
       }
     }
@@ -260,17 +260,19 @@ namespace unit {
         for(int j = 0; j < mod_blk->blockCount(); j++) {
           auto weap_blk = mod_blk->getBlock(j);
           if(weap_blk->getBlockNameId() == weapons_nid)
-            weapon_preset->addBlock(weap_blk);
+              weapon_preset->addNewBlock(weap_blk);
         }
       }
     }
     if(!found) {
       weapons_nid = blk.getNameId("Weapon");
-      auto mod_blk = blk.getBlock("commonWeapons", 0);
+      auto mod_blk = blk.getBlockByNameEx("commonWeapons");
+      if (!mod_blk)
+          mod_blk = &empty_blk;
       for(int j = 0; j < mod_blk->blockCount(); j++) {
         auto weap_blk = mod_blk->getBlock(j);
         if(weap_blk->getBlockNameId() == weapons_nid)
-          weapon_preset->addBlock(weap_blk);
+            weapon_preset->addNewBlock(weap_blk);
       }
     }
     std::vector<uint16_t> weapons_count{};
@@ -278,7 +280,7 @@ namespace unit {
     if(wp_cost_blk->getBool("hasWeaponSlots", false)) { // hasWeaponSlots:b=true denotes that this unit has custom weapon creation which changes how weapons work
       int WeaponSlotNid = blk.getNameId("WeaponSlot"), WeaponPresetNid = blk.getNameId("WeaponPreset");
       int WeaponNid = blk.getNameId("Weapon"), weaponNid = blk.getNameId("weapon");
-      auto weapon_blk = blk.getBlock("WeaponSlots", 0).get();
+      auto weapon_blk = blk.getBlockByNameEx("WeaponSlots");
       if(!weapon_blk) {
         LOGE("unable to find WeaponSlots for unit: {}", this->unit_name);
         return;
@@ -287,7 +289,7 @@ namespace unit {
       //blkPrint(weapon_preset);
       for(int i = 0; i < weapon_preset->blockCount(); i++) {
         auto curr_preset = weapon_preset->getBlock(i);
-        DataBlock * curr_weapon_slot = nullptr, * curr_weapon_preset= nullptr;
+        const DataBlock *curr_weapon_slot = nullptr, *curr_weapon_preset = nullptr;
         int tier = -1;
         int slot = -1;
         if(!getWeaponPresetAndSlot(*weapon_blk, WeaponSlotNid, WeaponPresetNid, *weapon_preset, i, &curr_weapon_slot, &curr_weapon_preset, tier, slot)) {
@@ -298,7 +300,7 @@ namespace unit {
         for(int j = 0; j < curr_weapon_preset->blockCount(); j++) {
           auto curr_weap = curr_weapon_preset->getBlock(j);
           if(curr_weap->getBlockNameId() == WeaponNid || curr_weap->getBlockNameId() == weaponNid) {
-            launchers.emplace_back(order, slot, tier, curr_weap.get());
+              launchers.emplace_back(order, slot, tier, curr_weap);
           }
         }
       }

@@ -66,7 +66,7 @@ void on_callback(ecs::GState * state) {
       c->ro_descs.reserve(c->ro_components.size());
       c->component_sizes.reserve(c->ro_components.size());
       for(auto & s : c->ro_components) {
-        HashedConstString hashed = ECS_HASH(s.c_str());
+        ecs::HashedConstString hashed = ECS_HASH_SLOW(s.c_str());
         auto data_comp = state->getDataComponents()->getDataComponent(hashed.hash);
         if(!data_comp) {
           EVENT_LOGE("failed to find RO data component \"{}\" for es system {}", s, c->es_name);
@@ -79,7 +79,7 @@ void on_callback(ecs::GState * state) {
 
       c->rq_descs.reserve(c->rq_components.size());
       for(auto & s : c->rq_components) {
-        HashedConstString hashed = ECS_HASH(s.c_str());
+        ecs::HashedConstString hashed = ECS_HASH_SLOW(s.c_str());
         auto data_comp = state->getDataComponents()->getDataComponent(hashed.hash);
         if(!data_comp) {
           EVENT_LOGE("failed to find RQ data component \"{}\" for es system {}", s, c->es_name);
@@ -90,7 +90,7 @@ void on_callback(ecs::GState * state) {
 
       c->no_descs.reserve(c->no_components.size());
       for(auto & s : c->no_components) {
-        HashedConstString hashed = ECS_HASH(s.c_str());
+        ecs::HashedConstString hashed = ECS_HASH_SLOW(s.c_str());
         auto data_comp = state->getDataComponents()->getDataComponent(hashed.hash);
         if(!data_comp) {
           EVENT_LOGE("failed to find NO data component \"{}\" for es system {}", s, c->es_name);

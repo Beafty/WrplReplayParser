@@ -207,8 +207,8 @@ namespace ecs {
       std::shared_lock arch_lock(this->data_state->archetypes.archetypes_mtx);
       std::shared_lock templ_lock(this->data_state->templates.template_mtx);
       G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
-      ENTITY_LOGD2("Creating new entity {:#x} of template '{}'", eid.handle,
-            data_state->templates.getTemplate(templId)->getName());
+      ENTITY_LOGD2("Creating new entity {:#x} of template '{}' at {}", eid.handle,
+                   data_state->templates.getTemplate(templId)->getName(), ((double) *this->curr_time_ms) / 1000);
       auto arches = &this->data_state->archetypes;
 
       auto arch_inst = this->arch_data.getArch(archetype_id);

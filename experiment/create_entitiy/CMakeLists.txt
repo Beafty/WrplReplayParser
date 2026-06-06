@@ -4,8 +4,8 @@ add_executable(create_rpl_packets
 
 target_link_libraries(create_rpl_packets
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         FieldSerializer::FieldSerializer

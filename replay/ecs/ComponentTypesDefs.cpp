@@ -703,6 +703,9 @@ namespace ecs {
   ECS_REGISTER_CTM_TYPE(InvalidType, nullptr);
   ECS_REGISTER_CTM_TYPE(LaserDecalManager, nullptr);
   ECS_REGISTER_CTM_TYPE(dm::SplashWave, nullptr);
+  ECS_REGISTER_CTM_TYPE(UniqueBufWithShaderVar, nullptr);
+  ECS_REGISTER_CTM_TYPE(SoundOcclusionBlob, nullptr);
+  ECS_REGISTER_CTM_TYPE(aimmem::AimingMemPoints, nullptr);
 }
 
 class ErrorSerializer final : public ecs::ComponentSerializer {
@@ -875,3 +878,4 @@ ECS_AUTO_REGISTER_COMPONENT(InvalidType, "gun_shell_phys_ejection", nullptr) // 
 ECS_AUTO_REGISTER_COMPONENT(InvalidType, "player__support_units_status_notification_mgr", nullptr) // TODO
 ECS_AUTO_REGISTER_COMPONENT(InvalidType, "ik_pilot_inertia_seats__data", nullptr);
 ECS_AUTO_REGISTER_COMPONENT(CapsulesAOHolder, "capsules_ao", nullptr);
+ECS_AUTO_REGISTER_COMPONENT(aimmem::AimingMemPoints, "player__aiming_mem_points", nullptr);

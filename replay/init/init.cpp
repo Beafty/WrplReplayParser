@@ -38,23 +38,23 @@ void print_all_files_full_paths(const fs::path &root = fs::current_path()) {
 }
 
 // runs basic init steps
-void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
-  ZoneScoped;
+void initialize(const std::string &game_path, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
+    ZoneScoped;
   //print_all_files_full_paths();
   if(!logfile_path.empty())
     g_log_handler->set_default_sink_logfile(logfile_path);
   register_default_sigsev_handler();
   register_listener(&mpi::base);
-  mpi::register_object_dispatcher(&mpi::ObjectDispatcher);
-  fs::path basePath = VromfsPath;
-  std::string p1 = (basePath / "aces.vromfs.bin").string();
-  std::string p2 = (basePath / "game.vromfs.bin").string();
-  std::string p3 = (basePath / "mis.vromfs.bin").string();
-  std::string p4 = (basePath / "lang.vromfs.bin").string();
-  std::string p5 = (basePath / "char.vromfs.bin").string();
-  if(fonts) {
-    std::string p6 = (basePath / "ui/fonts.vromfs.bin").string();
-    EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p6), "{} does not exist", p6);
+    file_mgr.add_mount(game_path);
+    mpi::register_object_dispatcher(&mpi::ObjectDispatcher);
+    std::string p1 = ("aces.vromfs.bin");
+    std::string p2 = ("game.vromfs.bin");
+    std::string p3 = ("mis.vromfs.bin");
+    std::string p4 = ("lang.vromfs.bin");
+    std::string p5 = ("char.vromfs.bin");
+    if(fonts) {
+        std::string p6 = ("ui/fonts.vromfs.bin");
+        EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p6), "{} does not exist", p6);
   }
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p1), "{} does not exist", p1);
   EXCEPTION_IF_FALSE(file_mgr.loadVromfs(p2), "{} does not exist", p2);

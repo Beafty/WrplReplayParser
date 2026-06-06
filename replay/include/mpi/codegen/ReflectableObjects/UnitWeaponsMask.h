@@ -4,12 +4,13 @@
 class UnitWeaponsMask : public danet::ReflectableObject {
 public:
   DECL_REFLECTION(UnitWeaponsMask, danet::ReflectableObject)
+
   danet::ReflectionVar<danet::WeaponsMask> dummyVarForAmmoPartsMask{
-    "dummyVarForAmmoPartsMask", nullptr, 2, danet::WeaponsCoder
+      "dummyVarForAmmoPartsMask", nullptr, 2, danet::WeaponsCoder
   };
 
   UnitWeaponsMask() : ReflectableObject() {
-    varList.head = &dummyVarForAmmoPartsMask;
+      varList.head = &dummyVarForAmmoPartsMask;
     varList.tail = &dummyVarForAmmoPartsMask;
   }
 };

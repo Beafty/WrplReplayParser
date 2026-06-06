@@ -13,6 +13,7 @@
 #include "utils.h"
 #include <filesystem>
 #include "dag_assert.h"
+#include "FileSystem.h"
 
 namespace fs = std::filesystem;
 
@@ -21,6 +22,8 @@ class Directory;
 class File;
 
 class FSObject;
+
+class VROMFs;
 
 
 class SmartFSHandle {
@@ -124,6 +127,13 @@ protected:
 class DataBlock;
 
 class File : public FSObject {
+protected:
+    int64_t read_offs{}; // used with tell(), read(), etc
+    int64_t f_length{};
+
+    // read implementation
+    int64_t virtual read_impl(void *ptr, size_t length) = 0;
+
 public:
 
   void init(const fs::path &path) {
@@ -144,27 +154,77 @@ public:
     return name;
   }
 
+    int64_t tell() { return this->read_offs; }
+
+    // all seek methods based on dagor engine definition
+    int64_t df_seek_to(int64_t offs) {
+        if (offs < 0 || offs >= f_length) {
+            return -1;
+        }
+        this->read_offs = offs;
+        return this->read_offs;
+    }
+
+    int64_t df_seek_rel(int64_t offs) {
+        if (offs < 0 && read_offs + offs >= f_length) {
+            return -1;
+        }
+        this->read_offs += offs;
+        return this->read_offs;
+    }
+
+    int64_t df_seek_end(int64_t offs) {
+        if (offs > 0 || f_length - offs < 0) {
+            return -1;
+        }
+        this->read_offs = f_length - offs;
+        return this->read_offs;
+    }
+
+    int64_t df_read(void *ptr, size_t len) {
+        return read_impl(ptr, len);
+    }
 
 
-  /// reads data as stored in the file, no processing
+    /// reads data as stored in the file, no processing
   virtual std::span<char> readRaw() = 0;
 
   virtual void Save(std::ofstream *cb) = 0;
 
-  virtual bool loadBlk(DataBlock &blk) = 0;
+    virtual const VROMFs *getUnderlyingVromfs() = 0;
 
-  // TODO: turn readRaw into returning a std::shared_ptr<std::span<char>>
+    virtual bool loadBlk(DataBlock &blk) = 0;
+
+    int64_t length() const { return f_length; };
 };
 
 
 class HostFile : public File {
+protected:
+    int64_t read_impl(void *ptr, size_t length) override;
+
+    void init_hf(const fs::path &path) {
+        File::init(path);
+        file_stream.open(this->name, std::ios::binary);
+        if (!file_stream.is_open()) {
+            this->f_length = -1;
+            this->read_offs = -1;
+        }
+        this->read_offs = 0;
+
+        file_stream.seekg(0, std::ios::end);
+        std::streamoff payload = file_stream.tellg();
+        file_stream.seekg(0);
+        this->f_length = payload;
+    }
+
 public:
   explicit HostFile(const std::string &name) {
-    init(name);
+      init_hf(name);
   }
 
   explicit HostFile(const fs::path &name) {
-    init(name);
+      init_hf(name);
   }
 
   /// A implementation for reading a file from the OS, will cache data on first read
@@ -177,10 +237,13 @@ public:
 
   bool loadBlk(DataBlock &blk) override;
 
-private:
-  std::vector<char> buffer;
-  fs::file_time_type last_write_time;
+    const VROMFs *getUnderlyingVromfs() override {
+        return nullptr;
+    }
 
+private:
+    std::ifstream file_stream;
+    std::vector<char> buffer;
 };
 
 class DummyOStream : std::basic_ostream<char> {
@@ -227,7 +290,7 @@ private:
     void Advance() {
 
       if (isEnd()) {
-        throw std::runtime_error("tried to advance past the end of a path");
+          EXCEPTION("tried to advance past the end of a path");
       }
       iter_pointer = std::next(iter_pointer);
     }
@@ -514,7 +577,8 @@ public:
   SmartFSHandle operator[](const std::string &lookup_name) override {
     auto x = getFSObject(lookup_name);
     if (x == nullptr) {
-      LOGE("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
+        //LOGD2("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
+        return nullptr;
     }
     return SmartFSHandle(x);
   }

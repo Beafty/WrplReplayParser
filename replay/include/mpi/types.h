@@ -92,11 +92,11 @@ class WeaponMask {
   friend int WeaponsCoder(DANET_ENCODER_SIGNATURE);
 
 public:
-  [[nodiscard]] const uint16_t get_num_weapons() const { return ammo_count; }
-  [[nodiscard]] const uint16_t get_weapon_index() const { return weapon_index; }
+  [[nodiscard]] uint16_t get_num_weapons() const { return ammo_count; }
+  [[nodiscard]] uint16_t get_weapon_index() const { return weapon_index; }
 
-  [[nodiscard]] const uint8_t *get_mask_c() const {
-    if (ammo_count > BYTES_TO_BITS(sizeof(uint64_t)))
+  [[nodiscard]] uint8_t *get_mask_c() const {
+      if (ammo_count > BYTES_TO_BITS(sizeof(uint64_t)))
       return ptr;
     return (uint8_t *) &raw;
   }
@@ -114,19 +114,28 @@ public:
       free(ptr);
   }
 
-  WeaponMask(WeaponMask &other) = delete;
+  WeaponMask(const WeaponMask &other) {
+      this->operator=(other);
+  };
 
-  WeaponMask &operator=(const WeaponMask &other) = delete;
+  WeaponMask &operator=(const WeaponMask &other) {
+      this->~WeaponMask();
+      this->ammo_count = other.ammo_count;
+    this->raw = other.raw;
+      if (ammo_count > BYTES_TO_BITS(sizeof(uint64_t))) {
+          ptr = (uint8_t *) malloc(BITS_TO_BYTES(ammo_count));
+      }
+      memcpy(this->get_mask(), other.get_mask_c(), BITS_TO_BYTES(ammo_count));
+      return *this;
+  };
 
   WeaponMask(WeaponMask &&other) noexcept {
-    this->ammo_count = other.ammo_count;
-    this->raw = other.raw;
-    other.raw = 0;
-    other.ammo_count = 0;
+      this->operator=(std::move(other));
   };
 
   WeaponMask &operator=(WeaponMask &&other) noexcept {
-    this->ammo_count = other.ammo_count;
+      this->~WeaponMask();
+      this->ammo_count = other.ammo_count;
     this->raw = other.raw;
     other.raw = 0;
     other.ammo_count = 0;
@@ -137,7 +146,17 @@ public:
   bool operator==(const WeaponMask &other) const {
     return this->weapon_index == other.weapon_index &&
            this->ammo_count == other.ammo_count &&
-           memcmp(get_mask_c(), other.get_mask_c(), BYTES_TO_BITS(ammo_count)) == 0;
+           memcmp(get_mask_c(), other.get_mask_c(), BITS_TO_BYTES(ammo_count)) == 0;
+  };
+
+  enum BMF_ENUM {
+      BMS_OUT_OF_AMMO = 1,
+      BMS_OUT_OF_BOMBS = 2,
+      BMS_OUT_OF_ROCKETS = 4,
+      BMS_OUT_OF_TORPEDOES = 8,
+      BMS_ENGINE_BROKEN = 0x10,
+      BMS_TRACK_BROKEN = 0x20,
+      BMS_MAIN_GUN_BROKEN = 0x40,
   };
 };
 

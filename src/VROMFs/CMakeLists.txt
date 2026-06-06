@@ -6,7 +6,8 @@ add_library(VROMFS
 target_link_libraries(VROMFS
         ZSTD::ZSTD
         LOGGER::LOGGER
-        # BLK::BLK
+        dagIoSys::dagIoSys
+        # dagBlk::dagBlk
 )
 add_library(VROMFS::VROMFS ALIAS VROMFS)
 

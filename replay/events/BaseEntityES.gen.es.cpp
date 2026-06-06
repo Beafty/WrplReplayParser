@@ -164,26 +164,24 @@ static ecs::EntitySystemDesc uid_entity_es_es_desc
 ,nullptr,nullptr,nullptr,"after_unit_appear_es");
 static constexpr ecs::ComponentDesc on_unit_appear_mpi_es_comps[] =
 {
-  //start of 2 ro components at [0]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 2 ro components at [0]
+{ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()}
 };
-
 static void on_unit_appear_mpi_es_all_events(ecs::EntityManager &mgr, const ecs::Event &__restrict evt,
                                              const ecs::QueryView &__restrict components) {
-  G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
-  auto comp = components.begin(), compE = components.end();
-  G_ASSERT(comp!=compE);
-  do
-    if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
-      on_unit_appear_mpi_es(static_cast<const ecs::EventEntityCreated &>(evt)
-                            , ECS_RO_COMP(on_unit_appear_mpi_es_comps, "eid", ecs::EntityId)
-                            , ECS_RO_COMP(on_unit_appear_mpi_es_comps, "unit__ref", unit::UnitRef)
-                            , mgr
-      );
-    } while (++comp != compE);
+    G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
+    auto comp = components.begin(), compE = components.end();
+    G_ASSERT(comp != compE);
+    do
+        if (components.eid_refs[comp] != ecs::INVALID_ENTITY_ID) {
+            on_unit_appear_mpi_es(static_cast<const ecs::EventEntityCreated &>(evt)
+                                  , ECS_RO_COMP(on_unit_appear_mpi_es_comps, "eid", ecs::EntityId)
+                                  , ECS_RO_COMP(on_unit_appear_mpi_es_comps, "unit__ref", unit::UnitRef)
+                                  , mgr
+            );
+        } while (++comp != compE);
 }
-
 static ecs::EntitySystemDesc on_unit_appear_mpi_es_es_desc
 (
   "on_unit_appear_mpi_es",
@@ -194,13 +192,13 @@ static ecs::EntitySystemDesc on_unit_appear_mpi_es_es_desc
   ecs::empty_span(),
   ecs::empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated>::build()
-  , nullptr, nullptr, nullptr, "after_unit_appear_es");
+, nullptr, nullptr, nullptr, "after_unit_appear_es");
 static constexpr ecs::ComponentDesc iterate_all_units_ecs_query_comps[] =
 {
 //start of 3 ro components at [0]
 {ECS_HASH("unit__ref"), ecs::ComponentTypeInfo<unit::UnitRef>()},
 {ECS_HASH("unit__className"), ecs::ComponentTypeInfo<ecs::string>()},
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+{ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
 //start of 1 rq components at [3]
   {ECS_HASH("playerUnit"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
@@ -222,7 +220,7 @@ inline void iterate_all_units_ecs_query(ecs::EntityManager &manager, Callable fu
           if (function(
               ECS_RO_COMP(iterate_all_units_ecs_query_comps, "unit__ref", unit::UnitRef)
               , ECS_RO_COMP(iterate_all_units_ecs_query_comps, "unit__className", ecs::string)
-            , ECS_RO_COMP(iterate_all_units_ecs_query_comps, "eid", ecs::EntityId)
+              , ECS_RO_COMP(iterate_all_units_ecs_query_comps, "eid", ecs::EntityId)
             ) == ecs::QueryCbResult::Stop)
             return ecs::QueryCbResult::Stop;
         }} while (++comp != compE);

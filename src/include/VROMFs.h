@@ -3,10 +3,12 @@
 #ifndef MYEXTENSION_VROMFS_H
 #define MYEXTENSION_VROMFS_H
 
-#include "reader.h"
+#include "ioSys/dag_memIo.h"
+#include "ioSys/dag_fileIo.h"
 #include "FileSystem.h"
 #include "zstd.h"
-#include "DataBlock.h"
+#include "ioSys/dag_dataBlock.h"
+#include "ioSys/dag_zstdIo.h"
 
 
 #define DEOBFUSCATE_ZSTD_DATA obfusc_vrom_data
@@ -44,13 +46,6 @@ static inline void obfusc_vrom_data(void *data, unsigned data_sz) {
   }
 }
 
-
-inline size_t zstd_decompress(void *dst, size_t maxOriginalSize, const void *src, size_t srcSize) {
-  size_t enc_sz = ZSTD_decompress(dst, maxOriginalSize, src, srcSize);
-  //CHECK_ERROR(enc_sz);
-  return enc_sz;
-}
-
 struct VirtualRomFsDataHdr {
   unsigned label;
   unsigned target;
@@ -71,29 +66,37 @@ struct VirtualRomFsExtHdr {
 
 class VromfsFile : public File {
 public:
-  VromfsFile() { data_size = 0; }
+    VromfsFile() { f_length = 0; }
 
-  VromfsFile(VROMFs *v_owner, const fs::path &path, const std::shared_ptr<std::vector<char>> &owner, int offset, int size) {
+    VromfsFile(VROMFs *v_owner, const fs::path &path, const std::shared_ptr<std::vector<char>> &owner, int offset, int size) {
     this->owner = v_owner;
     data = std::shared_ptr<char>(owner, owner->data() + offset);
-    data_size = (size_t)size;
+    f_length = (size_t) size;
     init(path);
     vromfsPath = path.relative_path().parent_path();
   }
 
   std::span<char> readRaw() override {
-    return {data.get(), data_size};
+      return {data.get(), (size_t) f_length};
   }
 
   void Save(std::ofstream *cb) override;
 
   bool loadBlk(DataBlock &blk) override;
 
+    const VROMFs *getUnderlyingVromfs() override {
+        return owner;
+    }
+
+protected:
+    int64_t read_impl(void *ptr, size_t length) override;
+
+public:
+    ~VromfsFile() override = default;
 
 protected:
   fs::path vromfsPath;
   std::shared_ptr<char> data;
-  unsigned long long data_size;
   VROMFs *owner;
   friend VROMFs;
 
@@ -101,27 +104,9 @@ protected:
 
 class VROMFs {
 public:
-  explicit VROMFs(const std::string &fName) {
-    fileName = fName;
-    dir = std::make_shared<Directory>(fileName);
-    FileReader f(fName);
-    if (!load_raw_vromfs_data(f))
-      return;
-    BaseReader f2(raw_data->data(), (int) size, false);
+    explicit VROMFs(const std::string &fName);
 
-    parse_raw_vromfs_data(f2);
-  }
-
-  explicit VROMFs(const std::string &fName, std::shared_ptr<Directory> &dir) {
-    fileName = fName;
-    this->dir = dir;
-    FileReader f(fName);
-
-    if (!load_raw_vromfs_data(f))
-      return;
-    BaseReader f2(raw_data->data(), (int) size, false);
-    parse_raw_vromfs_data(f2);
-  }
+    explicit VROMFs(const std::string &fName, std::shared_ptr<Directory> &dir);
 
   std::shared_ptr<Directory> getDirectory() {
     if (dir == nullptr) {
@@ -131,18 +116,12 @@ public:
   }
 
   bool parseFileToDatablock(File &file, DataBlock &blk) {
-    auto data = file.readRaw();
-    if (file.getExtension() != ".blk") {
+      //auto data = file.readRaw();
+      if (file.getExtension() != ".blk") {
       return false;
     }
-    BaseReader rdr(data.data(), (int)data.size(), false);
-    if (!blk.loadFromStream(rdr, nm, dict))
-      return false;
-
-    auto v = file.getFullFilePath();
-    if(blk.shared) // TODO shouldnt need to do this
-      blk.shared->setSrc(v.string());
-    return true;
+      LFileGeneralLoadCB rdr{&file};
+      return blk.loadFromStream(rdr);
   }
 
   ~VROMFs() {
@@ -150,11 +129,20 @@ public:
       ZSTD_freeDDict(dict);
     }
   }
-  //VROMFs(const std::span<char> &data) = 0;
+
+    DBNameMap *getVromfsSharedNameMap() const {
+        return this->nm.get();
+    }
+
+    ZSTD_DDict_s *getVromfsBlkDDict() const {
+        return this->dict;
+    }
+
+    //VROMFs(const std::span<char> &data) = 0;
 
 protected:
-  bool load_raw_vromfs_data(IReader &reader) {
-    //char embedded_md5[16];
+    bool load_raw_vromfs_data(IGenLoad &reader) {
+        //char embedded_md5[16];
     //unsigned char signature[SIGNATURE_MAX_SIZE];
     //int signature_size = 0;
     enum {
@@ -204,8 +192,8 @@ protected:
       buf = malloc(hdr.packedSz());
       if (!buf)
         goto load_fail;
-      if (!reader.read(buf, (int)hdr.packedSz()))
-        goto load_fail;
+      if (!reader.readExact(buf, (int) hdr.packedSz()))
+          goto load_fail;
 
       size_t sz = hdr.fullSz;
       if (hdr.zstdPacked()) {
@@ -218,8 +206,8 @@ protected:
         assert(false && "data is zlib compressed!!!!");
       }
     } else {
-      if (!reader.read(fs->data(), (int)hdr.fullSz))
-        goto load_fail;
+        if (!reader.readExact(fs->data(), (int) hdr.fullSz))
+            goto load_fail;
     }
 
     raw_data = fs;
@@ -233,72 +221,16 @@ protected:
     return false;
   }
 
-  bool parse_raw_vromfs_data(BaseReader &reader) {
-    int names_header;
-    int names_count;
-    reader.readInto(names_header);
-    reader.readInto(names_count);
-    reader.seekrel(8); // skip u64
-    int data_info_offset;
-    int data_info_count;
-    reader.readInto(data_info_offset);
-    reader.readInto(data_info_count);
-    reader.seekrel(8);
-    bool has_digest = names_header == 0x30;
+    bool parse_raw_vromfs_data(IGenLoad &reader);
 
-    if (has_digest) {
-      reader.seekrel(16);
-    } // do nothing for now
-
-    std::vector<std::string_view> file_names((size_t)names_count);
-    uint64_t *basePtr = (uint64_t *) (raw_data->data() + names_header);
-    uint64_t stringStart = 0;
-    char *raw_data_ptr = raw_data->data();
-    for (uint32_t i = 0; i < names_count; i++) {
-      stringStart = basePtr[i];
-      file_names[i] = std::string_view(raw_data_ptr + stringStart);
-    }
-
-    int *int_data_ptr = (int *) (raw_data_ptr + data_info_offset);
-    int max = data_info_count * 4;
-    bool foundDict = false;
-    bool foundNM = false;
-
-    for (uint32_t i = 0, z = 0; i < max; i += 4, z++) {
-
-      int fileOffset = int_data_ptr[i];
-      int fileSize = int_data_ptr[i + 1];
-      std::string_view file_name = file_names[z];
-      if (!foundNM && file_name == "\xFF\x3Fnm") {
-        foundNM = true;
-        auto data = std::span<char>(raw_data_ptr + fileOffset + 40, (size_t)fileSize - 40);
-        ZstdReader zReader(data);
-        uint32_t nm_names_count = 0;
-        zReader.readCompressedUnsignedGeneric(nm_names_count);
-        NameMap::ReadNames(zReader, nm, nm_names_count);
-        continue; // prevents adding of NM to output directory
-      }
-      if (!foundDict && file_name.ends_with(".dict")) {
-        foundDict = true;
-        auto data = std::span<char>(raw_data_ptr + fileOffset, (size_t)fileSize);
-        dict = ZSTD_createDDict(data.data(), data.size());
-        continue;
-      }
-      fs::path p((std::string(file_name)));
-      auto file_ = std::make_shared<VromfsFile>(this, p, raw_data, fileOffset, fileSize);
-      dir->addFile(file_, file_->vromfsPath);
-    }
-    return true;
-  }
-
-  std::string fileName;
+    std::string fileName;
   VirtualRomFsDataHdr hdr{};
   VirtualRomFsExtHdr extHdr;
   std::shared_ptr<std::vector<char>> raw_data;
   unsigned size{};
   std::shared_ptr<Directory> dir;
-  std::shared_ptr<NameMap> nm;
-  ZSTD_DDict_s *dict{};
+    std::shared_ptr<DBNameMap> nm;
+    ZSTD_DDict_s *dict{};
 };
 
 

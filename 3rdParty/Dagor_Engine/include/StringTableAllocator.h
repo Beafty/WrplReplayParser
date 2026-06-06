@@ -5,6 +5,8 @@
 
 #include <memory>
 #include "math/dag_adjpow2.h"
+#include "vector"
+#include "dag_assert.h"
 
 #pragma pack(push, 4)
 struct StringTableAllocator

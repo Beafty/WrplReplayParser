@@ -1,17 +1,19 @@
 
 #include "VROMFs.h"
 
+#include "ioSys/dag_memIo.h"
+#include "ioSys/blk_shared.h"
+
 void VromfsFile::Save(std::ofstream *cb)
 {
     DataBlock blk;
     auto loaded = owner->parseFileToDatablock(*this, blk);
     if(loaded)
     {
-        std::ostringstream ss;
-
-        blk.writeText(&ss, 0);
-        auto s = ss.str();
-        cb->write(s.c_str(), s.size());
+        // this->length * 8 is just some value
+        DynamicMemGeneralSaveCB cwr(this->length() * 8, 4 << 20);
+        blk.saveToTextStream(cwr);
+        cb->write((char *) cwr.data(), cwr.size());
     }
     else
     {
@@ -24,3 +26,87 @@ bool VromfsFile::loadBlk(DataBlock &blk) {
   return this->owner->parseFileToDatablock(*this, blk);
 }
 
+int64_t VromfsFile::read_impl(void *ptr, size_t length) {
+    auto data = this->readRaw();
+    if (data.empty())
+        return -1;
+    if (length + read_offs > data.size())
+        return -1;
+    memcpy(ptr, data.data() + read_offs, length);
+    read_offs += length;
+    return length;
+}
+
+VROMFs::VROMFs(const std::string &fName) {
+    fileName = fName;
+    dir = std::make_shared<Directory>(fileName);
+    FullFileLoadCB f{fName.c_str()};
+    if (!load_raw_vromfs_data(f))
+        return;
+    MemGeneralLoadCB f2(raw_data->data(), (int) size);
+
+    parse_raw_vromfs_data(f2);
+}
+
+VROMFs::VROMFs(const std::string &fName, std::shared_ptr<Directory> &dir) {
+    fileName = fName;
+    this->dir = dir;
+    FullFileLoadCB f{fName.c_str()};
+
+    if (!load_raw_vromfs_data(f))
+        return;
+    MemGeneralLoadCB f2(raw_data->data(), (int) size);
+    parse_raw_vromfs_data(f2);
+}
+
+bool VROMFs::parse_raw_vromfs_data(IGenLoad &reader) {
+    int names_header = reader.readInt();
+    int names_count = reader.readInt();
+    reader.seekrel(8); // skip u64
+    int data_info_offset = reader.readInt();
+    int data_info_count = reader.readInt();
+    reader.seekrel(8);
+    bool has_digest = names_header == 0x30;
+
+    if (has_digest) {
+        reader.seekrel(16);
+    } // do nothing for now
+
+    std::vector<std::string_view> file_names((size_t) names_count);
+    uint64_t *basePtr = (uint64_t *) (raw_data->data() + names_header);
+    uint64_t stringStart = 0;
+    char *raw_data_ptr = raw_data->data();
+    for (uint32_t i = 0; i < names_count; i++) {
+        stringStart = basePtr[i];
+        file_names[i] = std::string_view(raw_data_ptr + stringStart);
+    }
+
+    int *int_data_ptr = (int *) (raw_data_ptr + data_info_offset);
+    int max = data_info_count * 4;
+    bool foundDict = false;
+    bool foundNM = false;
+
+    for (uint32_t i = 0, z = 0; i < max; i += 4, z++) {
+        int fileOffset = int_data_ptr[i];
+        int fileSize = int_data_ptr[i + 1];
+        std::string_view file_name = file_names[z];
+        if (!foundNM && file_name == "\xFF\x3Fnm") {
+            foundNM = true;
+            auto data = std::span<char>(raw_data_ptr + fileOffset + 40, (size_t) fileSize - 40);
+            ZstdLoadFromMemCB zReader(data);
+            nm = std::make_shared<DBNameMap>();
+            G_ASSERT(dblk::read_names(zReader, *nm, nullptr));
+            continue; // prevents adding of NM to output directory
+        }
+        if (!foundDict && file_name.ends_with(".dict")) {
+            foundDict = true;
+            auto data = std::span<char>(raw_data_ptr + fileOffset, (size_t) fileSize);
+            dict = ZSTD_createDDict(data.data(), data.size());
+            continue;
+        }
+        fs::path p((std::string(file_name)));
+        auto file_ = std::make_shared<VromfsFile>(this, p, raw_data, fileOffset, fileSize);
+        dir->addFile(file_, file_->vromfsPath);
+    }
+    return true;
+}

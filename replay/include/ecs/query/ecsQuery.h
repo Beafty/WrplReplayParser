@@ -5,25 +5,7 @@
 #include "dag_generationRefId.h"
 #include <EASTL/fixed_function.h>
 #include "queryView.h"
-
-namespace dag {
-  template <typename T> // emulates dag::ConstSpan
-  class ConstSpan : public std::span<const typename std::remove_const<T>::type> {
-    using base_type = std::span<const typename std::remove_const<T>::type>;
-    using size_type = typename base_type::size_type;
-    using element_type = typename std::remove_const<T>::type;
-  public:
-    ConstSpan(const element_type * ptr, size_type size) : base_type(ptr, size) {}
-
-    template<typename U = T, typename = std::enable_if_t<!std::is_const_v<U>>>
-    ConstSpan(typename std::vector<element_type>::const_iterator it, size_type size)
-        : base_type(it, size) {}
-
-    ConstSpan(): base_type() {}
-  };
-}
-
-
+#include "generic/dag_span.h"
 
 
 namespace ecs {
@@ -183,10 +165,10 @@ namespace ecs {
 
   inline const BaseQueryDesc CopyQueryDesc::getDesc() const
   {
-    return BaseQueryDesc(dag::ConstSpan<ComponentDesc>(components.begin(), rwCnt),
-                         dag::ConstSpan<ComponentDesc>(components.begin() + rwEnd(), roCnt),
-                         dag::ConstSpan<ComponentDesc>(components.begin() + roEnd(), rqCnt),
-                         dag::ConstSpan<ComponentDesc>(components.begin() + rqEnd(), noCnt));
+      return BaseQueryDesc(dag::ConstSpan<ComponentDesc>(&(*components.begin()), rwCnt),
+                           dag::ConstSpan<ComponentDesc>(&(*components.begin()) + rwEnd(), roCnt),
+                           dag::ConstSpan<ComponentDesc>(&(*components.begin()) + roEnd(), rqCnt),
+                           dag::ConstSpan<ComponentDesc>(&(*components.begin()) + rqEnd(), noCnt));
   }
 }
 

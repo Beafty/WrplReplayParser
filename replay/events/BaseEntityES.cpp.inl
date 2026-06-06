@@ -92,6 +92,19 @@ void iterate_all_units(ParserState &state) {
                               });
 }
 
+std::vector<unit::Unit *> collect_all_units(ParserState &state) {
+    std::vector<unit::Unit *> units{};
+    iterate_all_units_ecs_query(state.g_entity_mgr,
+                                [&units](const unit::UnitRef &unit__ref, const ecs::string &unit__className,
+                                         const ecs::EntityId eid) {
+                                    if (unit__ref.unit && !unit__ref.unit->positions.empty()) {
+                                        units.push_back(unit__ref.unit);
+                                    }
+                                    return ecs::QueryCbResult::Continue;
+                                });
+    return units;
+}
+
 ECS_AFTER(after_unit_appear_es)
 static void
 on_unit_appear_mpi_es(const ecs::EventEntityCreated &evt, const ecs::EntityId eid, const unit::UnitRef &unit__ref,

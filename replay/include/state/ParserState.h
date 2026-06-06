@@ -1,5 +1,6 @@
 #ifndef MYEXTENSION_PARSERSTATE_H
 #define MYEXTENSION_PARSERSTATE_H
+#include "math/dag_TMatrix.h"
 #include "ecs/EntityManager.h"
 #include "mpi/mpi.h"
 #include "mpi/codegen/ReflIncludes.h"

@@ -6,8 +6,8 @@ add_executable(VromfsTest
 target_link_libraries(VromfsTest
         # mimalloc-static
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         Zlib::Zlib

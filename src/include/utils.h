@@ -25,10 +25,11 @@ extern bool DO_VERBOSE;
 
 class ExceptionException : public std::runtime_error {
 public:
-  ExceptionException(std::string &&msg) : std::runtime_error(msg) {
+  explicit ExceptionException(std::string msg)
+    : std::runtime_error(std::move(msg)) {
   }
 
-  const char *what() {
+  const char *what() const noexcept override {
     return std::runtime_error::what();
   }
 };

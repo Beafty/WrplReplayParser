@@ -4,8 +4,8 @@
 #include "Replay/ReplayReader.h"
 
 
-uint32_t getPacketSize(IReader &cb) {
-  uint8_t first_byte;
+uint32_t getPacketSize(IGenLoad &cb) {
+    uint8_t first_byte;
   if (!cb.readInto(first_byte))
     return 0;
   if (first_byte & 0x80) {
@@ -25,8 +25,8 @@ uint32_t getPacketSize(IReader &cb) {
       uint8_t payload[4];
       uint32_t raw = 0;
     };
-    if (!cb.tryRead(&payload, byte_count)) {
-      return 0;
+    if (!cb.readExact(&payload, byte_count)) {
+        return 0;
     }
 
     if ((first_byte & 0x40) == 0) {
@@ -46,8 +46,8 @@ uint32_t getPacketSize(IReader &cb) {
   }
 }
 
-void writePacketSize(IWriter &cb, uint32_t size) {
-  uint8_t buff[5];
+void writePacketSize(IGenSave &cb, uint32_t size) {
+    uint8_t buff[5];
   uint8_t sz = 0;
 
   if (size < 0x80) {
@@ -89,7 +89,8 @@ IReplayReader::IReplayReader(ServerReplay &owner) {
 }
 
 FullDecompressReplayReader::~FullDecompressReplayReader() {
-  ((Replay *) this->owner)->Data.afterParse();
+    free((void *) crd.data());
+    ((Replay *) this->owner)->Data.afterParse();
 }
 
 bool FullDecompressReplayReader::getNextPacket(ReplayPacket &packet) {
@@ -97,7 +98,7 @@ bool FullDecompressReplayReader::getNextPacket(ReplayPacket &packet) {
   if (pkt_sz == 0)
     return false;
   packet.stream.~BitStream();
-  packet.stream = BitStream(crd.getPtr(), pkt_sz, false);
+  packet.stream = BitStream(crd.data() + crd.tell(), pkt_sz, false);
   if (!crd.seekrel((int) pkt_sz))
     return false;
   uint16_t type_t = 0x0;
@@ -141,11 +142,11 @@ FullDecompressReplayReader::FullDecompressReplayReader(Replay &replay, double ex
   auto new_ptr = (uint8_t *) malloc(dest_len);
   memcpy(new_ptr, ptr, dest_len);
   free(ptr);
-  new(&crd) BaseReader(reinterpret_cast<char *>(new_ptr), (int) dest_len, true);
+  new(&crd) InPlaceMemLoadCB(reinterpret_cast<char *>(new_ptr), (int) dest_len);
 }
 
 
-CompressedReplayReader::CompressedReplayReader(Replay &replay, IReader *base_reader, size_t in_size,
+CompressedReplayReader::CompressedReplayReader(Replay &replay, IGenLoad *base_reader, size_t in_size,
                                                bool acquired_lock) : IReplayReader(replay),
                                                                      reader(*base_reader, std::abs((int) in_size)),
                                                                      base_reader(base_reader),

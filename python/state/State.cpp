@@ -57,6 +57,8 @@ void PyReplayState::include(py::module_ &m) {
       .def(py::init<Replay *>())
       .def(py::init<ServerReplay *>())
       .def_readonly("mgr", &ParserState::g_entity_mgr)
+      .def("getUnitEid", &ParserState::getUnitEid, py::arg("uid"))
+      .def("getUnitRef", &ParserState::getUnitObj, py::arg("uid"))
       .def_readonly("players", &ParserState::players)
       .def_readonly("teams", &ParserState::teams)
       .def_readonly("gen_state", &ParserState::gen_state)
@@ -86,29 +88,29 @@ void PyReplayState::include(py::module_ &m) {
             ReplayPacket pkt{};
             bool cont = true;
             if (func) {
-              py::gil_scoped_acquire gil;
-              try {
-                while (cont && rdr.getNextPacket(pkt)) {
-                  BitSize_t start_offs = pkt.stream.GetReadOffset();
-                  cont = state.ParsePacket(pkt);
-                  pkt.stream.SetReadOffset(start_offs);
-                  func(&pkt);
+                py::gil_scoped_acquire gil;
+                try {
+                    while (cont && rdr.getNextPacket(pkt)) {
+                        BitSize_t start_offs = pkt.stream.GetReadOffset();
+                        cont = state.ParsePacket(pkt);
+                        pkt.stream.SetReadOffset(start_offs);
+                        func(&pkt);
+                    }
+                } catch (py::error_already_set &e) {
+                    eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
+                } catch (ExceptionException &e) {
+                    eptr = std::current_exception();
+                } catch (AssertException &e) {
+                    eptr = std::current_exception();
                 }
-              } catch (py::error_already_set &e) {
-                eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
-              } catch (ExceptionException &e) {
-                eptr = std::current_exception();
-              } catch (AssertException &e) {
-                eptr = std::current_exception();
-              }
             } else {
-              try {
-                while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
-              } catch (ExceptionException &e) {
-                eptr = std::current_exception();
-              } catch (AssertException &e) {
-                eptr = std::current_exception();
-              }
+                try {
+                    while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
+                } catch (ExceptionException &e) {
+                    eptr = std::current_exception();
+                } catch (AssertException &e) {
+                    eptr = std::current_exception();
+                }
             }
         }
         //   );

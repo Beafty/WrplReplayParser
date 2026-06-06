@@ -30,7 +30,10 @@ static constexpr sink_handle_t DEFAULT_SINK_HANDLER = -1;
 static constexpr sink_handle_t INVALID_SINK_HANDLER = -2;
 typedef uint8_t DEBUG_LEVEL;
 
+uint64_t get_time_ms();
+
 uint64_t get_current_time_ms();
+extern uint64_t start_time_ms;
 
 
 enum LOGLEVEL : uint8_t {
@@ -120,8 +123,8 @@ class logger_sink {
   }
 
   void on_message(log_msg &msg) const {
-    double time = ((double) (msg.time_ms - this->start_time_ms)) / 1000.0;
-    std::string m;
+      double time = ((double) (msg.time_ms)) / 1000.0;
+      std::string m;
     switch (msg.lvl) {
       case INFO: {
         m = fmt::format("{:.3f} [I]  {}\n", time, msg.msg);
@@ -192,7 +195,6 @@ class log_handler {
   std::condition_variable cv;
   std::mutex cv_mtx;
   std::mutex sink_access_mtx;
-  uint64_t init_time = get_current_time_ms();
   std::vector<log_msg> msgs{}; //only used during consumer loop
   logger_sink default_sink;
   std::vector<logger_sink *> sinks{};
@@ -269,7 +271,8 @@ class log_handler {
   }
 
 public:
-  void loadSinkFromDataBlock(DataBlock &blk);
+  void loadSinkFromDataBlock(const DataBlock &blk);
+
   void start_thread() {
     if(!this->logger_thread.joinable()) {
       this->logger_thread = std::thread(&log_handler::consumer_loop, this);
@@ -363,7 +366,8 @@ public:
     }
   }
 
-  log_handler() : default_sink("default", this->init_time, true) {}
+  log_handler() : default_sink("default", start_time_ms, true) {
+  }
 
   void add_logmessage(std::string &&message, LOGLEVEL lvl, sink_handle_t handler) {
     if (handler == INVALID_SINK_HANDLER) // invalid handle, message wont be added to log queue
@@ -394,7 +398,7 @@ public:
     if (!file_name.empty())
       f_sink = this->get_file_sink(file_name);
     auto handler = new logger_sink(name, print_to_console, f_sink, dbg_level,
-                                   time_from_start ? this->init_time : get_current_time_ms());
+                                   time_from_start ? start_time_ms : get_current_time_ms());
     this->sinks.emplace_back(handler);
     return (sink_handle_t)this->sinks.size() - 1;
   }

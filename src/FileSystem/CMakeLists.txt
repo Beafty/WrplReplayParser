@@ -11,7 +11,7 @@ target_link_libraries(FS
         ZSTD::ZSTD
         Zlib::Zlib
         DAG_MATH::DAG_MATH
-        BLK::BLK
+        dagBlk::dagBlk
         VROMFS::VROMFS
 
 )

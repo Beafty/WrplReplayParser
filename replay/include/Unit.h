@@ -4,8 +4,9 @@
 #include "cstdint"
 #include "danet/BitStream.h"
 #include "math/dag_Point3.h"
-#include "DataBlock.h"
+#include <ioSys/dag_dataBlock.h>
 #include "ecs/entityId.h"
+#include "math/dag_TMatrix.h"
 #include "mpi/types.h"
 #include "mpi/codegen/ReflIncludes.h"
 //#include "mpi/mpi.h"
@@ -139,7 +140,8 @@ namespace unit {
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
 
     // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
-
+    BaseExtReflectable *base_data = nullptr;
+    DVMReflectable *base_dvm_data = nullptr;
     uint32_t created_at_ms = 0;
     uint32_t killed_at_ms = 0xFFFFFFFF; // when was killed
     uint32_t destroyed_at_ms = 0xFFFFFFFF; // when was 'destroyed' in ecs
@@ -172,8 +174,13 @@ namespace unit {
   bool LoadFromStorage(Unit *unit, const FieldSerializerDict &data);
 
   class Aircraft : public Unit {
+      FMWReflectable fmv_data{};
+      FM_DVMReflectable fm_dvm_data{};
+
   public:
       explicit Aircraft(uint16_t uid) : Unit(uid, AircraftType) {
+          base_data = &fmv_data;
+          base_dvm_data = &fm_dvm_data;
       }
 
       ~Aircraft() override = default;
@@ -183,8 +190,13 @@ namespace unit {
   };
 
   class Tank : public Unit {
+      GMReflectable gm_data{};
+      GM_DVMReflectable gm_dvm_data{};
+
   public:
       explicit Tank(uint16_t uid) : Unit(uid, TankType) {
+          base_data = &gm_data;
+          base_dvm_data = &gm_dvm_data;
       }
 
       ~Tank() override = default;

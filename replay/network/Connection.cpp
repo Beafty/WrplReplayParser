@@ -45,12 +45,12 @@ namespace net
   void ReliabilitySystem::processAck(sequence_t ack, ack_bits_t ack_bits, packet_event_cb_t packet_acked_cb,
                                      packet_event_cb_t packet_lost_cb, void *cb_param, int nlost_threshold)
   {
-        G_FAST_ASSERT(packet_acked_cb != NULL && packet_lost_cb != NULL);
-    sequence_t prevAck = ack - 1;
+      G_FAST_ASSERT(packet_acked_cb != nullptr && packet_lost_cb != nullptr);
+      sequence_t prevAck = ack - 1;
     for (auto it = pendingAcks.begin(); it != pendingAcks.end();)
     {
-      packet_event_cb_t cb = NULL;
-      if (!is_seq_gt(it->sequence, ack)) // seq <= ack
+        packet_event_cb_t cb = nullptr;
+        if (!is_seq_gt(it->sequence, ack)) // seq <= ack
       {
         if (it->sequence == ack)
           cb = packet_acked_cb;
@@ -59,8 +59,8 @@ namespace net
           int bitIdx = seq_diff(prevAck, it->sequence);
           if (bitIdx < sizeof(ack_bits) * CHAR_BIT)
           {
-            cb = (ack_bits & (1 << bitIdx)) ? packet_acked_cb : NULL;
-            if (!cb && ++it->nMissing >= nlost_threshold)
+              cb = (ack_bits & (1 << bitIdx)) ? packet_acked_cb : nullptr;
+              if (!cb && ++it->nMissing >= nlost_threshold)
               cb = packet_lost_cb;
           }
           // else To consider: mark all packets > this number of packets (32+1) as lost
@@ -331,7 +331,7 @@ namespace net
       if (ecs::MaybeComponent mbcomp = deserialize_init_component_typeless(componentTypeName, cidx, deserializer, mgr))
       {
         if (mbcomp.has_value())
-          init[HashedConstString({"!net_replicated!", componentNameHash})] = std::move(*mbcomp);
+            init[ecs::HashedConstString({"!net_replicated!", componentNameHash})] = std::move(*mbcomp);
       }
       else
         return false;

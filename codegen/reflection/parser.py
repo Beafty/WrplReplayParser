@@ -62,6 +62,7 @@ def generate_bindings(header_codegen_path: str, cpp_codegen_path: str, force_gen
         f.write("#include \"modules/mpi/types.h\"\n")
         f.write("#include \"mpi/codegen/ReflIncludes.h\"\n")
         f.write("#include \"modules/mpi/mpi.h\"\n")
+        f.write("#include \"Unit.h\"\n")
         f.write("PyCodegenObjects py_codegen_objects;\n")
         f.write("void PyCodegenObjects::include(py::module_ &m) {\n")
         f.write("  DO_INCLUDE()\n")

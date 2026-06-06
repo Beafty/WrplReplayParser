@@ -132,3 +132,31 @@ class UnitIdStruct_reg(DataTypeRegister):
 class WeaponMask_reg(DataTypeRegister):
     name = "danet::WeaponsMask"
     is_pod = True  # not actually, this type is only ever used in once place, so that coder will be defined externally in cpp
+
+
+class dummyForDeathInfo_reg(DataTypeRegister):
+    name = "danet::dummyForDeathInfo"
+    members = [
+        "uint8_t v1;",
+        "uint8_t v2;",
+        "uint16_t v3;",
+        "bool v4;",
+        "bool v5;",
+    ]
+
+
+class KillerStruct_reg(DataTypeRegister):
+    name = "danet::KillerStruct"
+    members = [
+        "uint64_t player_id;",  # the player account's id
+        "uint16_t uid;",  # unit uid
+        "std::string vehicle;"
+    ]
+
+
+class DamagedState_reg(DataTypeRegister):
+    name = "danet::DamagedState"
+    members = [
+        "uint16_t v1;",
+        "uint8_t v2;"
+    ]

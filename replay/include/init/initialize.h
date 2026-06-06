@@ -10,7 +10,8 @@
 
 extern bool TranslationAllowed;
 
-void initialize(const std::string &VromfsPath, const std::string &logfile_path, bool fonts=false, bool lang=true, bool mis=true);
+void initialize(const std::string &game_path, const std::string &logfile_path, bool fonts = false, bool lang = true,
+                bool mis = true);
 
 
 #endif //MYEXTENSION_INITIALIZE_H

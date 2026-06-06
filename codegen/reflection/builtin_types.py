@@ -51,8 +51,7 @@ class std_string_reg(DataTypeRegister):
 
 class dblk_reg(DataTypeRegister):
     name = "DataBlock"
-    custom_loader = datablock_loader
-    custom_writer = datablock_writer
+    is_pod = True
 
 class EntityId_reg(DataTypeRegister):
     name = "ecs::EntityId"

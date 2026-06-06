@@ -6,8 +6,8 @@ add_executable(DumpMission
 target_link_libraries(DumpMission
         # mimalloc-static
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         Zlib::Zlib

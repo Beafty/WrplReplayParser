@@ -64,6 +64,20 @@ void include_types_2(py::module &gen) {
                          py::return_value_policy::reference_internal);
 
 
+  //danet::ReflectionVar<uint64_t> bindings
+  py::class_<danet::ReflectionVar<uint64_t>::SpaceHandler::TimeState>(gen, "uint64_t_ts")
+          .def_readonly("time_ms", &danet::ReflectionVar<uint64_t>::SpaceHandler::TimeState::time_ms)
+          .def_readonly("value", &danet::ReflectionVar<uint64_t>::SpaceHandler::TimeState::data);
+
+  bind_readonly_vector<dag::Vector<danet::ReflectionVar<
+      uint64_t>::SpaceHandler::TimeState> >(gen, "uint64_t_ts_vector");
+
+  py::class_<danet::ReflectionVar<uint64_t> >(gen, "uint64_t_var")
+          .def_readonly("data", &danet::ReflectionVar<uint64_t>::data)
+          .def_property_readonly("history", [](danet::ReflectionVar<uint64_t> &self) { return &self.get_history(); },
+                                 py::return_value_policy::reference_internal);
+
+
   //danet::ReflectionVar<danet::Uid> bindings
   py::class_<danet::ReflectionVar<danet::Uid>::SpaceHandler::TimeState>(gen, "danet_Uid_ts")
   .def_readonly("time_ms", &danet::ReflectionVar<danet::Uid>::SpaceHandler::TimeState::time_ms)
@@ -105,21 +119,6 @@ void include_types_2(py::module &gen) {
   .def_property_readonly("history", [](danet::ReflectionVar<std::array<ecs::EntityId, 20> > &self) {
       return &self.get_history();
   }, py::return_value_policy::reference_internal);
-
-
-  //danet::ReflectionVar<danet::CrewUnitsList> bindings
-  py::class_<danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState>(gen, "danet_CrewUnitsList_ts")
-  .def_readonly("time_ms", &danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState::time_ms)
-  .def_readonly("value", &danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState::data);
-
-  bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState> >(
-      gen, "danet_CrewUnitsList_ts_vector");
-
-  py::class_<danet::ReflectionVar<danet::CrewUnitsList>>(gen, "danet_CrewUnitsList_var")
-  .def_readonly("data", &danet::ReflectionVar<danet::CrewUnitsList>::data)
-  .def_property_readonly(
-      "history", [](danet::ReflectionVar<danet::CrewUnitsList> &self) { return &self.get_history(); },
-      py::return_value_policy::reference_internal);
 
 
   include_types_3(gen);

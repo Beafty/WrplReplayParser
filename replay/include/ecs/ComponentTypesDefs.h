@@ -376,6 +376,9 @@ ECS_DECLARE_CREATABLE_TYPE(BufferedHudData)
 ECS_DECLARE_CREATABLE_TYPE(InvalidType)
 ECS_DECLARE_CREATABLE_TYPE(LaserDecalManager)
 ECS_DECLARE_CREATABLE_TYPE(dm::SplashWave)
+ECS_DECLARE_CREATABLE_TYPE (UniqueBufWithShaderVar)
+ECS_DECLARE_CREATABLE_TYPE (SoundOcclusionBlob)
+ECS_DECLARE_CREATABLE_TYPE (aimmem::AimingMemPoints)
 
 #include "ecs/ComponentPrintingImplementations.h"
 

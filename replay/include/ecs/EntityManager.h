@@ -23,7 +23,9 @@
 #include "EASTL/vector_map.h"
 #include "EASTL/vector_set.h"
 #include "RewindMgr.h"
-#include "DataBlock.h"
+#include <ioSys/dag_dataBlock.h>
+
+#include "wyhash.h"
 
 
 DEFINE_HANDLE(handle_ecs)

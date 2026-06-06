@@ -37,10 +37,11 @@
 
 class AssertException : public std::runtime_error {
 public:
-  AssertException(std::string &&msg) : std::runtime_error(msg) {
-  }
+    explicit AssertException(std::string msg)
+        : std::runtime_error(std::move(msg)) {
+    }
 
-  const char *what() {
+    const char* what() const noexcept override {
     return std::runtime_error::what();
   }
 };

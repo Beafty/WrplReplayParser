@@ -2,12 +2,16 @@
 #include "mpi/types.h"
 #include "modules/bind_readonly_vector.h"
 #include "Unit.h"
+#include "modules/mpi/codegen_objects.h"
+#include "state/ParserState.h"
 
 
 PyUnit py_unit;
+
+std::vector<unit::Unit *> collect_all_units(ParserState & state);
+
 void PyUnit::include(py::module_ &m) {
   DO_INCLUDE()
-
   auto unit = m.def_submodule("unit");
   py::class_<SpaceTime>(m, "SpaceTime")
       .def_readonly("time_ms", &SpaceTime::time_ms)
@@ -26,12 +30,15 @@ void PyUnit::include(py::module_ &m) {
       .def_readonly("launcher", &unit::weapon_data::launcher)
       .def_readonly("bullet", &unit::weapon_data::bullet)
       .def_readonly("count", &unit::weapon_data::count);
-  py::class_<unit::Unit> un(unit, "Unit");
+  py::class_<unit::Unit, std::unique_ptr<unit::Unit, py::nodelete> > un(unit, "Unit");
 
 
-  py::class_<unit::Aircraft, unit::Unit>(unit, "Aircraft");
+  py_codegen_objects.include(m); // codegen objects require unit::Unit to exist
 
-  py::class_<unit::Tank, unit::Unit> t(unit, "Tank");
+
+  py::class_<unit::Aircraft, unit::Unit, std::unique_ptr<unit::Aircraft, py::nodelete> >(unit, "Aircraft");
+
+  py::class_<unit::Tank, unit::Unit, std::unique_ptr<unit::Tank, py::nodelete> > t(unit, "Tank");
 
   py::class_<unit::Weapon>(unit, "Weapon")
       .def_readonly("weapon_id", &unit::Weapon::weapon_id)
@@ -42,7 +49,9 @@ void PyUnit::include(py::module_ &m) {
 
 
   un
-      .def_readonly("unitType", &unit::Unit::unitType)
+          .def_readonly("base_data", &unit::Unit::base_data)
+          .def_readonly("base_dvm_data", &unit::Unit::base_dvm_data)
+          .def_readonly("unitType", &unit::Unit::unitType)
       .def_readonly("uid", &unit::Unit::uid)
       .def_readonly("created_at_ms", &unit::Unit::created_at_ms)
       .def_readonly("killed_at_ms", &unit::Unit::killed_at_ms)
@@ -65,4 +74,7 @@ void PyUnit::include(py::module_ &m) {
 
   py::class_<unit::UnitRef>(unit, "UnitRef")
       .def_readonly("unit", &unit::UnitRef::unit);
+
+  bind_readonly_vector<std::vector<unit::Unit *> >(m, "UnitList");
+  m.def("collect_all_units", &collect_all_units, py::arg("state"));
 }

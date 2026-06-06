@@ -6,8 +6,9 @@
 bool FileManager::loadVromfs(std::string &vromfsPath) {
 
   ZoneScoped;
-  if (!fs::exists(vromfsPath))
-    return false;
+  auto file = this->getFile(vromfsPath);
+  if (!file)
+      return false;
   if(holder_dir)
   {
 
@@ -129,22 +130,3 @@ int FileManager::find_files_in_folder(std::vector<std::string> &out_list, std::s
 }
 
 FileManager file_mgr{};
-
-namespace dblk {
-  bool load(DataBlock &blk, const char *fname) {
-    auto file = file_mgr.getFile(fname, true);
-    if (file) {
-      //LOG("Loading BLK at path: {}", fname);
-      return file->loadBlk(blk);
-    }
-    return false;
-  }
-
-  bool load(DataBlock &blk, std::string_view fname) {
-    return load(blk, fname.data());
-  }
-  bool load(DataBlock &blk, const std::string &fname) {
-    return load(blk, fname.c_str());
-  }
-}
-

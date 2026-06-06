@@ -9,6 +9,9 @@ add_library(PyMpi
         codegen_types_3.cpp
         codegen_types_4.cpp
         codegen_types_5.cpp
+        codegen_types_6.cpp
+        codegen_types_7.cpp
+        codegen_types_8.cpp
         battle_messages.cpp
         unit.cpp
 )

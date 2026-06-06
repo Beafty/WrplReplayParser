@@ -226,6 +226,8 @@ public:
     writeString(str.c_str(), str.size());
   }
 
+  void Write(const DataBlock &blk);
+
   template<typename T>
   bool Read(T &t) const {
     return ReadBits((uint8_t *) &t, bytes2bits(sizeof(T)));

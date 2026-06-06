@@ -2,9 +2,10 @@
 
 #pragma once
 #include "ReplayStructs.h"
-#include "DataBlock.h"
+#include "ioSys/dag_dataBlock.h"
+#include "ioSys/dag_fileIo.h"
+#include "ioSys/dag_memIo.h"
 #include "ReplayReader.h"
-#include "writer.h"
 
 
 
@@ -43,6 +44,7 @@ class Replay final : public  IReplay  {
     virtual void afterParse() {};
     virtual bool ReadInto(uint8_t * data, size_t count, size_t offs) {return false;};
     virtual int getRemainingSize(size_t from_offs) {return -1;}
+    virtual const char *file_name() { return nullptr; }
     friend Replay;
   };
 
@@ -61,14 +63,16 @@ class Replay final : public  IReplay  {
     bool ReadInto(uint8_t * ptr, size_t count, size_t offs) override;
 
     int getRemainingSize(size_t from_offs) override;
+
+    const char *file_name() override { return "<MEM>"; }
     friend Replay;
   };
 
   // when the replay is a location on the filesystem
   // this does optimizations to reduce memory usage
   class FileReplayData: public IReplayData {
-    FileReader reader;
-    std::vector<uint8_t> zlib_data{};
+      FullFileLoadCB reader;
+      std::vector<uint8_t> zlib_data{};
     uint32_t ref_count = 0; // how many readers are using this data?
 
     explicit FileReplayData(const std::string & path) : reader(path) {}
@@ -82,7 +86,10 @@ class Replay final : public  IReplay  {
     bool ReadInto(uint8_t * data, size_t count, size_t offs) override;
 
     int getRemainingSize(size_t from_offs) override;
-    friend Replay;
+
+      const char *file_name() override;
+
+      friend Replay;
   };
 
   class ReplayDataStorage {
@@ -154,6 +161,12 @@ class Replay final : public  IReplay  {
       return ptr()->getRemainingSize(from_offs);
     }
 
+    const char *getFileName() {
+        if (!valid())
+            return "<INVALID>";
+        return ptr()->file_name();
+    }
+
     [[nodiscard]] MemoryStorageType type() const {
       return type_;
     }
@@ -186,7 +199,7 @@ public:
   IReplayReader * getReplayReader() override;
   IReplayReader *getCompressedReplayReader() override;
   bool isValid() override {return is_valid;}
-  IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);
+  //IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);
 };
 
 class ServerReplay final : public IReplay {

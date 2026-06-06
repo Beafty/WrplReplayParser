@@ -23,7 +23,7 @@ void PyEntity::include(py::module_ &m) {
 }
 
 py::object Entity::getComponent(const std::string &data_component_name) {
-  HashedConstString hash = ECS_HASH(data_component_name.c_str());
+  ecs::HashedConstString hash = ECS_HASH_SLOW(data_component_name.c_str());
   auto datacomp = ecs::g_ecs_data->getDataComponents()->getDataComponent((ecs::component_t)hash.hash);
   if(!datacomp) {
     return py::none{};
@@ -36,7 +36,7 @@ py::object Entity::getComponent(const std::string &data_component_name) {
 }
 
 bool Entity::hasComponent(const std::string &data_component_name) const {
-  HashedConstString hash = ECS_HASH(data_component_name.c_str());
+  ecs::HashedConstString hash = ECS_HASH_SLOW(data_component_name.c_str());
   auto idx = ecs::g_ecs_data->getDataComponents()->getIndex(hash.hash);
   if(idx == ecs::INVALID_COMPONENT_INDEX) {
     return false;

@@ -11,7 +11,7 @@ target_link_libraries(WTEvents
         ParserState::ParserState
         dagECS::dagECS
         FieldSerializer::FieldSerializer
-        BLK::BLK
+        dagBlk::dagBlk
         FS::FS
         VROMFS::VROMFS
         XXH3

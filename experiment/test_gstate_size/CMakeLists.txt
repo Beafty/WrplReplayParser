@@ -5,8 +5,8 @@ target_link_libraries(test_gstate_size
         LOGGER::LOGGER
         fmt::fmt
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         FieldSerializer::FieldSerializer
