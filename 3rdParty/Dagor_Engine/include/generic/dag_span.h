@@ -390,7 +390,8 @@ inline constexpr uint32_t insert_item_at(V &v, uint32_t at, const T &p) {
 template<class V, typename T = typename V::value_type>
 inline constexpr uint32_t append_items(V &v, uint32_t n) {
     auto at = v.size();
-    v.emplace_back(n);
+    for (int i = 0; i < n; i++)
+        v.emplace_back();
     return at;
 }
 

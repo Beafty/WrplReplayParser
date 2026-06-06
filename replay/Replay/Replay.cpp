@@ -58,7 +58,7 @@ int Replay::FileReplayData::getRemainingSize(size_t from_offs) {
 const char *Replay::FileReplayData::file_name() {
   if (!this->reader.fileHandle)
     return "<INVALID FILE HANDLE>";
-  return this->reader.fileHandle->getName().c_str();
+  return this->reader.fileHandle->getIndex()->getName().c_str();
 }
 
 bool Replay::InMemoryReplayData::ReadInto(uint8_t *ptr, size_t count, size_t offs) {

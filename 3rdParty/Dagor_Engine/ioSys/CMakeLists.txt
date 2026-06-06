@@ -19,6 +19,7 @@ target_link_libraries(dagIoSys
         ZSTD::ZSTD
         EASTL::EASTL
         LOGGER::LOGGER
+        FS::FS
 
 )
 add_library(dagIoSys::dagIoSys ALIAS dagIoSys)

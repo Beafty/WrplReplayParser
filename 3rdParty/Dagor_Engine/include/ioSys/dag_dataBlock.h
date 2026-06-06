@@ -11,6 +11,7 @@
 #include <util/dag_bitFlagsMask.h>
 #include "string"
 #include "span"
+#include "array"
 
 class DataBlock;
 struct DataBlockShared;
@@ -31,7 +32,7 @@ class IGenSave;
 struct RoDataBlock;
 struct ZSTD_CDict_s;
 struct ZSTD_DDict_s;
-struct VROMFs;
+class VROMFs;
 
 
 /// @addtogroup utility_classes

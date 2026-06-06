@@ -15,10 +15,10 @@ Directory* FSObject::asDirectory() {
     return nullptr;
 }
 
-File* FSObject::asFile() {
+FileIndex *FSObject::asFile() {
     if (obj_type == isFile)
     {
-        return dynamic_cast<File*>(this);
+        return dynamic_cast<FileIndex *>(this);
     }
     return nullptr;
 }
@@ -31,9 +31,8 @@ SmartFSHandle SmartFSHandle::operator[](const std::string &name) const
     return (*ptr)[name];
 }
 
-std::shared_ptr<File> SmartFSHandle::asFile()
-{
-    return std::dynamic_pointer_cast<File>(ptr);
+std::shared_ptr<FileIndex> SmartFSHandle::asFile() {
+    return std::dynamic_pointer_cast<FileIndex>(ptr);
 }
 
 std::shared_ptr<Directory> SmartFSHandle::asDirectory()

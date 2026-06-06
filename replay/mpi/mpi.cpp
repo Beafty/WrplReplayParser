@@ -351,7 +351,6 @@ namespace mpi {
     return static_cast<IObject *>((oid != INVALID_OBJECT_ID && obj_dispatcher) ? obj_dispatcher(oid, ext, state) : nullptr);
   }
 
-
   Message *dispatch(const BitStream &bs, ParserState *state, bool copy_payload) {
     ObjectID oid;
     ObjectExtUID extUid;

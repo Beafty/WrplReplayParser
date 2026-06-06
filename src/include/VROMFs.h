@@ -64,20 +64,43 @@ struct VirtualRomFsExtHdr {
   uint32_t version = 0;
 };
 
-class VromfsFile : public File {
-public:
-    VromfsFile() { f_length = 0; }
+class VromfsFile;
 
-    VromfsFile(VROMFs *v_owner, const fs::path &path, const std::shared_ptr<std::vector<char>> &owner, int offset, int size) {
-    this->owner = v_owner;
-    data = std::shared_ptr<char>(owner, owner->data() + offset);
-    f_length = (size_t) size;
-    init(path);
-    vromfsPath = path.relative_path().parent_path();
-  }
+class VromfsFileIndex : public FileIndex {
+    std::span<char> data{};
+    VROMFs *owner;
+
+public:
+    ~VromfsFileIndex() override = default;
+
+    VromfsFileIndex(const std::string &name, VROMFs *owner, std::span<char> data) : FileIndex(name), data(data),
+        owner(owner) {
+    }
+
+    VromfsFileIndex(const fs::path &name, VROMFs *owner, std::span<char> data) : FileIndex(name), data(data),
+        owner(owner) {
+    }
+
+    std::unique_ptr<File> getFile(std::shared_ptr<FileIndex> ths) override;
+
+    friend VromfsFile;
+};
+
+class VromfsFile : public File {
+    [[nodiscard]] VromfsFileIndex *asIndex() const {
+        return static_cast<VromfsFileIndex *>(index.get());
+    }
+
+public:
+    explicit VromfsFile(const std::shared_ptr<FileIndex> &index) : File(index) {
+        auto as_vf = asIndex();
+        f_length = (size_t) as_vf->data.size();
+        read_offs = 0;
+        vromfsPath = index->getPath().relative_path().parent_path();
+    }
 
   std::span<char> readRaw() override {
-      return {data.get(), (size_t) f_length};
+      return {asIndex()->data.data(), asIndex()->data.size()};
   }
 
   void Save(std::ofstream *cb) override;
@@ -85,7 +108,7 @@ public:
   bool loadBlk(DataBlock &blk) override;
 
     const VROMFs *getUnderlyingVromfs() override {
-        return owner;
+        return asIndex()->owner;
     }
 
 protected:
@@ -96,8 +119,6 @@ public:
 
 protected:
   fs::path vromfsPath;
-  std::shared_ptr<char> data;
-  VROMFs *owner;
   friend VROMFs;
 
 };

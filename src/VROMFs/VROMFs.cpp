@@ -4,10 +4,14 @@
 #include "ioSys/dag_memIo.h"
 #include "ioSys/blk_shared.h"
 
+std::unique_ptr<File> VromfsFileIndex::getFile(std::shared_ptr<FileIndex> ths) {
+    return std::make_unique<VromfsFile>(ths);
+}
+
 void VromfsFile::Save(std::ofstream *cb)
 {
     DataBlock blk;
-    auto loaded = owner->parseFileToDatablock(*this, blk);
+    auto loaded = this->asIndex()->owner->parseFileToDatablock(*this, blk);
     if(loaded)
     {
         // this->length * 8 is just some value
@@ -23,7 +27,7 @@ void VromfsFile::Save(std::ofstream *cb)
 }
 
 bool VromfsFile::loadBlk(DataBlock &blk) {
-  return this->owner->parseFileToDatablock(*this, blk);
+    return this->asIndex()->owner->parseFileToDatablock(*this, blk);
 }
 
 int64_t VromfsFile::read_impl(void *ptr, size_t length) {
@@ -105,8 +109,11 @@ bool VROMFs::parse_raw_vromfs_data(IGenLoad &reader) {
             continue;
         }
         fs::path p((std::string(file_name)));
-        auto file_ = std::make_shared<VromfsFile>(this, p, raw_data, fileOffset, fileSize);
-        dir->addFile(file_, file_->vromfsPath);
+        auto file_ = std::make_shared<VromfsFileIndex>(p, this, std::span{
+                                                           raw_data.get()->data() + (size_t) fileOffset,
+                                                           (size_t) fileSize
+                                                       });
+        dir->addFile(file_, p);
     }
     return true;
 }

@@ -54,8 +54,7 @@ bool FullFileLoadCB::open(const std::string &fname, bool lower_fname) {
     targetDataSz = -1;
     if (fname.empty())
         return false;
-    shared_ptr = file_mgr.getFile(fname, lower_fname);
-    fileHandle = shared_ptr.get();
+    fileHandle = file_mgr.getFile(fname, lower_fname);
     if (!fileHandle)
         return false;
     targetDataSz = fileHandle->length();

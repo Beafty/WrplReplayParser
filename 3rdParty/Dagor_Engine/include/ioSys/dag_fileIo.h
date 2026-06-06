@@ -21,7 +21,7 @@
 /// File load callback.
 class LFileGeneralLoadCB : public IBaseLoad {
 public:
-    File *fileHandle;
+    std::unique_ptr<File> fileHandle;
 
     explicit LFileGeneralLoadCB(File *handle = nullptr);
 
@@ -49,9 +49,10 @@ public:
 /// Callback for reading whole file. Closes file in destructor.
 class FullFileLoadCB : public LFileGeneralLoadCB {
     int64_t targetDataSz = -1;
-    std::shared_ptr<File> shared_ptr;
 
 public:
+    FullFileLoadCB() = default;;
+
     inline explicit FullFileLoadCB(const std::string &fname, bool lower_fname = false) {
         fileHandle = nullptr;
         open(fname, lower_fname);

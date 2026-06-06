@@ -67,10 +67,8 @@ void initialize(const std::string &game_path, const std::string &logfile_path, b
   hello();
   force_link_replication();
   force_link_cnet();
-  auto wp_cost_f = file_mgr.getFile("config/wpcost.blk");
-  if(wp_cost_f)
-    wp_cost_f->loadBlk(ecs::g_ecs_data->wp_cost);
-  //mpi::players.hello();
+    G_ASSERT(dblk::load(ecs::g_ecs_data->wp_cost, "config/wpcost.blk"));
+    //mpi::players.hello();
   ecs::g_ecs_data.get();
   size_t pull_val = framework_primary_pulls;
 }

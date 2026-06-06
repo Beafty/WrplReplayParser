@@ -15,6 +15,9 @@ target_link_libraries(dagBlk
         EASTL::EASTL
         LOGGER::LOGGER
         XXH3::XXH3
+        ZSTD::ZSTD
+        VROMFS::VROMFS
+        dagIoSys::dagIoSys
 )
 
 set(INCLUDES
