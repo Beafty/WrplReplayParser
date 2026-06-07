@@ -120,7 +120,7 @@ on_unit_appear_mpi_es(const ecs::EventEntityCreated &evt, const ecs::EntityId ei
         queue_obj.oid, queue_obj.extUid, &state, false);
       if (!obj)
         continue;
-      uint32_t sz;
+      uint32_t sz = 0;
       bs.Read(sz);
       if (sz & mpi::QueuePacketTypes::MPI) {
         sz ^= mpi::QueuePacketTypes::MPI;

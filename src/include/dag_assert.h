@@ -259,3 +259,5 @@ assert_failed_ext(const char *file, int line, const char *function, const char *
   else
 
 
+#define G_UNUSED(x)    ((void)(x))
+#define G_UNREFERENCED G_UNUSED

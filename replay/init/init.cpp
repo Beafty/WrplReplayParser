@@ -71,4 +71,5 @@ void initialize(const std::string &game_path, const std::string &logfile_path, b
     //mpi::players.hello();
   ecs::g_ecs_data.get();
   size_t pull_val = framework_primary_pulls;
+    G_UNUSED(pull_val);
 }

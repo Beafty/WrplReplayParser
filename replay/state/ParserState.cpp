@@ -74,6 +74,7 @@ bool ParserState::ParsePacket(ReplayPacket &pkt) {
             this->chatMessages.resize(this->chatMessages.size() + 1);
             this->chatMessages[this->chatMessages.size() - 1].FromBS(pkt.stream);
             this->chatMessages[this->chatMessages.size() - 1].time_ms = this->curr_time_ms;
+            break;
         }
         case ReplayPacketType::MPI: {
             auto m = mpi::dispatch(pkt.stream, this, false);

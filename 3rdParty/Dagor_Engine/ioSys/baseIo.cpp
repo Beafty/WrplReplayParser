@@ -28,7 +28,7 @@ void IBaseSave::endBlock(unsigned block_flags) {
 
     Block &b = blocks.back();
     int o = tell();
-    seekto(b.ofs - sizeof(int));
+    seekto(b.ofs - (int) sizeof(int));
     int l = o - b.ofs;
     G_ASSERTF(l >= 0 && !(l & 0xC0000000), "o={:#x} b.ofs={:#x} l={:#x}", o, b.ofs, l);
     l |= (block_flags << 30);
@@ -38,7 +38,7 @@ void IBaseSave::endBlock(unsigned block_flags) {
     blocks.pop_back();
 }
 
-int IBaseSave::getBlockLevel() { return blocks.size(); }
+int IBaseSave::getBlockLevel() { return (int) blocks.size(); }
 
 IBaseLoad::IBaseLoad() : blocks() {
 }
@@ -89,7 +89,7 @@ int IBaseLoad::getBlockRest() {
     return b.ofs + b.len - tell();
 }
 
-int IBaseLoad::getBlockLevel() { return blocks.size(); }
+int IBaseLoad::getBlockLevel() { return (int) blocks.size(); }
 
 
 #include "osApiWrappers/dag_direct_simple.h"

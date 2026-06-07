@@ -9,7 +9,7 @@ void bind_readonly_vector(py::module_ &m, const char *name) {
       .def("__len__", [](const Vec &v) { return v.size(); })
       .def("__getitem__", [](const Vec &v, size_t i) {
         if (i >= v.size()) throw py::index_error();
-        return v[i];
+        return v[(typename Vec::size_type) i];
       })
       .def("__iter__", [](const Vec &v) {
         return py::make_iterator(v.begin(), v.end());

@@ -143,7 +143,7 @@ ServerReplay::ServerReplay(std::vector<std::span<uint8_t>> &data, bool owns) {
 DataBlock *ServerReplay::getFooterBlk() {
   for(size_t i = this->replay_files.size(); i > 0; --i) {
     auto &blk = this->replay_files[i-1]->footer_blk;
-    if (blk.isEmpty())
+    if (!blk.isEmpty())
       return &blk;
   }
   return nullptr;
