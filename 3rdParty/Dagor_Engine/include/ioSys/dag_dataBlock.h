@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#ifdef  Linux
+#ifdef  _TARGET_PC_LINUX
 #define __forceinline inline
 #endif
 #include <dag/dag_relocatable.h>

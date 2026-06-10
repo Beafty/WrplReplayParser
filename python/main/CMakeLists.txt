@@ -16,7 +16,7 @@ if(NOT pybind11_FOUND)
     FetchContent_Declare(
             pybind11
             GIT_REPOSITORY https://github.com/pybind/pybind11.git
-            GIT_TAG        v2.11.1  # You can update the version/tag as needed
+            GIT_TAG v2.11.1
     )
     FetchContent_MakeAvailable(pybind11)
 endif()
@@ -25,9 +25,8 @@ endif()
 pybind11_add_module(PyReplayParser
         # ecs.cpp
         main.cpp
-)  # <-- Replace src/main.cpp with your actual source file
+)
 
-# Link the right Python version
 target_link_libraries(PyReplayParser PRIVATE
         pybind11::module
         Python::Python
@@ -36,7 +35,6 @@ target_link_libraries(PyReplayParser PRIVATE
         PyECS::PyECS
 )
 
-# Set include dirs for Python if needed
 target_include_directories(PyReplayParser PRIVATE
         "${BASE_DIR}/replay/include"
         "${BASE_DIR}/python/include"

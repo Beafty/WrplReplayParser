@@ -51,7 +51,7 @@ int main() {
   std::string bin_path_str = bin_path;
   G_UNUSED(source_is_linux_path);
   G_UNUSED(bin_is_linux_path);
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   if(!source_is_linux_path) {
     rpl_path_str = convert_os_path_to_wsl2(replay_path);
   }
