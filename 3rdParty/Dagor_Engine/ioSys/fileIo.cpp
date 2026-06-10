@@ -54,7 +54,11 @@ bool FullFileLoadCB::open(const std::string &fname, bool lower_fname) {
     targetDataSz = -1;
     if (fname.empty())
         return false;
-    fileHandle = file_mgr.getFile(fname, lower_fname);
+    auto handle = file_mgr.getFile(fname, lower_fname);
+    fileHandle = handle.get();
+    handle.release();
+    // we can't store a unique_ptr in LFileGeneralLoadCB as that shouldn't own, but FullFileLoadCB does
+    // we could just make this store the unique ptr and then store the raw ptr in General, but we don't need to and can just take control of the ptr instead
     if (!fileHandle)
         return false;
     targetDataSz = fileHandle->length();
@@ -62,9 +66,7 @@ bool FullFileLoadCB::open(const std::string &fname, bool lower_fname) {
 }
 
 void FullFileLoadCB::close() {
-    if (fileHandle) {
-        fileHandle = nullptr;
-    }
+    delete fileHandle;
 }
 
 void FullFileLoadCB::beginFullFileBlock() {

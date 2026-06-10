@@ -94,6 +94,7 @@ Replay::Replay(const std::string &replay_path) {
 
 void Replay::load() {
   auto file_size = this->Data.getRemainingSize(0);
+  BAD_REPLAY(file_size != -1);
   BAD_REPLAY(this->Data.ReadInto(this->header, 0));
   BAD_REPLAY(this->header.header == 0x1000ace5);
   BAD_REPLAY(this->header.magic == CURR_MAGIC);

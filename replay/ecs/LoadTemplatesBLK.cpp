@@ -471,7 +471,7 @@ namespace ecs {
           EXCEPTION("Unkown reserved name type {} parsing template {}", blk.getParamName(i), blk.getBlockName());
         }
       } else {
-        uint8_t type_id = blk.getParamType(i);
+        uint8_t type_id = (uint8_t) blk.getParamType(i);
         //LOG("parsing %s type derived from param", blk.getParamName(i));
         Component comp;
         switch (type_id) {

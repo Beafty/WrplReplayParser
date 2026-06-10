@@ -21,7 +21,7 @@
 /// File load callback.
 class LFileGeneralLoadCB : public IBaseLoad {
 public:
-    std::unique_ptr<File> fileHandle;
+    File *fileHandle;
 
     explicit LFileGeneralLoadCB(File *handle = nullptr);
 

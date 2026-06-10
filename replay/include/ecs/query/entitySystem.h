@@ -3,7 +3,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 //
 #pragma once
-
+#include "cstdint"
+#include "generic/dag_span.h"
 #include <ecs/ComponentTypes.h>
 #include "ecs/entityId.h"
 #include "ecs/query/event.h"
