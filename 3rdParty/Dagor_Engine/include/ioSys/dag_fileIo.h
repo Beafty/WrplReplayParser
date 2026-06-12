@@ -69,30 +69,6 @@ public:
     int64_t getTargetDataSize() override { return targetDataSz; }
 };
 
-class StreamingFileLoadCB : public IBaseLoad {
-    uint32_t deadline_seconds = 0;
-    std::string fName;
-    std::ifstream input;
-    std::streamoff data_size;
-    int read_offset = 0;
-
-public:
-    explicit StreamingFileLoadCB(const std::string &fname);
-
-    void read(void *ptr, int size) override;
-
-    int tryRead(void *ptr, int size) override;
-
-    int tell() override;
-
-    void seekto(int) override;
-
-    bool seekrel(int) override;
-
-    const char *getTargetName() override { return fName.c_str(); }
-};
-
-
 /// @}
 
 /// @}

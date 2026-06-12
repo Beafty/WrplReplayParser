@@ -81,7 +81,7 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size) {
 
     int res = inflateEx(zs, Z_SYNC_FLUSH, (in_fetch_func) fetchInput, this);
 
-    if (res != Z_OK && res != Z_STREAM_END) {
+    if (res != Z_OK && res != Z_STREAM_END && res != Z_BUF_ERROR) {
         if (fatalErrors) {
             EXCEPTION("zlib error {} ({}) in {}\nsource: '{}'\n", res, zs->msg, "inflate", getTargetName());
         }

@@ -31,8 +31,9 @@ public:
 
 
 class ServerReplay;
-class Replay final : public  IReplay  {
-  enum MemoryStorageType: uint8_t {
+class Replay : public IReplay {
+protected:
+    enum MemoryStorageType: uint8_t {
     Invalid = 0,
     Memory = 1,
     File = 2,
@@ -71,6 +72,7 @@ class Replay final : public  IReplay  {
   // when the replay is a location on the filesystem
   // this does optimizations to reduce memory usage
   class FileReplayData: public IReplayData {
+  public:
       FullFileLoadCB reader;
       std::vector<uint8_t> zlib_data{};
     uint32_t ref_count = 0; // how many readers are using this data?
@@ -88,8 +90,6 @@ class Replay final : public  IReplay  {
     int getRemainingSize(size_t from_offs) override;
 
       const char *file_name() override;
-
-      friend Replay;
   };
 
   class ReplayDataStorage {

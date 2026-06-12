@@ -44,10 +44,10 @@ class CompressedReplayReader: public IReplayReader
   uint32_t curr_time=0;
   bool acquired_lock=false;
 
-  explicit CompressedReplayReader(Replay &replay, IGenLoad *base_reader, size_t in_size, bool acquired_lock = true);
-
   friend Replay;
 public:
+  explicit CompressedReplayReader(Replay &replay, IGenLoad *base_reader, size_t in_size, bool acquired_lock = true);
+
   ~CompressedReplayReader() override;
   bool getNextPacket(ReplayPacket &packet) override;
 };

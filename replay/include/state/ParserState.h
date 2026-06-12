@@ -62,6 +62,10 @@ protected:
   std::vector<ecs::EntityId> uid_lookup{};
   std::vector<unit::Unit *> uid_unit_lookup{};
 
+  void onPacket(ReplayPacket *pkt) {
+      conn.onPacket(pkt, pkt->timestamp_ms);
+  }
+
 public:
   std::vector<mpi::MpiQueueObject::QueueData> *get_queued_data(ecs::EntityId eid) {
     auto it = mpi_queue.dispatched_objects.find(eid);
@@ -102,13 +106,11 @@ public:
 
   ~ParserState();
 
-  void onPacket(ReplayPacket *pkt) {
-    conn.onPacket(pkt, pkt->timestamp_ms);
-  }
-
   bool ParsePacket(ReplayPacket &pkt);
 
   inline void rewindToMs(uint32_t time_ms);
+
+  bool finishedLoading() { return this->replay_length_ms != 0xFFFFFFFF; }
 };
 
 
