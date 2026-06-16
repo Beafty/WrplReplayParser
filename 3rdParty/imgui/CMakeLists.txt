@@ -55,4 +55,4 @@ target_include_directories(imgui PUBLIC
 
 target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
 
-# target_link_libraries(MyApp PRIVATE imgui SDL2::SDL2main)
+find_package(OpenGL COMPONENTS OpenGL REQUIRED)

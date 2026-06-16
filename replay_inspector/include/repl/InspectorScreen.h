@@ -285,9 +285,6 @@ protected:
     ZoneScoped
     if (!info.curr_image)
       return;
-    constexpr uint32_t flags =
-        ImGuiTableFlags_::ImGuiTableFlags_Borders | ImGuiTableFlags_::ImGuiTableFlags_SizingFixedFit |
-        ImGuiTableFlags_::ImGuiTableFlags_NoHostExtendX;
     ImGui::PushID(&info);
     ImGui::BeginGroup();
     //ImGui::TextUnformatted(table_name);

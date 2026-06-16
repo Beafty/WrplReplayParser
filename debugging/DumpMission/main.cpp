@@ -325,7 +325,7 @@ int main() {
   vromfs_mission_path = "gamedata/missions/cta/tanks/tunisia/tunisia_dom.blk";
   //std::string vromfs_mission_path = "gamedata/missions/cta/tanks/mozdok/mozdok_dom.blk";
   // AN ERROR HAS OCCURED
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   std::string dump_path = R"(/mnt/d/GoogleDriveWtMission/dumpTest2.blk)";
   std::string p1 = R"(/mnt/d/SteamLibrary/steamapps/common/War Thunder/cache/binary.2.49.0/mis.vromfs.bin)";
 #else

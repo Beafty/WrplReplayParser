@@ -49,9 +49,6 @@ if (PARSER_ENABLE_INSPECTOR_CURL)
     target_link_libraries(ReplayInspector PUBLIC CURL::libcurl)
 endif ()
 
-# find OpenGL
-find_package(OpenGL COMPONENTS OpenGL REQUIRED)
-
 target_link_libraries(ReplayInspector PUBLIC
         SDL2::SDL2main
         SDL2::SDL2-static
@@ -72,7 +69,6 @@ target_link_libraries(ReplayInspector PUBLIC
         NET_UTILS::NET_UTILS
         ctre::ctre
         TFD::TFD
-        OpenGL::GL
         ParserState::ParserState
         InspectorECS::InspectorECS
 )

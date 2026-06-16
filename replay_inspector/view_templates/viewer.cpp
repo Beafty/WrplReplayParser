@@ -403,7 +403,7 @@ int main(int argc, char* argv[]) {
 
   bool bin_is_linux_path = conf_blk.getBool("bin_is_linux_path", false);
   auto bin_path = conf_blk.getStr("bin_path", nullptr);
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   std::string bin_path_str = convert_os_path_to_wsl2(bin_path);
 #else
   std::string bin_path_str = bin_path;

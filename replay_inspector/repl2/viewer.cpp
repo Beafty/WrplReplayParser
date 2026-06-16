@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
     std::string map_path = "mapOut/png/2048";
     std::string config_path = "viewer_config.blk";
     if (argc == 3) {
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
         map_path = convert_os_path_to_wsl2(argv[1]);
         config_path = convert_os_path_to_wsl2(argv[2]);
 #else
@@ -367,7 +367,7 @@ int main(int argc, char *argv[]) {
     auto bin_path = conf_blk.getStr("bin_path", nullptr);
     default_minimap_size = conf_blk.getPoint2("default_minimap_size", default_minimap_size);
     std::string bin_path_str = bin_path;
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
     //if(!source_is_linux_path) {
     //  rpl_path_str = convert_os_path_to_wsl2(replay_path);
     // }
@@ -451,7 +451,7 @@ int main(int argc, char *argv[]) {
     WindowMgr windows{};
     //std::string f_path = R"(D:\SteamLibrary\steamapps\common\War Thunder\Replays\#2026.05.19 21.16.58.wrpl)";
     //std::string f_path_2 = R"(C:\Users\samue\Downloads\260516 Blitz QUAL Desert 2.wrpl)";
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
     //f_path = convert_os_path_to_wsl2(f_path);
     //f_path_2 = convert_os_path_to_wsl2(f_path_2);
 #endif

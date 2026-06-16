@@ -4,6 +4,8 @@
 #include "generic/dag_span.h"
 #include <osApiWrappers/dag_direct_simple.h>
 
+#include "util/dag_globDef.h"
+
 
 LFileGeneralLoadCB::LFileGeneralLoadCB(File *handle) : fileHandle(handle) {
 }
@@ -66,7 +68,7 @@ bool FullFileLoadCB::open(const std::string &fname, bool lower_fname) {
 }
 
 void FullFileLoadCB::close() {
-    delete fileHandle;
+    del_it(fileHandle);
 }
 
 void FullFileLoadCB::beginFullFileBlock() {
