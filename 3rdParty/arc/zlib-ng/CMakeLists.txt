@@ -101,6 +101,7 @@ target_compile_options(Zlib PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/w>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:--no-warnings>
 )
-
+set(ZLIB_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 set(ZLIB_LIBRARY Zlib)
+add_library(ZLIB::ZLIB INTERFACE IMPORTED)
