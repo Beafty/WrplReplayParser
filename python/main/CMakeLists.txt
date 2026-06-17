@@ -1,4 +1,3 @@
-
 # Find the specified Python version, or use any found by default
 if(PYTHON_VERSION)
     find_package(Python ${PYTHON_VERSION} REQUIRED COMPONENTS Interpreter Development)
@@ -47,8 +46,39 @@ target_link_options(PyReplayParser PRIVATE
         # -static
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    add_custom_command(TARGET PyReplayParser POST_BUILD
-            COMMAND ${CMAKE_STRIP} --strip-debug $<TARGET_FILE:PyReplayParser>
+install(TARGETS PyReplayParser
+        LIBRARY
+        DESTINATION "PyReplayParser"
+        COMPONENT PyReplayParser
+        RUNTIME
+        DESTINATION "PyReplayParser"
+        COMPONENT PyReplayParser
+)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    install(TARGETS signal_tracer
+            LIBRARY
+            DESTINATION "PyReplayParser"
+            COMPONENT PyReplayParser
+            RUNTIME
+            DESTINATION "PyReplayParser"
+            COMPONENT PyReplayParser
+            ARCHIVE
+            DESTINATION "PyReplayParser"
+            COMPONENT PyReplayParser
     )
 endif ()
+
+# strips most debug symbols
+# dunno a better way to do this
+install(CODE "
+    # message(\"Executing Command ${CMAKE_STRIP} --strip-debug \\\"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/PyReplayParser/$<TARGET_FILE_NAME:PyReplayParser>\\\"\")
+    execute_process(
+        COMMAND \"${CMAKE_STRIP}\" --strip-debug \"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/PyReplayParser/$<TARGET_FILE_NAME:PyReplayParser>\"
+        RESULT_VARIABLE strip_result
+    )
+    if(NOT strip_result EQUAL 0)
+        message(FATAL_ERROR \"strip failed for PyReplayParser: \${strip_result}\")
+    endif()
+"
+        COMPONENT PyReplayParser
+)

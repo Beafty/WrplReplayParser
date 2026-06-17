@@ -55,6 +55,7 @@ if (PARSER_MY_FLAGS)
         set(CMAKE_C_USING_LINKER_LLD "-fuse-ld=mold")
     endif()
 endif ()
+add_subdirectory(3rdParty)
 
 if (PARSER_ENABLE_PYTHON_BINDINGS)
     add_subdirectory(python)
@@ -64,7 +65,7 @@ if (PARSER_ENABLE_INSPECTOR)
     add_subdirectory(replay_inspector)
 endif ()
 
-if (PARSER_INCLUDE_EXPERIMENTING_DIRS) # not a subproject, include tests
+if (PARSER_INCLUDE_EXPERIMENTING_DIRS)
     option(ENABLE_DECOMPRESSION
             "Enables support for compressed debug sections if both libz/libzstd are present"
             FALSE)
@@ -78,6 +79,5 @@ if (PARSER_INCLUDE_EXPERIMENTING_DIRS) # not a subproject, include tests
         add_subdirectory(hidden)
     endif ()
 endif()
-add_subdirectory(3rdParty)
 add_subdirectory(src)
 add_subdirectory(replay)
