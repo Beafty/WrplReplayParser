@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 set(CMAKE_CXX_STANDARD 23)
-project(WtFileUtils LANGUAGES C CXX)
+project(WrplReplayParser LANGUAGES C CXX)
 
 # ok look I have to do this for whatever reason to make MSVC works, it generates alot of ugly cli warnings but I don't feel like fixing it
 if(MSVC)
