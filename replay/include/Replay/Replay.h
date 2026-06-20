@@ -193,10 +193,14 @@ public:
   Replay(std::span<uint8_t> data, bool owns);
   explicit Replay(const std::string &replay_path);
   ~Replay() override = default;
-  ReplayHeader * getHeader() override {return &header;}
-  DataBlock * getHeaderBlk() override {return &header_blk;}
-  DataBlock * getFooterBlk() override {return &footer_blk;}
-  IReplayReader * getReplayReader() override;
+
+    ReplayHeader *getHeader() override;
+
+    DataBlock *getHeaderBlk() override;
+
+    DataBlock *getFooterBlk() override;
+
+    IReplayReader * getReplayReader() override;
   IReplayReader *getCompressedReplayReader() override;
   bool isValid() override {return is_valid;}
   //IReplayReader * getStreamingReplayReader(uint32_t time_wait=10);

@@ -91,6 +91,24 @@ Replay::Replay(const std::string &replay_path) {
   load();
 }
 
+ReplayHeader *Replay::getHeader() {
+  if (is_valid)
+    return &header;
+  return nullptr;
+}
+
+DataBlock *Replay::getHeaderBlk() {
+  if (is_valid)
+    return &header_blk;
+  return nullptr;
+}
+
+DataBlock *Replay::getFooterBlk() {
+  if (is_valid)
+    return &footer_blk;
+  return nullptr;
+}
+
 #define BAD_REPLAY(conditional) {if(!(conditional)) {is_valid=false; return;}}
 
 void Replay::load() {
