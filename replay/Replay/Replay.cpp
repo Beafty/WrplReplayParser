@@ -5,6 +5,7 @@
 #include "zlib.h"
 #include "danet/daNetTypes.h"
 
+std::string packet_names[]{"End", "Start", "Aircraft", "Chat", "MPI", "NextSegment", "ECS", "Snapshot", "ECS_Msg_Sync"};
 
 namespace fs = std::filesystem;
 
