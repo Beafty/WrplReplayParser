@@ -101,14 +101,14 @@ namespace ecs {
     if (curr_time < time_ms) {
       auto iter = std::upper_bound(actions.begin() + curr_index, actions.end(), time_ms,
                                    [](uint32_t val, const ACTION_ARRAY_CONTAINER &data) {
-                                     auto action = (RewindAction *) &data;
+                                     auto action = (RewindAction *) data.data();
                                      return val < action->time_ms;
                                    });
       test_size = std::distance(actions.begin(), iter);
     } else {
       auto iter = std::lower_bound(actions.begin(), actions.begin() + curr_index, time_ms,
                                    [](const ACTION_ARRAY_CONTAINER &data, uint32_t val) {
-                                     auto action = (RewindAction *) &data;
+                                     auto action = (RewindAction *) data.data();
                                      return action->time_ms < val;
                                    });
       test_size = std::distance(actions.begin(), iter);

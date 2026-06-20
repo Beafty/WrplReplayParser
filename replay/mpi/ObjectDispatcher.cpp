@@ -313,9 +313,12 @@ namespace mpi {
       }
       case 0x16: {
         if (count < state->missionAreas2.size()) {
-          return state->missionAreas2[count];
+          auto var = state->missionAreas2[count];
+          if (!var)
+            LOGE("Invalid MissionArea index");
+          return var;
         } else {
-          LOGE("Invalid MissionArea index");
+          //LOGE("Invalid MissionArea index"); // this can actually be expected behavior apparently.
         }
         return nullptr;
       }

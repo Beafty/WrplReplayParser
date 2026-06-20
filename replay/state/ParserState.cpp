@@ -119,6 +119,7 @@ void ParserState::rewindToMs(uint32_t time_ms) {
     for (auto &p: Zones)
         p->rewindToTime(time_ms);
     for (auto &p: missionAreas2)
-        p->rewindToTime(time_ms);
+        if (p)
+            p->rewindToTime(time_ms);
     curr_time_ms = time_ms;
 }

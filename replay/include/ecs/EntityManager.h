@@ -412,19 +412,19 @@ namespace ecs {
     friend ParserState;
 
     void forward(BASE::TimeState &data, EntityManager *mgr) {
-      auto action = reinterpret_cast<RewindAction *>(&data.data);
+      auto action = reinterpret_cast<RewindAction *>(data.data.data());
       action->forward(*mgr);
     }
 
     void backward(BASE::TimeState &data, EntityManager *mgr) {
-      auto action = reinterpret_cast<RewindAction *>(&data.data);
+      auto action = reinterpret_cast<RewindAction *>(data.data.data());
       action->backward(*mgr);
     }
   public:
     ~ECSRewindManager() {
         for (auto &obj: this->timeStates) {
-            auto action = reinterpret_cast<RewindAction *>(&obj.data);
-            action->~RewindAction();
+          auto action = reinterpret_cast<RewindAction *>(obj.data.data());
+          action->~RewindAction();
         }
     }
 
