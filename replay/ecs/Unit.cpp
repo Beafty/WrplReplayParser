@@ -161,7 +161,7 @@ namespace unit {
       for (int i = 0; i < weapons.blockCount(); i++) {
           auto curr_block = weapons.getBlock(i);
 
-      if(curr_block->getBlockNameId() == WeaponSlotNid) {
+          if(curr_block->getBlockNameId() == WeaponSlotNid) {
         auto index = curr_block->getInt("index", -1);
         if (index == slot) {
             currentSlot = curr_block;

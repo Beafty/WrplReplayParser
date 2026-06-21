@@ -245,6 +245,16 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
         bs.Read(v7);
         break;
       }
+      case 8: {
+        std::vector<Point3> temp{};
+        uint32_t size;
+        bs.ReadCompressed(size);
+        temp.resize(size);
+        for (auto &v: temp) {
+          bs.Read(v);
+        }
+        break;
+      }
       default:
         EXCEPTION("");
     }
