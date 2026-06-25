@@ -164,6 +164,10 @@ struct WindowMgr {
             if (entry.is_directory()) {
                 auto rpl_path = fmt::format("{}\\0000.wrpl", entry.path().string());
                 auto rpl = new Replay(rpl_path);
+                if (!rpl->isValid()) {
+                    delete rpl;
+                    continue;
+                }
                 auto session_id = rpl->getHeader()->session_id;
                 if (rpl->is_valid && replay_session_ids.find(session_id) == replay_session_ids.end()) {
                     replay_dirs.push_back({

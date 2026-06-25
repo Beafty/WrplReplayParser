@@ -11,7 +11,7 @@ public:
 
   UnitWeaponsMask() : ReflectableObject() {
       varList.head = &dummyVarForAmmoPartsMask;
-    varList.tail = &dummyVarForAmmoPartsMask;
+      varList.tail = &dummyVarForAmmoPartsMask;
   }
 };
 

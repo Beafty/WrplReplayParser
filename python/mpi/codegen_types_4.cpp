@@ -15,8 +15,7 @@ void include_types_4(py::module &gen) {
             .def_readonly(
                 "value", &danet::ReflectionVar<danet::dummyForExitZonesSettings>::SpaceHandler::TimeState::data);
 
-    bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::dummyForExitZonesSettings>::SpaceHandler::TimeState> >(
-        gen, "danet_dummyForExitZonesSettings_ts_vector");
+    bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::dummyForExitZonesSettings>::SpaceHandler::TimeState>>(gen, "danet_dummyForExitZonesSettings_ts_vector");
 
     py::class_<danet::ReflectionVar<danet::dummyForExitZonesSettings> >(gen, "danet_dummyForExitZonesSettings_var")
             .def_readonly("data", &danet::ReflectionVar<danet::dummyForExitZonesSettings>::data)

@@ -17,11 +17,14 @@ public:
   danet::ReflectionVar<bool> dummyForBombingEvent{"dummyForBombingEvent", &dummyForUnlimitedControlEvent, 7, danet::InvalidSerializer};
   danet::ReflectionVar<bool> dummyForUnlimitedControlEvent{"dummyForUnlimitedControlEvent", &customState, 11, danet::InvalidSerializer};
   danet::ReflectionVar<DataBlock> customState{"customState", &dummyForMapTimers, 8};
-  danet::ReflectionVar<Point2> dummyForMapTimers{"dummyForMapTimers", nullptr, 15};
+  danet::ReflectionVar<Point2> dummyForMapTimers{"dummyForMapTimers", &totalDomTeam, 15};
+  danet::ReflectionVar<uint8_t> totalDomTeam{"totalDomTeam", &totalDomTime, 16};
+  danet::ReflectionVar<uint16_t> totalDomTime{"totalDomTime", &totalDomMult, 17};
+  danet::ReflectionVar<uint8_t> totalDomMult{"totalDomMult", nullptr, 18};
 
   GeneralState() : ReflectableObject()  {
     varList.head = &lastSuperArtilleryTime;
-    varList.tail = &dummyForMapTimers;
+    varList.tail = &totalDomMult;
   }
 };
 

@@ -12,8 +12,7 @@ void include_types_3(py::module &gen) {
             .def_readonly("time_ms", &danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState::time_ms)
             .def_readonly("value", &danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState::data);
 
-    bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState> >(
-        gen, "danet_CrewUnitsList_ts_vector");
+    bind_readonly_vector<dag::Vector<danet::ReflectionVar<danet::CrewUnitsList>::SpaceHandler::TimeState>>(gen, "danet_CrewUnitsList_ts_vector");
 
     py::class_<danet::ReflectionVar<danet::CrewUnitsList> >(gen, "danet_CrewUnitsList_var")
             .def_readonly("data", &danet::ReflectionVar<danet::CrewUnitsList>::data)

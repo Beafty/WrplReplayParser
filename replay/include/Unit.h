@@ -26,6 +26,10 @@ struct SpaceTime {
   }
 };
 
+#define COUNTER_MEASURES_COUNT 2
+#define SENSORS_COUNT 4
+#define TARGETS_NUM 8
+
 
 struct SensorsControlStates {
     // a bunch of this is probably a union actually
@@ -73,6 +77,13 @@ struct TargetDesignationControlState {
   bool v13;
   uint8_t v14;
   uint32_t v15;
+
+  bool deserialize(BitStream &bs);
+};
+
+struct CounterMeasuresControlState {
+  uint8_t v1;
+  uint8_t v2;
 
   bool deserialize(BitStream &bs);
 };

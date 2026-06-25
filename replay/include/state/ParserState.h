@@ -7,11 +7,13 @@
 #include "network/CNetwork.h"
 #include "mpi/ObjectDispatcher.h"
 #include "mpi/GeneralObject.h"
-#include "tracy/Tracy.hpp"
 #include "Replay/Replay.h"
 #include "mpi/PositionSync.h"
 #include "danet/delta/deltaCompression.h"
 #include "Unit.h"
+#ifndef _ECS_CODEGEN
+#include "tracy/Tracy.hpp"
+#endif
 
 struct net_delta_t {
   net::DeltaComp netDelta{5, 0xd};

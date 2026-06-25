@@ -15,7 +15,9 @@
 #include "iostream"
 #include "queue"
 #include "memory"
+#ifndef _ECS_CODEGEN
 #include "tracy/Tracy.hpp"
+#endif
 
 #include "fmt/base.h"
 #include "fmt/format.h"
@@ -407,6 +409,9 @@ public:
     std::lock_guard<std::mutex> lock(this->sink_access_mtx);
     std::shared_ptr<file_sink> f_sink = this->get_file_sink(file_name);
     this->default_sink.f_sync = f_sink;
+    for (auto &sink: this->sinks) {
+      sink->f_sync = f_sink;
+    }
   }
 };
 

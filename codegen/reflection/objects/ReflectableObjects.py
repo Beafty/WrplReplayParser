@@ -82,6 +82,9 @@ class GeneralState(ReflectableObject):
     dummyForUnlimitedControlEvent = Var("bool", 0xb, "InvalidSerializer") # TODO dummy value
     customState = Var("DataBlock", 8)
     dummyForMapTimers = Var("Point2", 15)
+    totalDomTeam = Var("uint8_t", 16)
+    totalDomTime = Var("uint16_t", 17)
+    totalDomMult = Var("uint8_t", 18)
 
 
 
