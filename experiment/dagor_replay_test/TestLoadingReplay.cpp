@@ -68,10 +68,10 @@ int main() {
   if (is_server_replay) {
     fs::path t{rpl_path_str};
     rpl = new ServerReplay(t.string());
-    rdr = rpl->getReplayReader();
+    rdr = rpl->getCompressedReplayReader();
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getReplayReader();
+    rdr = rpl->getCompressedReplayReader();
   }
   int idx;
   auto start = std::chrono::high_resolution_clock::now();
@@ -79,6 +79,7 @@ int main() {
     ParserState state{rpl};
     ReplayPacket pkt{};
     //std::exit(0);
+
     while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
     for (auto &plr: state.players) {
       auto owned_eid = *plr.ownedUnitRef.data;

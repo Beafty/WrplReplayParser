@@ -93,7 +93,7 @@ public:
   std::vector<MissionArea*> missionAreas1{};
   std::vector<MissionArea*> missionAreas2{};
 
-  int current_packet_index=0;
+  int current_packet_index = -1;
 
 
   ecs::EntityId getUnitEid(uint16_t uid);

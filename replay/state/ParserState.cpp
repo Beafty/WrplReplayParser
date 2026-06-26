@@ -58,6 +58,7 @@ ParserState::~ParserState() {
 bool ParserState::ParsePacket(ReplayPacket &pkt) {
     curr_time_ms = pkt.timestamp_ms;
     current_rewind_ms = curr_time_ms;
+    current_packet_index++;
     switch (pkt.type) {
         case ReplayPacketType::EndMarker: {
             replay_length_ms = pkt.timestamp_ms;
@@ -86,6 +87,7 @@ bool ParserState::ParsePacket(ReplayPacket &pkt) {
             break;
         }
         case ReplayPacketType::NextSegment: {
+            return true;
             //LOG("NextSegment");
             break;
         }
@@ -98,7 +100,6 @@ bool ParserState::ParsePacket(ReplayPacket &pkt) {
         case ReplayPacketType::ReplayHeaderInfo:
             break;
     }
-    current_packet_index++;
     return true;
 }
 

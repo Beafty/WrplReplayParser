@@ -36,11 +36,14 @@ void print_all_files_full_paths(const fs::path &root = fs::current_path()) {
         }
     }
 }
-
+static bool has_init = false;
 // runs basic init steps
 void initialize(const std::string &game_path, const std::string &logfile_path, bool fonts, bool lang, bool mis) {
+    if (has_init)
+        return;
+    has_init = true;
     ZoneScoped;
-  //print_all_files_full_paths();
+    //print_all_files_full_paths();
   if(!logfile_path.empty())
     g_log_handler->set_default_sink_logfile(logfile_path);
   register_default_sigsev_handler();
