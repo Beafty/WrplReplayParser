@@ -37,6 +37,7 @@ option(PARSER_ENABLE_INSPECTOR "include replay inspector in library" OFF)
 option(PARSER_ENABLE_INSPECTOR_CURL "include curl in replay inspector" OFF)
 option(PARSER_INCLUDE_EXPERIMENTING_DIRS "include /debugging and /experiment which is where I do testing bullshit" OFF)
 option(PARSER_MY_FLAGS "include my custom flags" OFF)
+option(TRACY_ENABLE "Tracy Enabled" OFF)
 
 
 # my custom ovverides
