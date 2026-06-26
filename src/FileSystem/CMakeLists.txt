@@ -9,7 +9,7 @@ add_library(FS
 
 target_link_libraries(FS
         ZSTD::ZSTD
-        Zlib::Zlib
+        ZLIB::ZLIB
         DAG_MATH::DAG_MATH
         dagBlk::dagBlk
         VROMFS::VROMFS

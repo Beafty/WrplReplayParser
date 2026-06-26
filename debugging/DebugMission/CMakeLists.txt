@@ -10,7 +10,7 @@ target_link_libraries(DebugMission
         dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
-        Zlib::Zlib
+        ZLIB::ZLIB
 )
 
 

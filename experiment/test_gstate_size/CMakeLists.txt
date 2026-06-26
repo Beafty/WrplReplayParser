@@ -14,7 +14,7 @@ target_link_libraries(test_gstate_size
         dagECS::dagECS
         INIT::INIT
         Replay::Replay
-        Zlib::Zlib
+        ZLIB::ZLIB
         # mimalloc
 
 )

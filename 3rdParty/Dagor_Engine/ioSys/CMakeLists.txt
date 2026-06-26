@@ -15,7 +15,7 @@ add_library(dagIoSys
 
 
 target_link_libraries(dagIoSys
-        Zlib::Zlib
+        ZLIB::ZLIB
         ZSTD::ZSTD
         EASTL::EASTL
         LOGGER::LOGGER

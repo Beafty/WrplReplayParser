@@ -70,15 +70,17 @@ endif ()
 
 # strips most debug symbols
 # dunno a better way to do this
-install(CODE "
-    # message(\"Executing Command ${CMAKE_STRIP} --strip-debug \\\"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/PyReplayParser/$<TARGET_FILE_NAME:PyReplayParser>\\\"\")
-    execute_process(
-        COMMAND \"${CMAKE_STRIP}\" --strip-debug \"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/PyReplayParser/$<TARGET_FILE_NAME:PyReplayParser>\"
-        RESULT_VARIABLE strip_result
-    )
-    if(NOT strip_result EQUAL 0)
-        message(FATAL_ERROR \"strip failed for PyReplayParser: \${strip_result}\")
+install(CODE [[    set(_installed_file "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/PyReplayParser/$<TARGET_FILE_NAME:PyReplayParser>")
+    if(EXISTS "${_installed_file}")
+        execute_process(
+            COMMAND "strip" --strip-debug "${_installed_file}"
+            RESULT_VARIABLE strip_result
+        )
+        if(NOT strip_result EQUAL 0)
+            message(FATAL_ERROR "strip failed for PyReplayParser: ${strip_result} on ${_installed_file} on exe ${CMAKE_STRIP}")
+        endif()
+    else()
+        message(FATAL_ERROR "strip target not found: ${_installed_file}")
     endif()
-"
-        COMPONENT PyReplayParser
-)
+]]
+        COMPONENT PyReplayParser)

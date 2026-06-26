@@ -4,6 +4,8 @@ add_executable(ReplayInspector
 )
 
 if (PARSER_ENABLE_INSPECTOR_CURL)
+
+
     target_compile_definitions(ReplayInspector PUBLIC PARSER_ENABLE_INSPECTOR_CURL=1)
 
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -17,7 +19,7 @@ if (PARSER_ENABLE_INSPECTOR_CURL)
     endif ()
 
     # set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}")
-    # set(ZLIB_LIBRARY Zlib::Zlib)
+    # set(ZLIB_LIBRARY ZLIB::ZLIB)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
     set(CURL_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
     set(CURL_NO_CURL_CMAKE ON)
@@ -33,6 +35,8 @@ if (PARSER_ENABLE_INSPECTOR_CURL)
     # Optional: trim features you may not need
     set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
     set(CURL_USE_LIBSSH2 OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_INSTALL OFF CACHE BOOL "" FORCE)
+    set(CURL_ZLIB OFF CACHE BOOL "" FORCE)
     set(USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
     set(USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
     set(CURL_ZSTD OFF CACHE BOOL "" FORCE)
@@ -54,7 +58,7 @@ target_link_libraries(ReplayInspector PUBLIC
         SDL2::SDL2-static
         INIT::INIT
         imgui
-        Zlib::Zlib
+        ZLIB::ZLIB
         LOGGER::LOGGER
         fmt::fmt
         BS::BS

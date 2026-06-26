@@ -370,13 +370,18 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(PIC_ALWAYS TRUE)
     set(BUILD_DWARFDUMP FALSE)
+    set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
     FetchContent_Declare(
       libdwarf
       GIT_REPOSITORY ${CPPTRACE_LIBDWARF_REPO}
       GIT_TAG ${CPPTRACE_LIBDWARF_TAG}
       GIT_SHALLOW ${CPPTRACE_LIBDWARF_SHALLOW}
+            PATCH_COMMAND ${CMAKE_COMMAND} -P "${BASE_DIR}/cmake/patches/patch_libdwarf.cmake"
+
     )
     FetchContent_MakeAvailable(libdwarf)
+    # Include zlib in libdwarf's export set to satisfy the export() call in libdwarf
+
     target_include_directories(
       dwarf
       PRIVATE
