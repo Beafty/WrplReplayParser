@@ -265,6 +265,8 @@ public:
     /// Read data from input stream; returns read size; doesn't generate exception
     inline bool readExact(void *ptr, int size) {
         int rd_part = tryRead(ptr, size);
+        if (rd_part == -1)
+            return false;
         int rd = 0;
         for (rd = rd_part; rd_part && rd < size; rd += rd_part)
             rd_part = tryRead(rd + (char *) ptr, size - rd);

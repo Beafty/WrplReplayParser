@@ -515,6 +515,9 @@ int32_t zng_inflate(zng_stream *strm, int32_t flush);
   recovery of the data is to be attempted.
 */
 
+typedef unsigned (*in_fetch_func)(void *handle, zng_stream *strm);
+
+Z_EXTERN int Z_EXPORT inflateEx(zng_stream *strm, int flush, in_fetch_func in, void *handle);
 
 Z_EXTERN Z_EXPORT
 int32_t zng_inflateEnd(zng_stream *strm);

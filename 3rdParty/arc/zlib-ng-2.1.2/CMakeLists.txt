@@ -1053,22 +1053,10 @@ if (NOT DEFINED BUILD_SHARED_LIBS OR BUILD_SHARED_LIBS)
     set(ZLIB_DLL_SRCS win32/zlib${SUFFIX}1.rc)
 endif ()
 
-if (NOT DEFINED BUILD_SHARED_LIBS)
-    add_library(zlib SHARED ${ZLIB_ALL_SRCS} ${ZLIB_DLL_SRCS})
-    add_library(zlibstatic STATIC ${ZLIB_ALL_SRCS})
+add_library(zlib SHARED ${ZLIB_ALL_SRCS} ${ZLIB_DLL_SRCS})
+add_library(zlibstatic STATIC ${ZLIB_ALL_SRCS})
 
-    set(ZLIB_INSTALL_LIBRARIES zlib zlibstatic)
-else ()
-    add_library(zlib ${ZLIB_ALL_SRCS})
-
-    if (BUILD_SHARED_LIBS)
-        target_sources(zlib PRIVATE ${ZLIB_DLL_SRCS})
-    else ()
-        add_library(zlibstatic ALIAS zlib)
-    endif ()
-
-    set(ZLIB_INSTALL_LIBRARIES zlib)
-endif ()
+set(ZLIB_INSTALL_LIBRARIES zlib zlibstatic)
 
 foreach (ZLIB_INSTALL_LIBRARY ${ZLIB_INSTALL_LIBRARIES})
     if (NOT ZLIB_COMPAT)

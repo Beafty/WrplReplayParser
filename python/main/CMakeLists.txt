@@ -25,13 +25,13 @@ pybind11_add_module(PyReplayParser
         # ecs.cpp
         main.cpp
 )
-
 target_link_libraries(PyReplayParser PRIVATE
-        pybind11::module
+        ZLIB::ZLIB
         Python::Python
         PyReplay::PyReplay
         PyState::PyState
         PyECS::PyECS
+        pybind11::module
 )
 
 target_include_directories(PyReplayParser PRIVATE

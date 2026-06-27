@@ -15,8 +15,10 @@ add_library(dagIoSys
 
 
 target_link_libraries(dagIoSys
+        PRIVATE
         ZLIB::ZLIB
         ZSTD::ZSTD
+        PUBLIC
         EASTL::EASTL
         LOGGER::LOGGER
         FS::FS
