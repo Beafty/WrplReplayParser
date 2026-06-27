@@ -1,6 +1,4 @@
-
-
-
+include(FetchContent)
 add_subdirectory(arc)
 add_subdirectory(eastl)
 # add_subdirectory(openssl-3.x)
@@ -10,7 +8,9 @@ add_subdirectory(hash)
 add_subdirectory(enet)
 add_subdirectory(fmt-12.1.0)
 add_subdirectory(Dagor_Engine)
-add_subdirectory(hello_imgui)
+if (PARSER_ENABLE_INSPECTOR) # imgui only needed for inspector
+    add_subdirectory(imgui)
+endif ()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
     find_library(UNWIND_LIB unwind)
@@ -21,7 +21,9 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     # set(LZMA_LIB /usr/lib/x86_64-linux-gnu/liblzma.a)
     set(CPPTRACE_UNWIND_WITH_LIBUNWIND ON)
 endif ()
+set(CMAKE_SKIP_INSTALL_RULES ON CACHE BOOL "" FORCE)
 add_subdirectory(cpptrace-1.0.4)
+set(CMAKE_SKIP_INSTALL_RULES OFF CACHE BOOL "" FORCE)
 add_subdirectory(signal_tracer)
 add_subdirectory(compile-time-regular-expressions-3.10.0)
 add_subdirectory(tracy)

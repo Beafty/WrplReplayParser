@@ -6,7 +6,6 @@
 #include <cassert>
 
 CREATE_HANDLE(handle_cnet, "CNetwork")
-std::string packet_names[]{"End", "Start", "Aircraft", "Chat", "MPI", "NextSegment", "ECS", "Snapshot", "ECS_Msg_Sync"};
 namespace net
 {
 #define MAX_COMPRESSION_RATIO 8 // bound to avoid overcommit memory on decompression
@@ -23,7 +22,7 @@ namespace net
     outbs.reserveBits(BYTES_TO_BITS(maxOutputSize));
     int readedSize = LZ4_decompress_safe((const char *) bs.GetData() + BITS_TO_BYTES(bs.GetReadOffset()),
                                          (char *) outbs.GetData(),
-                                         compressedSize, maxOutputSize);
+                                         (int) compressedSize, (int) maxOutputSize);
     if (readedSize <= 0)
       return false;
 

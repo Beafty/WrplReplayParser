@@ -12,10 +12,9 @@ add_library(MPI STATIC
 
 target_link_libraries(MPI
         FieldSerializer::FieldSerializer
-        BLK::BLK
         FS::FS
         VROMFS::VROMFS
-        BLK::BLK
+        dagBlk::dagBlk
         # REGEX::REGEX
         XXH3
         NET::NET

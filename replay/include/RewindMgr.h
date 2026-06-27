@@ -15,10 +15,12 @@ public:
     struct TimeState {
         uint32_t time_ms;
         T data;
+
+        bool operator==(const TimeState &) const = default;
     };
 
 protected:
-    std::vector<TimeState> timeStates;
+    dag::Vector<TimeState> timeStates;
     uint32_t curr_index = 0;
 
     inline uint32_t getTime(int index) {
@@ -41,7 +43,7 @@ protected:
                                          [](uint32_t val, const TimeState &data) {
                                              return val < data.time_ms;
                                          });
-            curr_index = std::distance(this->timeStates.begin(), iter);
+            curr_index = (uint32_t) std::distance(this->timeStates.begin(), iter);
             self().forward(timeStates[curr_index - 1], std::forward<Args>(args)...);
             return timeStates[curr_index - 1];
         } else {
@@ -50,7 +52,7 @@ protected:
                                              return data.time_ms < val;
                                          });
 
-            curr_index = std::distance(this->timeStates.begin(), iter);
+            curr_index = (uint32_t) std::distance(this->timeStates.begin(), iter);
             auto use_idx = curr_index;
             if (iter != timeStates.begin() && !(iter->time_ms <= time_ms)) {
                 use_idx--;
@@ -81,8 +83,8 @@ protected:
     }
 
 public:
-    const dag::Vector<const TimeState> &getStates() {
-        return timeStates;
+    const dag::Vector<TimeState> &getStates() const {
+        return this->timeStates;
     }
 
     template<typename... Args>

@@ -1,3 +1,4 @@
+#include "math/dag_TMatrix.h"
 #include "mpi/codegen/ReflIncludes.h"
 #include "state/ParserState.h"
 
@@ -15,7 +16,7 @@ MissionZone* create_zone(BitStream &bs, uint8_t zone_type, ParserState * state) 
   G_ASSERT(serializer255.readFieldsIndex(bs));
   auto local_44 = bs.GetReadOffset();
   //LOGE("Creating Zone");
-  uint8_t zone_id;
+  uint8_t zone_id = 0;
   uint8_t maybe_team_id;
   uint32_t mission_area_id;
   uint16_t some_val_2;
@@ -60,6 +61,9 @@ MissionZone* create_zone(BitStream &bs, uint8_t zone_type, ParserState * state) 
       case 4: {obj = new PickupZone(); break;}
       default:
         EXCEPTION("Invalid Zone id: {}", zone_type);
+    }
+    if (mission_area_id >= state->missionAreas1.size()) {
+      state->missionAreas1.resize(mission_area_id + 1, nullptr);
     }
     auto area = state->missionAreas1[mission_area_id];
     if (area == nullptr) {
@@ -241,6 +245,16 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
         bs.Read(v7);
         break;
       }
+      case 8: {
+        std::vector<Point3> temp{};
+        uint32_t size;
+        bs.ReadCompressed(size);
+        temp.resize(size);
+        for (auto &v: temp) {
+          bs.Read(v);
+        }
+        break;
+      }
       default:
         EXCEPTION("");
     }
@@ -256,8 +270,10 @@ danet::ReplicatedObject * MissionArea::createReplicatedObject(BitStream &bs, Par
   if(index >= state->missionAreas1.size()) {
     state->missionAreas1.resize(index+1, nullptr);
   }
-  G_ASSERT(state->missionAreas1[index] == nullptr);
   state->missionAreas1[index] = x;
+  if (state->missionAreas2[idx]) {
+    delete state->missionAreas2[idx];
+  }
   state->missionAreas2[idx] = x;
   REPLICATION_LOGD2("Parsing Replicated MissionArea");
   return nullptr;

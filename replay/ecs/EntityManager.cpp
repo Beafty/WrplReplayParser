@@ -101,14 +101,14 @@ namespace ecs {
     if (curr_time < time_ms) {
       auto iter = std::upper_bound(actions.begin() + curr_index, actions.end(), time_ms,
                                    [](uint32_t val, const ACTION_ARRAY_CONTAINER &data) {
-                                     auto action = (RewindAction *) &data;
+                                     auto action = (RewindAction *) data.data();
                                      return val < action->time_ms;
                                    });
       test_size = std::distance(actions.begin(), iter);
     } else {
       auto iter = std::lower_bound(actions.begin(), actions.begin() + curr_index, time_ms,
                                    [](const ACTION_ARRAY_CONTAINER &data, uint32_t val) {
-                                     auto action = (RewindAction *) &data;
+                                     auto action = (RewindAction *) data.data();
                                      return action->time_ms < val;
                                    });
       test_size = std::distance(actions.begin(), iter);
@@ -148,9 +148,6 @@ namespace ecs {
     this->owned_by = owned_by;
     this->curr_time_ms = &owned_by->curr_time_ms;
     // componentTypes and dataComponents initalzied in initialize() in /init/initialze.h
-    for (auto &eid: this->uid_lookup) {
-      eid = ecs::INVALID_ENTITY_ID;
-    }
     wasInit.resize(10000, false);
   }
 
@@ -210,8 +207,8 @@ namespace ecs {
       std::shared_lock arch_lock(this->data_state->archetypes.archetypes_mtx);
       std::shared_lock templ_lock(this->data_state->templates.template_mtx);
       G_ASSERTF(instTempl, "Template {} not initialized", data_state->getTemplateName(templId));
-      ENTITY_LOGD2("Creating new entity {:#x} of template '{}'", eid.handle,
-            data_state->templates.getTemplate(templId)->getName());
+      ENTITY_LOGD2("Creating new entity {:#x} of template '{}' at {}", eid.handle,
+                   data_state->templates.getTemplate(templId)->getName(), ((double) *this->curr_time_ms) / 1000);
       auto arches = &this->data_state->archetypes;
 
       auto arch_inst = this->arch_data.getArch(archetype_id);
@@ -602,23 +599,6 @@ namespace ecs {
 
   void EntityManager::broadcastEventImmediate(Event &&evt) {
     return broadcastEventImmediate(evt);
-  }
-
-  ecs::EntityId EntityManager::getUnitEid(uint16_t uid) {
-    uid &= 0x7FF;
-    if (uid == 0x7FF) {
-      return INVALID_ENTITY_ID;
-    }
-    return this->uid_lookup[uid];
-  }
-
-  unit::Unit * EntityManager::getUnitObj(uint16_t uid) {
-    uid &= 0x7FF;
-    if (uid == 0x7FF) {
-      return nullptr;
-    }
-    return this->uid_unit_lookup[uid];
-
   }
 
   void

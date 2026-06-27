@@ -16,6 +16,43 @@ DEFINE_HANDLE(handle_object_dispatcher)
 struct ParserState;
 namespace mpi
 {
+  enum QueuePacketTypes {
+    MPI = 0x10000000,
+    REFL = 0x20000000,
+  };
+
+  class MpiQueueObject : public danet::ReflectableObject {
+    struct QueueData {
+      ObjectID oid;
+      ObjectExtUID extUid;
+      BitStream bs;
+    };
+
+    std::unordered_map<ecs::EntityId, std::vector<QueueData> > dispatched_objects;
+
+    Message *dispatchMpiMessage(MessageID mid) override;
+
+    void applyMpiMessage(const Message *m) override;
+
+    bool deserialize(BitStream &bs, int data_size, ParserState *state) override;
+
+    friend ParserState;
+
+  public:
+    DECL_REFLECTION(MpiQueueObject, danet::ReflectableObject)
+
+    ~MpiQueueObject() override = default;
+
+    void set_oid_ext_uid(ObjectID oid, ObjectExtUID extUid) {
+      this->mpiObjectUID = oid;
+      this->mpiObjectExtUID = extUid;
+    }
+
+    // put here purely to make friending easier
+    static IObject *UnitRef_Dispatch(ObjectID oid, ObjectExtUID extUid, ParserState *state, bool do_queue);
+  };
+
+
   IObject * ObjectDispatcher(ObjectID oid, ObjectExtUID extUid,  ParserState*state);
 
 }

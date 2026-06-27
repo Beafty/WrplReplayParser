@@ -10,8 +10,6 @@
 #include <algorithm>
 #include "state/ParserState.h"
 
-#define debug(...) logmessage(_MAKE4C('DNET'), __VA_ARGS__)
-
 #define DEBUG_BORDERS_REFLECTION  0
 #define DEBUG_BORDERS_REPLICATION 0
 
@@ -342,7 +340,9 @@ namespace danet
       BitSize_t ppp = bs.GetReadOffset();
       if (!v)
       {
-        idFieldSerializer.skipReadingField(j, bs); // skip
+          REPLICATION_LOGD1("(REFLECTION) can't find var with id {} in obj {} (type = '{}'), skip it",
+                            idFieldSerializer.getFieldId(j), fmt::ptr(this), getClassName());
+          idFieldSerializer.skipReadingField(j, bs); // skip
 
         continue;
       }
@@ -388,7 +388,6 @@ namespace danet
 
     return ret;
   }
-
   int deserializeReflectables(BitStream &bs, mpi::object_dispatcher resolver, ParserState *state)
   {
     G_ASSERT(resolver);

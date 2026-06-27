@@ -19,10 +19,10 @@ add_library(dagECS
 
 target_link_libraries(dagECS
         FieldSerializer::FieldSerializer
-        BLK::BLK
+        dagBlk::dagBlk
         FS::FS
         VROMFS::VROMFS
-        BLK::BLK
+        dagBlk::dagBlk
         # REGEX::REGEX
         XXH3
         NET::NET

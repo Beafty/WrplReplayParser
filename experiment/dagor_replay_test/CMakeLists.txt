@@ -5,8 +5,8 @@ target_link_libraries(dagor_rpl_test
         LOGGER::LOGGER
         fmt::fmt
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         FieldSerializer::FieldSerializer
@@ -14,7 +14,8 @@ target_link_libraries(dagor_rpl_test
         dagECS::dagECS
         INIT::INIT
         Replay::Replay
-        Zlib::Zlib
+        ZLIB::ZLIB
+        ParserState::ParserState
         # mimalloc
 
 )

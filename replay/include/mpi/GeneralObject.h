@@ -9,7 +9,8 @@ namespace mpi {
   struct GeneralObject : public IObject {
     ParserState *state;
     GeneralObject(ParserState *state) : IObject(0x5802) { this->state=state;}
-    enum MainEnum {
+
+    enum MainEnum: uint16_t {
       SevereDamage = 0xf157,
       CriticalDamage = 0xf056,
       Kill = 0xf058,
@@ -22,10 +23,22 @@ namespace mpi {
       ACTUALLY_NOT_REFLECTION = 0xd137,
       Tank1 = 0xf073,
       Tank2 = 0xf074,
+      Rocket1 = 0xf11a,
+      Rocket2 = 0xf0db,
     };
     Message *dispatchMpiMessage(MessageID mid) override;
     void applyMpiMessage(const Message *m) override;
     ~GeneralObject() override = default;
+  };
+
+  class BSMessage : public Message {
+  public:
+      BSMessage(IObject *o, MessageID mid) : Message(o, mid) {
+      }
+
+      BitStream data{};
+      bool readPayload(ParserState *state) override { return this->payload.Read(data); };
+      void writePayload() override { this->payload.Write(data); };
   };
 
   class TankMessage: public Message {

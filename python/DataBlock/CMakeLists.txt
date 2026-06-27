@@ -3,7 +3,7 @@ add_library(PyDataBlock DataBlock.cpp)
 target_link_libraries(PyDataBlock;
         pybind11::module
         Python::Python
-        BLK::BLK
+        dagBlk::dagBlk
 )
 
 add_library(PyDataBlock::PyDataBlock ALIAS PyDataBlock)

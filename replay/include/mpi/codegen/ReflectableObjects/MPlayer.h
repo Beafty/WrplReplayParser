@@ -52,10 +52,11 @@ public:
   danet::ReflectionVar<std::string> nickFrame{"nickFrame", &missionSupportUnitRef, 45};
   danet::ReflectionVar<ecs::EntityId> missionSupportUnitRef{"missionSupportUnitRef", &missionSupportUnitEnabled, 46};
   danet::ReflectionVar<bool> missionSupportUnitEnabled{"missionSupportUnitEnabled", &rageTokens, 47};
-  danet::ReflectionVar<uint16_t> rageTokens{"rageTokens", nullptr, 48};
+  danet::ReflectionVar<uint16_t> rageTokens{"rageTokens", &numFreeSpareUsed, 48};
+  danet::ReflectionVar<uint32_t> numFreeSpareUsed{"numFreeSpareUsed", nullptr, 50};
   MPlayer() : ReflectableObject()  {
     varList.head = &uid;
-    varList.tail = &rageTokens;
+    varList.tail = &numFreeSpareUsed;
   }
 };
 

@@ -47,23 +47,12 @@ namespace danet {
   int DataBlockCoder(DANET_ENCODER_SIGNATURE) {
     auto data = meta->getValue<DataBlock>();
     if (op == DANET_REFLECTION_OP_ENCODE) {
-      EXCEPTION("DataBlock packing is unsupported for ");
-      return true;
+        bs->Write(*(data));
+        return true;
     }
     else if (op == DANET_REFLECTION_OP_DECODE) {
-
-      uint32_t size;
-      REPL_VER(bs->ReadCompressed(size));
-      if (size > 0)
-      {
-        std::vector<char> raw;
-        raw.resize(size);
-        bs->AlignReadToByteBoundary();
-        REPL_VER(bs->ReadArray(raw.data(), size));
-        BaseReader rdr{raw.data(), (int)raw.size(), false};
-        REPL_VER(data->loadFromStream(rdr, nullptr, nullptr));
-      }
-      return true;
+        REPL_VER(bs->Read(*(data)));
+        return true;
     }
     return false;
   }
@@ -442,6 +431,18 @@ namespace danet {
     return false;
   }
 
+  int Point2Coder(DANET_ENCODER_SIGNATURE) {
+      auto data = meta->getValue<Point2>();
+      if (op == DANET_REFLECTION_OP_ENCODE) {
+          bs->Write(*(data));
+          return true;
+      } else if (op == DANET_REFLECTION_OP_DECODE) {
+          REPL_VER(bs->Read(*(data)));
+          return true;
+      }
+      return false;
+  }
+
   int AreaFlagsEnumCoder(DANET_ENCODER_SIGNATURE) {
     auto data = meta->getValue<danet::AreaFlagsEnum>();
     if (op == DANET_REFLECTION_OP_ENCODE) {
@@ -510,5 +511,57 @@ namespace danet {
       return true;
     }
     return false;
+  }
+
+  int stdstring_2arrayCoder(DANET_ENCODER_SIGNATURE) {
+      auto data = meta->getValue<std::array<std::string, 2> >();
+      if (op == DANET_REFLECTION_OP_ENCODE) {
+          for (auto &v: *(data)) {
+              bs->Write(v);
+          }
+          return true;
+      } else if (op == DANET_REFLECTION_OP_DECODE) {
+          for (auto &v: *(data)) {
+              REPL_VER(bs->Read(v));
+          }
+          return true;
+      }
+      return false;
+  }
+
+  int dummyForDeathInfoCoder(DANET_ENCODER_SIGNATURE) {
+      auto data = meta->getValue<danet::dummyForDeathInfo>();
+      if (op == DANET_REFLECTION_OP_ENCODE) {
+          bs->Write(data->v1);
+          bs->Write(data->v2);
+          bs->Write(data->v3);
+          bs->Write(data->v4);
+          bs->Write(data->v5);
+          return true;
+      } else if (op == DANET_REFLECTION_OP_DECODE) {
+          REPL_VER(bs->Read(data->v1));
+          REPL_VER(bs->Read(data->v2));
+          REPL_VER(bs->Read(data->v3));
+          REPL_VER(bs->Read(data->v4));
+          REPL_VER(bs->Read(data->v5));
+          return true;
+      }
+      return false;
+  }
+
+  int KillerStructCoder(DANET_ENCODER_SIGNATURE) {
+      auto data = meta->getValue<danet::KillerStruct>();
+      if (op == DANET_REFLECTION_OP_ENCODE) {
+          bs->Write(data->player_id);
+          bs->Write(data->uid);
+          bs->Write(data->vehicle);
+          return true;
+      } else if (op == DANET_REFLECTION_OP_DECODE) {
+          REPL_VER(bs->Read(data->player_id));
+          REPL_VER(bs->Read(data->uid));
+          REPL_VER(bs->Read(data->vehicle));
+          return true;
+      }
+      return false;
   }
 }

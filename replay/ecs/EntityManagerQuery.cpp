@@ -24,19 +24,6 @@ inline bool tokenize_const_string(std::string_view str, const char *delim, Cb cb
   return true;
 }
 
-template<class V, typename = typename V::allocator_type>
-inline constexpr void clear_and_shrink(V &v) {
-  v = V(v.get_allocator());
-}
-
-template<class V, typename T = typename V::value_type>
-inline constexpr void clear_and_resize(V &v, uint32_t sz) {
-  if (sz == v.size())
-    return;
-  v.clear();
-  v.resize(sz);
-}
-
 template<class MarkContainer, class ListContainer, class EdgeContainer, typename LoopDetected>
 static bool
 visit_top_sort(int node, const EdgeContainer &edges, MarkContainer &temp, MarkContainer &perm, ListContainer &result,
@@ -700,9 +687,9 @@ namespace ecs {
       int graphNodesCount = 0;
       std::vector<edge_container_t> edgesFrom;
       auto insertEdge = [&edgesFrom](int from, int to) {
-        if (edgesFrom.size() <= max(from, to))
-          edgesFrom.resize(max(from, to) + 1);
-        edgesFrom[from].push_back(to);
+          if (edgesFrom.size() <= std::max(from, to))
+              edgesFrom.resize(std::max(from, to) + 1);
+          edgesFrom[from].push_back(to);
       };
 // build graph from esOrder (list of sync points)
       if (esOrder.size()) {

@@ -7,8 +7,8 @@ target_link_libraries(TemplateViewer PRIVATE
         LOGGER::LOGGER
         fmt::fmt
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         FieldSerializer::FieldSerializer

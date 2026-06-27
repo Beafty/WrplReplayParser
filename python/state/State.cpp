@@ -57,6 +57,8 @@ void PyReplayState::include(py::module_ &m) {
       .def(py::init<Replay *>())
       .def(py::init<ServerReplay *>())
       .def_readonly("mgr", &ParserState::g_entity_mgr)
+      .def("getUnitEid", &ParserState::getUnitEid, py::arg("uid"))
+      .def("getUnitRef", &ParserState::getUnitObj, py::arg("uid"))
       .def_readonly("players", &ParserState::players)
       .def_readonly("teams", &ParserState::teams)
       .def_readonly("gen_state", &ParserState::gen_state)
@@ -79,37 +81,38 @@ void PyReplayState::include(py::module_ &m) {
         py::gil_scoped_release release;
         std::exception_ptr eptr;
         std::thread temp_t(
-          [&]() {
+            [&]() {
             // this is done purely so python signal handler doesn't come into play and so my signal handler dumps stacktrace
             // although, this does make exception handling more complicated (python cant handle exceptions thrown from another thread
             ReplayPacket pkt{};
             bool cont = true;
             if (func) {
-              py::gil_scoped_acquire gil;
-              try {
-                while (cont && rdr.getNextPacket(pkt)) {
-                  BitSize_t start_offs = pkt.stream.GetReadOffset();
-                  cont = state.ParsePacket(pkt);
-                  pkt.stream.SetReadOffset(start_offs);
-                  func(&pkt);
+                py::gil_scoped_acquire gil;
+                try {
+                    while (cont && rdr.getNextPacket(pkt)) {
+                        BitSize_t start_offs = pkt.stream.GetReadOffset();
+                        cont = state.ParsePacket(pkt);
+                        pkt.stream.SetReadOffset(start_offs);
+                        func(&pkt);
+                    }
+                } catch (py::error_already_set &e) {
+                    eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
+                } catch (ExceptionException &e) {
+                    eptr = std::current_exception();
+                } catch (AssertException &e) {
+                    eptr = std::current_exception();
                 }
-              } catch (py::error_already_set &e) {
-                eptr = std::current_exception(); // catches python exception and rethrows it outside the thread
-              } catch (ExceptionException &e) {
-                eptr = std::current_exception();
-              } catch (AssertException &e) {
-                eptr = std::current_exception();
-              }
             } else {
-              try {
-                while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
-              } catch (ExceptionException &e) {
-                eptr = std::current_exception();
-              } catch (AssertException &e) {
-                eptr = std::current_exception();
-              }
+                try {
+                    while (rdr.getNextPacket(pkt) && state.ParsePacket(pkt));
+                } catch (ExceptionException &e) {
+                    eptr = std::current_exception();
+                } catch (AssertException &e) {
+                    eptr = std::current_exception();
+                }
             }
-          });
+        }
+        );
         temp_t.join();
         // this is only done for debugging purposes currently, for whatever reason python catches segfaults only if they occur within the current thread
         if (eptr) {

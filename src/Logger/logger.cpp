@@ -1,7 +1,7 @@
 #include "fmt/base.h"
 #include "Logger.h"
 #include "thread"
-#include "DataBlock.h"
+#include "ioSys/dag_dataBlock.h"
 #include <chrono>
 OnDemandInit<log_handler> g_log_handler;
 LoggerSinkRegister* LoggerSinkRegister::tail = nullptr;
@@ -12,24 +12,33 @@ file_sink::~file_sink() {
     g_log_handler->remove_file_sink(this->file_sink_path);
 }
 
-uint64_t get_current_time_ms() {
-  auto now = std::chrono::system_clock::now();
+
+uint64_t get_time_ms() {
+    auto now = std::chrono::system_clock::now();
   auto duration = now.time_since_epoch();
   return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+}
+
+uint64_t start_time_ms = get_time_ms();
+
+uint64_t get_current_time_ms() {
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() - start_time_ms;
 }
 
 void log_ext(const std::string &func, int line, sink_handle_t sink, LOGLEVEL level, std::string &&message) {
   g_log_handler->add_logmessage(fmt::format("{}({}): {}", func, line, message), level, sink);
 }
 
-void log_handler::loadSinkFromDataBlock(DataBlock &blk) {
-  for(int i = 0; i < blk.paramCount(); i++) {
-    auto p = blk.getParam(i);
-    if(p->type == DataBlock::TYPE_INT) {
-      auto v = p->data.i;
-      auto n = std::string(p->getName());
-      this->add_sink(n, true, true, (DEBUG_LEVEL)v);
-    }
+void log_handler::loadSinkFromDataBlock(const DataBlock &blk) {
+    for(int i = 0; i < blk.paramCount(); i++) {
+        auto p_type = blk.getParamType(i);
+        if (p_type == DataBlock::TYPE_INT) {
+            auto v = blk.getInt(i);
+            auto n = blk.getParamName(i);
+            this->add_sink(n, true, true, (DEBUG_LEVEL)v);
+        }
   }
   for(auto next = LoggerSinkRegister::tail; next != nullptr; next = next->next) {
     std::string n(next->name);

@@ -20,7 +20,7 @@ struct IMemAlloc {
   }
 
   void *allocAligned(size_t n, size_t al) {
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
     return aligned_alloc(n, al);
 #else
     return _aligned_malloc(n, al);

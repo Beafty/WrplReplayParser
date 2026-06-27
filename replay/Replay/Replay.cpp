@@ -5,17 +5,22 @@
 #include "zlib.h"
 #include "danet/daNetTypes.h"
 
+std::string packet_names[]{"End", "Start", "Aircraft", "Chat", "MPI", "NextSegment", "ECS", "Snapshot", "ECS_Msg_Sync"};
 
 namespace fs = std::filesystem;
 
 
 IReplayReader *Replay::getReplayReader() {
+  if (!this->isValid())
+    EXCEPTION("Invalid Replay: {}", this->Data.getFileName());
   return new FullDecompressReplayReader{*this};
 }
 
 IReplayReader *Replay::getCompressedReplayReader() {
+  if (!this->isValid())
+    EXCEPTION("Invalid Replay: {}", this->Data.getFileName());
   auto data = getData();
-  auto rdr = new BaseReader((char*)data.data(), (int)data.size(), false);
+  IBaseLoad *rdr = new InPlaceMemLoadCB((char *) data.data(), (int) data.size());
   return new CompressedReplayReader{*this, rdr, data.size()};
 }
 
@@ -42,13 +47,19 @@ void Replay::FileReplayData::afterParse() {
 
 bool Replay::FileReplayData::ReadInto(uint8_t *data, size_t count, size_t offs) {
   this->reader.seekto((int)offs);
-  return this->reader.read(data, (int)count);
+  return this->reader.tryRead(data, (int) count) == count;
 }
 
 int Replay::FileReplayData::getRemainingSize(size_t from_offs) {
-  auto sz = this->reader.getSize();
+  auto sz = this->reader.getTargetDataSize();
   if(from_offs >= sz) return -1;
   return (int)(sz - from_offs);
+}
+
+const char *Replay::FileReplayData::file_name() {
+  if (!this->reader.fileHandle)
+    return "<INVALID FILE HANDLE>";
+  return this->reader.fileHandle->getIndex()->getName().c_str();
 }
 
 bool Replay::InMemoryReplayData::ReadInto(uint8_t *ptr, size_t count, size_t offs) {
@@ -80,10 +91,29 @@ Replay::Replay(const std::string &replay_path) {
   load();
 }
 
+ReplayHeader *Replay::getHeader() {
+  if (is_valid)
+    return &header;
+  return nullptr;
+}
+
+DataBlock *Replay::getHeaderBlk() {
+  if (is_valid)
+    return &header_blk;
+  return nullptr;
+}
+
+DataBlock *Replay::getFooterBlk() {
+  if (is_valid)
+    return &footer_blk;
+  return nullptr;
+}
+
 #define BAD_REPLAY(conditional) {if(!(conditional)) {is_valid=false; return;}}
 
 void Replay::load() {
   auto file_size = this->Data.getRemainingSize(0);
+  BAD_REPLAY(file_size != -1);
   BAD_REPLAY(this->Data.ReadInto(this->header, 0));
   BAD_REPLAY(this->header.header == 0x1000ace5);
   BAD_REPLAY(this->header.magic == CURR_MAGIC);
@@ -93,8 +123,8 @@ void Replay::load() {
     std::vector<uint8_t> header_bytes{};
     header_bytes.resize(this->header.settings_blk_size);
     BAD_REPLAY(this->Data.ReadInto(header_bytes.data(), header_bytes.size(), sizeof(ReplayHeader)));
-    BaseReader rdr{(char*)header_bytes.data(), (int)header_bytes.size(), false};
-    BAD_REPLAY(this->header_blk.loadFromStream(rdr, nullptr, nullptr));
+    InPlaceMemLoadCB rdr{(char *) header_bytes.data(), (int) header_bytes.size()};
+    BAD_REPLAY(this->header_blk.loadFromStream(rdr, nullptr));
   }
 
   if(this->header.footer_blk_offset) {
@@ -106,21 +136,23 @@ void Replay::load() {
     footer_bytes.resize(remainingSize);
 
     BAD_REPLAY(this->Data.ReadInto(footer_bytes.data(), footer_bytes.size(), this->header.footer_blk_offset));
-    BaseReader rdr{(char*)footer_bytes.data(), (int)footer_bytes.size(), false};
-    BAD_REPLAY(this->footer_blk.loadFromStream(rdr, nullptr, nullptr));
+    InPlaceMemLoadCB rdr{(char *) footer_bytes.data(), (int) footer_bytes.size()};
+    BAD_REPLAY(this->footer_blk.loadFromStream(rdr, nullptr));
   } else {
     zlib_size = file_size - zlib_offs;
   }
 }
 
-IReplayReader *Replay::getStreamingReplayReader(uint32_t time_wait) {
-  G_ASSERT(Data.type() == File);
-  auto d = Data.asType<FileReplayData>();
+//IReplayReader *Replay::getStreamingReplayReader(uint32_t time_wait) {
+//  if (!this->isValid())
+//    EXCEPTION("Invalid Replay: {}", this->Data.getFileName());
+//  G_ASSERT(Data.type() == File);
+//  auto d = Data.asType<FileReplayData>();
 
-  auto *rdr = new FileStreamReader(d->reader.getFName(), time_wait);
-  rdr->seekto(this->zlib_offs);
-  return new CompressedReplayReader{*this, rdr, 0x7FFFFFFF, false};
-}
+//  auto *rdr = new FileStreamReader(d->reader.getFName(), time_wait);
+//  rdr->seekto(this->zlib_offs);
+//  return new CompressedReplayReader{*this, rdr, 0x7FFFFFFF, false};
+//}
 
 ServerReplay::ServerReplay(std::vector<std::span<uint8_t>> &data, bool owns) {
   for(auto & d : data) {
@@ -131,7 +163,7 @@ ServerReplay::ServerReplay(std::vector<std::span<uint8_t>> &data, bool owns) {
 DataBlock *ServerReplay::getFooterBlk() {
   for(size_t i = this->replay_files.size(); i > 0; --i) {
     auto &blk = this->replay_files[i-1]->footer_blk;
-    if(!blk.empty())
+    if (!blk.isEmpty())
       return &blk;
   }
   return nullptr;

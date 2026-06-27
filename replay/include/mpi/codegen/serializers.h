@@ -49,6 +49,8 @@ namespace danet {
 
   int WeatherEffectsCoder(DANET_ENCODER_SIGNATURE);
 
+  int Point2Coder(DANET_ENCODER_SIGNATURE);
+
   int AreaFlagsEnumCoder(DANET_ENCODER_SIGNATURE);
 
   int int8_tCoder(DANET_ENCODER_SIGNATURE);
@@ -56,6 +58,12 @@ namespace danet {
   int danetUnitId_uint8_tvectorCoder(DANET_ENCODER_SIGNATURE);
 
   int danetUnitIdStruct_uint8_tvectorCoder(DANET_ENCODER_SIGNATURE);
+
+  int stdstring_2arrayCoder(DANET_ENCODER_SIGNATURE);
+
+  int dummyForDeathInfoCoder(DANET_ENCODER_SIGNATURE);
+
+  int KillerStructCoder(DANET_ENCODER_SIGNATURE);
 
 
   template <>
@@ -168,6 +176,11 @@ namespace danet {
     static constexpr reflection_var_encoder coder = WeatherEffectsCoder;
   };
 
+  template<>
+  struct DefaultEncoderChooser<Point2> {
+      static constexpr reflection_var_encoder coder = Point2Coder;
+  };
+
   template <>
   struct DefaultEncoderChooser<danet::AreaFlagsEnum> {
     static constexpr reflection_var_encoder coder = AreaFlagsEnumCoder;
@@ -186,5 +199,20 @@ namespace danet {
   template <>
   struct DefaultEncoderChooser<std::vector<danet::UnitIdStruct>> {
     static constexpr reflection_var_encoder coder = danetUnitIdStruct_uint8_tvectorCoder;
+  };
+
+  template<>
+  struct DefaultEncoderChooser<std::array<std::string, 2> > {
+      static constexpr reflection_var_encoder coder = stdstring_2arrayCoder;
+  };
+
+  template<>
+  struct DefaultEncoderChooser<danet::dummyForDeathInfo> {
+      static constexpr reflection_var_encoder coder = dummyForDeathInfoCoder;
+  };
+
+  template<>
+  struct DefaultEncoderChooser<danet::KillerStruct> {
+      static constexpr reflection_var_encoder coder = KillerStructCoder;
   };
 }

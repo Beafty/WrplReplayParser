@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <cctype>
 
+
 bool FileManager::loadVromfs(std::string &vromfsPath) {
 
   ZoneScoped;
-  if (!fs::exists(vromfsPath))
-    return false;
+  auto file = this->getFile(vromfsPath);
+  if (!file)
+      return false;
   if(holder_dir)
   {
 
@@ -24,12 +26,12 @@ bool FileManager::loadVromfs(std::string &vromfsPath) {
   }
 }
 
-std::shared_ptr<File> FileManager::getFile(const fs::path& path, bool lower, bool prioritizeVromfs) {
+std::unique_ptr<File> FileManager::getFile(const fs::path &path, bool lower, bool prioritizeVromfs) {
   fs::path to_use;
   if(lower)
   {
     std::string tmp = path.string();
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
+    std::ranges::transform(tmp, tmp.begin(), [](char c) { return ::tolower((unsigned char) c); });
     to_use = fs::path(tmp);
   }
   else
@@ -57,11 +59,11 @@ void FileManager::find_vromfs_files_in_folder(std::vector<fs::path> &out_list, c
   if(!directory || directory->getFSObjectType() != isDirectory)
     return ;
   auto d = directory.asDirectory();
-  std::vector<File *> files;
+  std::vector<FileIndex *> files;
   d->getFilesInDirectory(files);
   for (auto &f : files)
   {
-  out_list.push_back(f->getFullFilePath());
+    out_list.push_back(f->getPath());
   }
 }
 
@@ -83,37 +85,39 @@ SmartFSHandle FileManager::getObject(const fs::path& path) {
   return curr_ptr;
 }
 
-std::shared_ptr<File> FileManager::loadRealFsFile(const fs::path &path) {
+std::unique_ptr<File> FileManager::loadRealFsFile(const fs::path &path) {
+  std::shared_ptr<HostFileIndex> index;
   if(path.is_absolute())
   {
-    if(fs::exists(path))
-    {
-      return std::make_shared<HostFile>(path);
+    if(fs::exists(path)) {
+      index = std::make_shared<HostFileIndex>(path);
     }
   }
-  for(auto &mount : this->real_fs_mounts)
-  {
-    fs::path p = mount / path;
-    if(fs::exists(p))
-    {
-      return std::make_shared<HostFile>(p);
+  if (!index)
+    for (auto &mount: this->real_fs_mounts) {
+      fs::path p = mount / path;
+      if (fs::exists(p)) {
+        index = std::make_shared<HostFileIndex>(p);
+      }
     }
-  }
   // final check, check bin directory
-  if(fs::exists(path))
-  {
-    return std::make_shared<HostFile>(path);
+  if(!index && fs::exists(path)) {
+    index = std::make_shared<HostFileIndex>(path);
+  }
+  if (index) {
+    return index->getFile(index);
   }
   return nullptr;
 }
 
-std::shared_ptr<File> FileManager::loadVromfsFile(const fs::path &path) {
-  if(!this->holder_dir)
+std::unique_ptr<File> FileManager::loadVromfsFile(const fs::path &path) {
+  if (!this->holder_dir)
     return nullptr;
   SmartFSHandle file = getObject(path);
   if(!file || file->getFSObjectType() != isFile)
     return nullptr;
-  return file.asFile();
+  auto f = file.asFile();
+  return f->getFile(f);
 }
 
 int FileManager::find_files_in_folder(std::vector<std::string> &out_list, std::string &dir_path,
@@ -129,22 +133,3 @@ int FileManager::find_files_in_folder(std::vector<std::string> &out_list, std::s
 }
 
 FileManager file_mgr{};
-
-namespace dblk {
-  bool load(DataBlock &blk, const char *fname) {
-    auto file = file_mgr.getFile(fname, true);
-    if (file) {
-      //LOG("Loading BLK at path: {}", fname);
-      return file->loadBlk(blk);
-    }
-    return false;
-  }
-
-  bool load(DataBlock &blk, std::string_view fname) {
-    return load(blk, fname.data());
-  }
-  bool load(DataBlock &blk, const std::string &fname) {
-    return load(blk, fname.c_str());
-  }
-}
-

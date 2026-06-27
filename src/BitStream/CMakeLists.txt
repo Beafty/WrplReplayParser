@@ -5,8 +5,8 @@ add_library(BitStream
 add_library(BS::BS ALIAS BitStream)
 
 target_link_libraries(BitStream
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
 )
 
 set(INCLUDES

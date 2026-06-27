@@ -1,9 +1,31 @@
 #include "danet/Bitstream.h"
-#include "DataBlock.h"
-#include "reader.h"
+#include "ioSys/dag_dataBlock.h"
+#include "ioSys/dag_memIo.h"
+
+void BitStream::Write(const DataBlock &blk) {
+  if (blk.isEmpty())
+    WriteCompressed((uint32_t) 0);
+  else {
+    DynamicMemGeneralSaveCB cwr(0, 8 << 10);
+    cwr.seekto(0);
+    cwr.resize(0);
+
+    DataBlock blkCopy{};
+    blkCopy.setFrom(&blk); // save to copy, to guarantee write only needed data (not whole namemap)
+    blkCopy.saveToStream(cwr);
+
+    uint32_t sz = cwr.size();
+    WriteCompressed(sz);
+    if (sz) {
+      AlignWriteToByteBoundary();
+      Write((const char *) cwr.data(), sz);
+    }
+  }
+}
 
 bool BitStream::Read(DataBlock &blk) const
 {
+  blk.reset();
   uint32_t bytesToRead = 0;
   if (!ReadCompressed(bytesToRead))
     return false;
@@ -12,12 +34,10 @@ bool BitStream::Read(DataBlock &blk) const
   AlignReadToByteBoundary();
   if (readOffset + bytes2bits(bytesToRead) > bitsUsed)
     return false;
-
-  // ok look like this cast is ugly as fuck, and it's my fault and I don't feel like fixing it
-  BaseReader rdr{(char*)const_cast<uint8_t*>(GetData() + bits2bytes(readOffset)), (int)bytesToRead, false};
+  InPlaceMemLoadCB crd(GetData() + bits2bytes(readOffset), bytesToRead);
   bool ret = false;
-  if (blk.loadFromStream(rdr, nullptr, nullptr))
-  {
+  if (dblk::load_from_stream(
+    blk, crd, dblk::ReadFlag::ROBUST | dblk::ReadFlag::BINARY_ONLY | dblk::ReadFlag::RESTORE_FLAGS)) {
     readOffset += bytes2bits(bytesToRead);
     ret = true;
   }

@@ -87,4 +87,26 @@ namespace danet {
     uint8_t thang{};
     bool operator==(const UnitIdStruct& other) const = default;
   };
+  struct dummyForDeathInfo {
+      uint8_t v1{};
+      uint8_t v2{};
+      uint16_t v3{};
+      bool v4{};
+      bool v5{};
+
+      bool operator==(const dummyForDeathInfo &other) const = default;
+  };
+  struct KillerStruct {
+      uint64_t player_id{};
+      uint16_t uid{};
+      std::string vehicle{};
+
+      bool operator==(const KillerStruct &other) const = default;
+  };
+  struct DamagedState {
+      uint16_t v1{};
+      uint8_t v2{};
+
+      bool operator==(const DamagedState &other) const = default;
+  };
 }

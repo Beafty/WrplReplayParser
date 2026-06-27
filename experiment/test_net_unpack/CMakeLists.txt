@@ -4,8 +4,8 @@ add_executable(test_net_unpack
 
 target_link_libraries(test_net_unpack
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
         FieldSerializer::FieldSerializer

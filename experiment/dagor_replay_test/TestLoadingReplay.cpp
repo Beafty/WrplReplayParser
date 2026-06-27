@@ -39,19 +39,19 @@ int main() {
   //std::signal(SIGSEGV, signal_handler);
   fs::path conf_dir = CONFIG_DIR;
   fs::path config_file = conf_dir / "dagor_replay_test.blk";
-  DataBlock conf_blk;
+  DataBlock conf_blk{};
   G_ASSERT(dblk::load(conf_blk, config_file.string().c_str()));
   bool is_server_replay = conf_blk.getBool("is_server_replay", false);
   bool source_is_linux_path = conf_blk.getBool("source_is_linux_path", false);
   auto replay_path = conf_blk.getStr("source", nullptr);
   bool bin_is_linux_path = conf_blk.getBool("bin_is_linux_path", false);
   auto bin_path = conf_blk.getStr("bin_path", nullptr);
-  g_log_handler->loadSinkFromDataBlock(*conf_blk.getBlock("logging", 0));
+  g_log_handler->loadSinkFromDataBlock(*conf_blk.getBlockByNameEx("logging"));
   std::string rpl_path_str = replay_path;
   std::string bin_path_str = bin_path;
   G_UNUSED(source_is_linux_path);
   G_UNUSED(bin_is_linux_path);
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   if(!source_is_linux_path) {
     rpl_path_str = convert_os_path_to_wsl2(replay_path);
   }
@@ -68,10 +68,10 @@ int main() {
   if (is_server_replay) {
     fs::path t{rpl_path_str};
     rpl = new ServerReplay(t.string());
-    rdr = rpl->getReplayReader();
+    rdr = rpl->getCompressedReplayReader();
   } else {
     rpl = new Replay(rpl_path_str);
-    rdr = rpl->getReplayReader();
+    rdr = rpl->getCompressedReplayReader();
   }
   int idx;
   auto start = std::chrono::high_resolution_clock::now();
@@ -79,6 +79,7 @@ int main() {
     ParserState state{rpl};
     ReplayPacket pkt{};
     //std::exit(0);
+
     while (rdr->getNextPacket(pkt) && state.ParsePacket(pkt)) {}
     for (auto &plr: state.players) {
       auto owned_eid = *plr.ownedUnitRef.data;

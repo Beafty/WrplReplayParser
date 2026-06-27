@@ -86,6 +86,19 @@ void PyCodegenTypes::include(py::module_ &m) {
     .def_readonly("uid", &danet::UnitIdStruct::uid)
     .def_readonly("thang", &danet::UnitIdStruct::thang)
     ;
+  py::class_<danet::dummyForDeathInfo>(mpi, "dummyForDeathInfo")
+          .def_readonly("v1", &danet::dummyForDeathInfo::v1)
+          .def_readonly("v2", &danet::dummyForDeathInfo::v2)
+          .def_readonly("v3", &danet::dummyForDeathInfo::v3)
+          .def_readonly("v4", &danet::dummyForDeathInfo::v4)
+          .def_readonly("v5", &danet::dummyForDeathInfo::v5);
+  py::class_<danet::KillerStruct>(mpi, "KillerStruct")
+          .def_readonly("player_id", &danet::KillerStruct::player_id)
+          .def_readonly("uid", &danet::KillerStruct::uid)
+          .def_readonly("vehicle", &danet::KillerStruct::vehicle);
+  py::class_<danet::DamagedState>(mpi, "DamagedState")
+          .def_readonly("v1", &danet::DamagedState::v1)
+          .def_readonly("v2", &danet::DamagedState::v2);
   bind_readonly_vector<std::vector<uint32_t>>(gen, "std_vector_uint32_t_");
 
   bind_readonly_vector<std::vector<danet::Crew>>(gen, "std_vector_danet_Crew_");
@@ -108,5 +121,9 @@ void PyCodegenTypes::include(py::module_ &m) {
 
   bind_readonly_vector<std::vector<danet::UnitIdStruct>>(gen, "std_vector_danet_UnitIdStruct_");
 
-include_types_0(gen);
+  bind_array<std::string, 2>(mpi, "std_array_std_string_2_");
+
+  bind_readonly_vector<std::vector<danet::DamagedState> >(gen, "std_vector_danet_DamagedState_");
+
+  include_types_0(gen);
 }

@@ -45,7 +45,7 @@ int main() {
   g_log_handler->loadSinkFromDataBlock(*conf_blk.getBlock("logging", 0));
   std::string bin_path_str = bin_path;
   G_UNUSED(bin_is_linux_path);
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   if(!bin_is_linux_path) {
     bin_path_str = convert_os_path_to_wsl2(bin_path);
   }
@@ -58,8 +58,8 @@ int main() {
   IReplay *rpl = nullptr;
   std::string repl_1 = R"(D:\SteamLibrary\steamapps\common\War Thunder\Replays\#2026.05.09 03.04.41.wrpl)";
   std::string repl_2 = R"(D:\SteamLibrary\steamapps\common\War Thunder\Replays\#2026.05.09 11.16.58.wrpl)";
-#ifdef Linux
-    repl_1 = convert_os_path_to_wsl2(repl_1);
+#ifdef _TARGET_PC_LINUX
+  repl_1 = convert_os_path_to_wsl2(repl_1);
     repl_2 = convert_os_path_to_wsl2(repl_2);
 #endif
 

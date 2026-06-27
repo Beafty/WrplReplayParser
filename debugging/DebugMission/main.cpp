@@ -196,11 +196,11 @@ void FlattenMissionBlk(SharedPtr<DataBlock> &to, SharedPtr<DataBlock> &from) {
 int main() {
   std::string vromfs_mission_path = "gamedata\\missions\\cta\\tanks\\normandy\\normandy_dom.blk";
   auto mis2Path = "gamedata/missions/cta/tanks/port_novorossiysk/airfields/template_port_novorossiysk_airfields_low_ranks.blk";
-#ifdef Linux
+#ifdef _TARGET_PC_LINUX
   std::string dump_path = R"(/mnt/d/GoogleDriveWtMission/dumpTest2.blk)";
   std::string p1 = R"(/mnt/d/SteamLibrary/steamapps/common/War Thunder/cache/binary.2.49.0/mis.vromfs.bin)";
 #endif
-#ifdef Windows
+#ifdef _TARGET_PC_WIN
   std::string dump_path = R"(D:/GoogleDriveWtMission/dump_t.blk)";
   std::string p1 = R"(D:\SteamLibrary\steamapps\common\War Thunder\cache\binary.2.53.0\mis.vromfs.bin)";
 #endif

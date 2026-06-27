@@ -637,4 +637,21 @@ struct LaserDecalManager {
   bool operator==(const LaserDecalManager& other) const { return true;}
 };
 
+struct UniqueBufWithShaderVar {
+    char data[8];
+    bool operator==(const UniqueBufWithShaderVar &other) const { return true; }
+};
+
+struct SoundOcclusionBlob {
+    char data[8];
+    bool operator==(const SoundOcclusionBlob &other) const { return true; }
+};
+
+namespace aimmem {
+    struct AimingMemPoints {
+        char data[8];
+        bool operator==(const AimingMemPoints &other) const { return true; }
+    };
+}
+
 #endif //MYEXTENSION_BASICTYPEDEFS_H

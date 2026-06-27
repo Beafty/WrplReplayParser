@@ -6,11 +6,11 @@ add_executable(DumpTags
 target_link_libraries(DumpTags
         # mimalloc-static
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
         VROMFS::VROMFS
-        Zlib::Zlib
+        ZLIB::ZLIB
 
 )
 

@@ -25,10 +25,11 @@ extern bool DO_VERBOSE;
 
 class ExceptionException : public std::runtime_error {
 public:
-  ExceptionException(std::string &&msg) : std::runtime_error(msg) {
+  explicit ExceptionException(std::string msg)
+    : std::runtime_error(std::move(msg)) {
   }
 
-  const char *what() {
+  const char *what() const noexcept override {
     return std::runtime_error::what();
   }
 };
@@ -82,9 +83,10 @@ inline int popcount(uint32_t val) {
 /// \param buff
 inline void FormatBytesToStream(std::basic_ostream<char> &oss, std::span<char> buff) {
   for (auto c: buff) {
-    if (std::isprint(c)) {
-      oss.write((const char *) &c, 1);
-    } else {
+      unsigned char v = (unsigned char) c;
+      if (std::isprint(v)) {
+          oss.write((const char *) &v, 1);
+      } else {
       oss << fmt::format("\\x{:02X}", c);
     }
   }

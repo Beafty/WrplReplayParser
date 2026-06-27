@@ -9,7 +9,8 @@
 
 #define REG_SYS               \
   RS(BaseEntity)              \
-  RS(UpdateMPlayer)
+  RS(UpdateMPlayer)           \
+  RS(Rocketry)
 
 
 #define RS(x) ECS_DECL_PULL_VAR(x);

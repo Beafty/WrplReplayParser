@@ -4,8 +4,11 @@
 #include "cstdint"
 #include "danet/BitStream.h"
 #include "math/dag_Point3.h"
-#include "DataBlock.h"
+#include <ioSys/dag_dataBlock.h>
 #include "ecs/entityId.h"
+#include "math/dag_TMatrix.h"
+#include "mpi/types.h"
+#include "mpi/codegen/ReflIncludes.h"
 //#include "mpi/mpi.h"
 //#include "mpi/codegen/ReflIncludes.h"
 
@@ -23,10 +26,14 @@ struct SpaceTime {
   }
 };
 
+#define COUNTER_MEASURES_COUNT 2
+#define SENSORS_COUNT 4
+#define TARGETS_NUM 8
+
 
 struct SensorsControlStates {
-  // a whole bunch of this is probably a union actually
-  bool v1 = 0;
+    // a bunch of this is probably a union actually
+    bool v1 = 0;
   bool v2 = 0;
   bool first_bool = false; // maybe is turned on?
   float unpacked_1 = 0;
@@ -50,7 +57,7 @@ struct SensorsControlStates {
   int some_data_7;
   float field147_0xa8;
 
-  bool deserialize(BitStream *bs);
+    bool deserialize(BitStream &bs);
 };
 
 struct TargetDesignationControlState {
@@ -71,7 +78,14 @@ struct TargetDesignationControlState {
   uint8_t v14;
   uint32_t v15;
 
-  bool deserialize(BitStream *bs);
+  bool deserialize(BitStream &bs);
+};
+
+struct CounterMeasuresControlState {
+  uint8_t v1;
+  uint8_t v2;
+
+  bool deserialize(BitStream &bs);
 };
 
 enum UnitType : uint8_t {
@@ -137,7 +151,8 @@ namespace unit {
     Unit(uint16_t uid, UnitType unit_type) : uid(uid), unitType(unit_type) {}
 
     // does this entity actually exist in the ECS, or has it been moved after server ordered destruction?
-
+    BaseExtReflectable *base_data = nullptr;
+    DVMReflectable *base_dvm_data = nullptr;
     uint32_t created_at_ms = 0;
     uint32_t killed_at_ms = 0xFFFFFFFF; // when was killed
     uint32_t destroyed_at_ms = 0xFFFFFFFF; // when was 'destroyed' in ecs
@@ -159,6 +174,8 @@ namespace unit {
     std::vector<Weapon> weapons{};
     std::vector<SpaceTime> positions{};
 
+    UnitWeaponsMask weapons_mask{};
+
     Tank *AsTank();
 
     Aircraft *AsAircraft();
@@ -168,20 +185,32 @@ namespace unit {
   bool LoadFromStorage(Unit *unit, const FieldSerializerDict &data);
 
   class Aircraft : public Unit {
-  public:
-    Aircraft(uint16_t uid) : Unit(uid, AircraftType) {}
+      FMWReflectable fmv_data{};
+      FM_DVMReflectable fm_dvm_data{};
 
-    virtual ~Aircraft() = default;
+  public:
+      explicit Aircraft(uint16_t uid) : Unit(uid, AircraftType) {
+          base_data = &fmv_data;
+          base_dvm_data = &fm_dvm_data;
+      }
+
+      ~Aircraft() override = default;
     void Load() override;
 
     Weapon *getWeapon(uint32_t ref);
   };
 
   class Tank : public Unit {
-  public:
-    Tank(uint16_t uid) : Unit(uid, TankType) {}
-    virtual ~Tank() = default;
+      GMReflectable gm_data{};
+      GM_DVMReflectable gm_dvm_data{};
 
+  public:
+      explicit Tank(uint16_t uid) : Unit(uid, TankType) {
+          base_data = &gm_data;
+          base_dvm_data = &gm_dvm_data;
+      }
+
+      ~Tank() override = default;
   };
 
   struct UnitRef {

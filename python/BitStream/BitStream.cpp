@@ -7,7 +7,7 @@ extern "C" {
 #include "Logger.h"
 #include "span"
 #include "idFieldSerializer.h"
-#include "DataBlock.h"
+#include "ioSys/dag_dataBlock.h"
 
 using ssize_t = Py_ssize_t;
 PyBitStream py_bitstream{};

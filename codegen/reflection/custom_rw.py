@@ -1,23 +1,5 @@
 from .DataTypes import *
 
-def datablock_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
-    return f"""
-      uint32_t size;
-      REPL_VER(bs->ReadCompressed(size));
-      if (size > 0)
-      {'{'}
-        std::vector<char> raw;
-        raw.resize(size);
-        bs->AlignReadToByteBoundary();
-        REPL_VER(bs->ReadArray(raw.data(), size));
-        BaseReader rdr{'{'}raw.data(), (int)raw.size(), false{'}'};
-        REPL_VER({datatype.get_ref_to_child(name)}loadFromStream(rdr, nullptr, nullptr));
-      {'}'}"""
-
-def datablock_writer(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
-    return f"      EXCEPTION(\"DataBlock packing is unsupported for {name}\");"
-
-
 def EntityId_loader(mgr: 'DataTypeManager', datatype: DataTypeInst, name: str):
     return f"      REPL_VER(net::read_eid(*bs, {datatype.access_var(name)}));"
 

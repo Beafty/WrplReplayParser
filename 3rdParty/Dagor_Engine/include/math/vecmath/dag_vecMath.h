@@ -6,6 +6,7 @@
 
 #include "dag_vecMathDecl.h"
 #include <cstdint>
+#include "math/dag_bits.h"
 //
 // basic arithmetic
 //

@@ -6,8 +6,9 @@ add_library(Replay
 
 target_link_libraries(Replay
         BS::BS
-        Zlib::Zlib
+        ZLIB::ZLIB
         libdeflate::libdeflate_static
+        dagIoSys::dagIoSys
 )
 add_library(Replay::Replay ALIAS Replay)
 

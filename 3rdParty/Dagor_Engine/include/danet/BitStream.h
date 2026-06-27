@@ -226,6 +226,8 @@ public:
     writeString(str.c_str(), str.size());
   }
 
+  void Write(const DataBlock &blk);
+
   template<typename T>
   bool Read(T &t) const {
     return ReadBits((uint8_t *) &t, bytes2bits(sizeof(T)));
@@ -328,7 +330,7 @@ public:
 
   void Write(char *t) { writeString(t, (t && *t) ? strlen(t) : size_t(0)); }
 
-  bool ReadZigZag(int &v) {
+  bool ReadZigZag(int &v) const {
     uint32_t val;
     if(!this->ReadCompressed(val))
       return false;

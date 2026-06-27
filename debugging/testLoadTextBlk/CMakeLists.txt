@@ -6,8 +6,8 @@ add_executable(LoadTextBLKTest
 target_link_libraries(LoadTextBLKTest
         # mimalloc-static
         BS::BS
-        BLK::BLK
-        READER::READER
+        dagBlk::dagBlk
+        dagIoSys::dagIoSys
         FS::FS
 
 )

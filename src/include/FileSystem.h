@@ -13,14 +13,17 @@
 #include "utils.h"
 #include <filesystem>
 #include "dag_assert.h"
+#include "FileSystem.h"
 
 namespace fs = std::filesystem;
 
 class Directory;
 
-class File;
+class FileIndex;
 
 class FSObject;
+
+class VROMFs;
 
 
 class SmartFSHandle {
@@ -28,10 +31,12 @@ public:
   SmartFSHandle() = default;
 
   explicit SmartFSHandle(std::shared_ptr<FSObject> ptr)
-      : ptr(std::move(ptr)) {}
+    : ptr(std::move(ptr)) {
+  }
 
   SmartFSHandle(std::nullptr_t)
-      : ptr(nullptr) {}
+    : ptr(nullptr) {
+  }
 
   FSObject *operator->() const {
     return ptr.get();
@@ -51,7 +56,7 @@ public:
     return ptr;
   }
 
-  std::shared_ptr<File> asFile();
+  std::shared_ptr<FileIndex> asFile();
 
   std::shared_ptr<Directory> asDirectory();
 
@@ -71,11 +76,16 @@ public:
 
   /// returns the name of this FSObject, will include extension if it exists
   /// \return
-  std::string getName() {
+  std::string getName() const {
     return name.filename().string();
   }
 
-  FsObjectTypes getFSObjectType() {
+  const fs::path &getPath() const {
+    return name;
+  }
+
+
+  FsObjectTypes getFSObjectType() const {
     return obj_type;
   }
 
@@ -95,14 +105,14 @@ public:
     throw std::runtime_error("Attempted to index an FSObject that is not a directory");
   }
 
-  static std::shared_ptr<File> FSObjToFile(const std::shared_ptr<FSObject> &obj) {
+  static std::shared_ptr<FileIndex> FSObjToFile(const std::shared_ptr<FSObject> &obj) {
     if (obj->getFSObjectType() == isFile) {
-      return std::dynamic_pointer_cast<File>(obj);
+      return std::dynamic_pointer_cast<FileIndex>(obj);
     }
     return nullptr;
   }
 
-  File *asFile();
+  FileIndex *asFile();
 
   Directory *asDirectory();
 
@@ -117,33 +127,93 @@ protected:
   fs::path name;
   Directory *owner = nullptr;
   FsObjectTypes obj_type = isNone;
-  friend File;
+  friend FileIndex;
   friend Directory;
 };
 
 class DataBlock;
+class File;
+class HostFile;
 
-class File : public FSObject {
+
+class FileIndex : public FSObject {
 public:
+  ~FileIndex() override = default;
 
-  void init(const fs::path &path) {
+  FileIndex(const fs::path &path) {
     name = path;
     obj_type = isFile;
   }
 
-  void init(const std::string &name_) {
-    init(fs::path(name_));
+  FileIndex(const std::string &name_) {
+    name = fs::path(name_);
+    obj_type = isFile;
+  }
+
+  virtual std::unique_ptr<File> getFile(std::shared_ptr<FileIndex> ths) = 0;
+
+  friend File;
+  friend HostFile;
+};
+
+class File {
+protected:
+  std::shared_ptr<FileIndex> index;
+  int64_t read_offs{}; // used with tell(), read(), etc
+  int64_t f_length{};
+
+  // read implementation
+  int64_t virtual read_impl(void *ptr, size_t length) = 0;
+
+public:
+  const FileIndex *getIndex() const { return index.get(); }
+
+  virtual ~File() = default;
+
+  explicit File(std::shared_ptr<FileIndex> index) : index(std::move(index)) {
+    read_offs = -1;
+    f_length = -1;
   }
 
   std::string getExtension() {
-    return name.extension().string();
+    return index->name.extension().string();
   }
 
 
   fs::path getFullFilePath() {
-    return name;
+    return index->name;
   }
 
+  int64_t tell() { return this->read_offs; }
+
+  // all seek methods based on dagor engine definition
+  int64_t df_seek_to(int64_t offs) {
+    if (offs < 0 || offs >= f_length) {
+      return -1;
+    }
+    this->read_offs = offs;
+    return this->read_offs;
+  }
+
+  int64_t df_seek_rel(int64_t offs) {
+    if (offs < 0 && read_offs + offs >= f_length) {
+      return -1;
+    }
+    this->read_offs += offs;
+    return this->read_offs;
+  }
+
+  int64_t df_seek_end(int64_t offs) {
+    if (offs > 0 || f_length - offs < 0) {
+      return -1;
+    }
+    this->read_offs = f_length - offs;
+    return this->read_offs;
+  }
+
+  int64_t df_read(void *ptr, size_t len) {
+    return read_impl(ptr, len);
+  }
 
 
   /// reads data as stored in the file, no processing
@@ -151,20 +221,43 @@ public:
 
   virtual void Save(std::ofstream *cb) = 0;
 
+  virtual const VROMFs *getUnderlyingVromfs() = 0;
+
   virtual bool loadBlk(DataBlock &blk) = 0;
 
-  // TODO: turn readRaw into returning a std::shared_ptr<std::span<char>>
+  int64_t length() const { return f_length; };
 };
 
+class HostFileIndex : public FileIndex {
+  int64_t file_length;
 
-class HostFile : public File {
+  void init();
+
 public:
-  explicit HostFile(const std::string &name) {
-    init(name);
+  ~HostFileIndex() override = default;
+
+  HostFileIndex(const std::string &name_) : FileIndex(name_) {
+    init();
   }
 
-  explicit HostFile(const fs::path &name) {
-    init(name);
+  HostFileIndex(const fs::path &path) : FileIndex(path) {
+    init();
+  }
+
+  std::unique_ptr<File> getFile(std::shared_ptr<FileIndex> ths) override;
+
+  friend HostFile;
+};
+
+class HostFile : public File {
+protected:
+  int64_t read_impl(void *ptr, size_t length) override;
+
+  void init_hf();
+
+public:
+  explicit HostFile(std::shared_ptr<FileIndex> index) : File(std::move(index)) {
+    init_hf();
   }
 
   /// A implementation for reading a file from the OS, will cache data on first read
@@ -177,16 +270,18 @@ public:
 
   bool loadBlk(DataBlock &blk) override;
 
-private:
-  std::vector<char> buffer;
-  fs::file_time_type last_write_time;
+  const VROMFs *getUnderlyingVromfs() override {
+    return nullptr;
+  }
 
+private:
+  std::ifstream file_stream;
+  std::vector<char> buffer;
 };
 
 class DummyOStream : std::basic_ostream<char> {
 public:
   DummyOStream() = default;
-
 };
 
 class Directory : public FSObject {
@@ -225,9 +320,8 @@ private:
     }
 
     void Advance() {
-
       if (isEnd()) {
-        throw std::runtime_error("tried to advance past the end of a path");
+        EXCEPTION("tried to advance past the end of a path");
       }
       iter_pointer = std::next(iter_pointer);
     }
@@ -239,7 +333,6 @@ private:
   };
 
 public:
-
   explicit Directory(const std::string &name) {
     this->name = name;
     this->obj_type = isDirectory;
@@ -263,12 +356,9 @@ public:
   /// \return a std::shared_ptr<FsObject> or a nullptr
   std::shared_ptr<FSObject> getFSObject(const std::string &name) {
     std::string to_use;
-    if (name.c_str()[0] == '%')
-    {
-      to_use = std::string(name.c_str()+1);
-    }
-    else
-    {
+    if (name.c_str()[0] == '%') {
+      to_use = std::string(name.c_str() + 1);
+    } else {
       to_use = name;
     }
     auto it = objects.find(to_use);
@@ -285,14 +375,14 @@ public:
   /// Gets a File
   /// \param name the name to look up in this directory
   /// \return a std::shared_ptr<File> or a nullptr
-  std::shared_ptr<File> getFile(const std::string &name) {
+  std::shared_ptr<FileIndex> getFile(const std::string &name) {
     auto it = objects.find(name);
     if (it == objects.end() || !it->second)
       return nullptr;
 
     const std::shared_ptr<FSObject> &obj = it->second;
     if (obj->obj_type == isFile) {
-      return std::dynamic_pointer_cast<File>(obj);
+      return std::dynamic_pointer_cast<FileIndex>(obj);
     }
     return nullptr;
   }
@@ -329,11 +419,11 @@ public:
     return false;
   }
 
-  bool addFile(const std::shared_ptr<File> &file) {
+  bool addFile(const std::shared_ptr<FileIndex> &file) {
     return addFSObject(file);
   }
 
-  bool addFile(const std::shared_ptr<File> &file, const fs::path &path) {
+  bool addFile(const std::shared_ptr<FileIndex> &file, const fs::path &path) {
     auto objAdder = ObjAdder(path);
     return addFSObject(file, objAdder);
   }
@@ -379,78 +469,8 @@ public:
     }
   }
 
-
-  void dumpToPath(const fs::path &path) {
-    // Ensure the root directory exists (create it if needed)
-    if (!fs::exists(path)) {
-      fs::create_directories(path);
-    }
-
-    for (const auto &objPair: objects) {
-      const auto &name = objPair.first;
-      const auto &obj = objPair.second;
-
-      // Build the full path for this object
-      fs::path targetPath = path / name;
-
-      if (obj->obj_type == isDirectory) {
-        // Recursively dump subdirectories
-        auto dir = std::dynamic_pointer_cast<Directory>(obj);
-        if (dir) {
-          dir->dumpToPath(targetPath);
-        }
-      } else if (obj->obj_type == isFile) {
-        auto file = std::dynamic_pointer_cast<File>(obj);
-        if (file) {
-          // Create the parent directories (if any)
-          if (!fs::exists(targetPath.parent_path())) {
-            fs::create_directories(targetPath.parent_path());
-          }
-
-          // Dump the file data (assume File has read/write methods)
-
-          std::ofstream out(targetPath, std::ios::binary);
-          try {
-            if (!out) {
-              throw std::runtime_error("Failed to write file: " + targetPath.string());
-            }
-
-            // Assuming File has a `readRaw()` method or equivalent
-            std::cout << "Parsing file: " << file->getName() << "\n";
-            file->Save(&out);
-            //std::cout << "Saved file: " << file->getName() << "\n";
-          }
-          catch (const std::exception &e) {
-            std::cerr << "Exception saving file " << targetPath << ": " << e.what() << "\n";
-          }
-
-        }
-      }
-    }
-  }
-
-  void callSaveForAllFiles() {
-    for (const auto& entry: this->objects) {
-      auto obj = entry.second;
-      if (!obj) {
-        continue;
-      }
-      if (obj->obj_type == isFile) {
-        auto file = obj->asFile();
-        std::ofstream *os; //
-        std::cout << "parsing file: " << file->getName() << "\n";
-        file->Save(os);
-      }
-      if (obj->obj_type == isDirectory) {
-        auto dir = obj->asDirectory();
-        dir->callSaveForAllFiles();
-      }
-    }
-  }
-
-  void getFilesInDirectory(std::vector<File *> &files)
-  {
-    for (const auto& entry: this->objects) {
+  void getFilesInDirectory(std::vector<FileIndex *> &files) {
+    for (const auto &entry: this->objects) {
       auto obj = entry.second;
       if (!obj) {
         continue;
@@ -462,81 +482,13 @@ public:
     }
   }
 
-  void dumpToPathThreaded(const fs::path &path, ThreadPool &pool) {
-    // Ensure the root directory exists (create it if needed)
-    if (!fs::exists(path)) {
-      fs::create_directories(path);
-    }
-
-    for (const auto &objPair: objects) {
-      const auto &name = objPair.first;
-      const auto &obj = objPair.second;
-
-      // Build the full path for this object
-      fs::path targetPath = path / name;
-
-      if (obj->obj_type == isDirectory) {
-        // Recursively dump subdirectories
-        auto dir = std::dynamic_pointer_cast<Directory>(obj);
-        if (dir) {
-          dir->dumpToPathThreaded(targetPath, pool);
-        }
-      } else if (obj->obj_type == isFile) {
-        auto file = std::dynamic_pointer_cast<File>(obj);
-        if (file) {
-          // Create the parent directories (if any)
-          if (!fs::exists(targetPath.parent_path())) {
-            fs::create_directories(targetPath.parent_path());
-          }
-
-          // Dump the file data (assume File has read/write methods)
-          pool.enqueue([file, targetPath]() {
-            std::ofstream out(targetPath, std::ios::binary);
-            try {
-              if (!out) {
-                throw std::runtime_error("Failed to write file: " + targetPath.string());
-              }
-
-              // Assuming File has a `readRaw()` method or equivalent
-              std::cout << "Parsing file: " << file->getName() << "\n";
-              file->Save(&out);
-              //std::cout << "Saved file: " << file->getName() << "\n";
-            }
-            catch (const std::exception &e) {
-              std::cerr << "Exception saving file " << targetPath << ": " << e.what() << "\n";
-            }
-          });
-        }
-      }
-    }
-  }
-
   SmartFSHandle operator[](const std::string &lookup_name) override {
     auto x = getFSObject(lookup_name);
     if (x == nullptr) {
-      LOGE("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
+      //LOGD2("indexing of directory '{}' for FSObject '{}' returned null", this->name.string().c_str(), lookup_name.c_str());
+      return nullptr;
     }
     return SmartFSHandle(x);
-  }
-
-  void loadFromOsPath(const fs::path &os_path) {
-    G_ASSERT(fs::exists(os_path) && fs::is_directory(os_path));
-
-    for (const auto &entry: fs::recursive_directory_iterator(os_path)) {
-      fs::path relative = fs::relative(entry.path(), os_path);
-
-      if (entry.is_directory()) {
-        auto dir = std::make_shared<Directory>(entry.path().filename().string());
-        this->addDirectory(dir, relative);
-      } else if (entry.is_regular_file()) {
-        auto file = std::make_shared<HostFile>(entry.path().string());
-        this->addFile(file, relative);
-        //std::cout << "Adding object: " << file->getName()
-        //          << ", type: " << file->getFSObjectType()
-        //          << ", real type: " << typeid(file.get()).name() << "\n";
-      }
-      // Optionally: skip symlinks or other non-regular files
-    }
   }
 
 protected:
@@ -552,43 +504,46 @@ protected:
     return nextDir->addFSObject(f, path);
   }
 
-  std::unordered_map<std::string, std::shared_ptr<FSObject>> objects;
+  std::unordered_map<std::string, std::shared_ptr<FSObject> > objects;
 };
 
 class VROMFs;
 
-struct FileManager
-{
+struct FileManager {
   bool loadVromfs(std::string &vromfsPath);
 
-  bool loadVromfs(fs::path &vromfsPath) { auto str = vromfsPath.string();return loadVromfs(str);}
+  bool loadVromfs(fs::path &vromfsPath) {
+    auto str = vromfsPath.string();
+    return loadVromfs(str);
+  }
 
-  std::shared_ptr<File> loadRealFsFile(const fs::path &path);
+  std::unique_ptr<File> loadRealFsFile(const fs::path &path);
 
-  std::shared_ptr<File> loadVromfsFile(const fs::path &path);
+  std::unique_ptr<File> loadVromfsFile(const fs::path &path);
 
-  std::shared_ptr<File> getFile(const fs::path& path, bool lower=false, bool prioritizeVromfs = true);
+  std::unique_ptr<File> getFile(const fs::path &path, bool lower = false, bool prioritizeVromfs = true);
 
   void find_vromfs_files_in_folder(std::vector<fs::path> &ut_list, const std::string &dir_path);
 
-  int find_files_in_folder(std::vector<std::string> &out_list, std::string &dir_path, const char *file_suffix_to_match = "",
-                                   bool vromfs = true, bool realfs = true, bool subdirs = false);
-  inline void add_mount(const fs::path& path)
-  {
+  int find_files_in_folder(std::vector<std::string> &out_list, std::string &dir_path,
+                           const char *file_suffix_to_match = "",
+                           bool vromfs = true, bool realfs = true, bool subdirs = false);
+
+  inline void add_mount(const fs::path &path) {
     this->real_fs_mounts.push_back(path);
   }
-  inline std::shared_ptr<Directory> getDir()
-  {
+
+  inline std::shared_ptr<Directory> getDir() {
     return holder_dir;
   }
 
 private:
-  SmartFSHandle getObject(const fs::path& path);
+  SmartFSHandle getObject(const fs::path &path);
 
   std::vector<fs::path> real_fs_mounts;
   std::shared_ptr<Directory> holder_dir;
 
-  std::vector<std::shared_ptr<VROMFs>> loaded_vromfs;
+  std::vector<std::shared_ptr<VROMFs> > loaded_vromfs;
 };
 
 extern FileManager file_mgr;

@@ -2,14 +2,16 @@ add_library(WTEvents
         STATIC
         BaseEntityES.gen.es.cpp
         UpdateMPlayerES.gen.es.cpp
+        RocketryES.gen.es.cpp
         ecsPull.cpp
 )
 
 
 target_link_libraries(WTEvents
+        ParserState::ParserState
         dagECS::dagECS
         FieldSerializer::FieldSerializer
-        BLK::BLK
+        dagBlk::dagBlk
         FS::FS
         VROMFS::VROMFS
         XXH3
