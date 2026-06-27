@@ -5,7 +5,7 @@ a feature filled wrpl replay parser that has python bindings (and will be publis
 this parser lets you access battle messages, chat messages, various global object data (like player information and team information), and entity construction information plus aircraft and tank positions (see FMSync and GMSync functions)
 I have completed most of my inital goals, and will work to clean up the codebase as time goes on. this include reorganization / refactoring plus adding of probably sorely needed utility functions.
 
-currently supported replay version: 0x18bfe10
+currently supported replay version: 18c0b
 
 This attempts to be buildable for:
 

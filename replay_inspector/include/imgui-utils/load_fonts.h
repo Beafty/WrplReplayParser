@@ -21,7 +21,7 @@ void load_imgui_fonts() {
     cfg.OversampleH = cfg.OversampleV = 2;
     cfg.PixelSnapH = false;
     cfg.FontDataOwnedByAtlas = false;
-    const float fontSizePx = 15.0f;
+    const float fontSizePx = 13.0f;
     auto main_font = file_mgr.getFile("ttfs/pt_sans-web-regular-reducedheight.ttf");
     G_ASSERT(main_font);
 
